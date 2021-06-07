@@ -704,7 +704,6 @@ agents = calc_propens_agents(dataframe =  migrat_stats, variable =  "have_kids",
 x = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", variable=  "havechild", list_var_classes_neigh_df = c("nr_ppl_with_kids", "nr_ppl_without_kids"), list_agent_propens =  c("likeli_kids"), list_class_names = c(1, 0),  agent_exclude = c("ischild", "hh_single"))
 
 
-
 agents= agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", "havechild", "likeli_kids", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western", "prop_singlehh" ,"prop_have_kids" )]
 write.csv(agents, "Agent_pop.csv")
 
