@@ -314,6 +314,7 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
               }
               else if(length(which(agent_df[x, c(variable)] == list_class_names[1])) < tot__var_class_neigh[1]){
                 abs_diff = as.integer(as.numeric(tot__var_class_neigh[1]) - length(which(agent_df[x, c(variable)] == list_class_names[1])))
+                print(paste("strat 1:", abs_diff))
                 if(abs_diff <= 1|is.na(abs_diff)){
                   fitness = 1
                 }
@@ -327,6 +328,7 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
               }
               else if(length(which(agent_df[x, c(variable)] == list_class_names[2])) < tot__var_class_neigh[2]){
                 abs_diff = as.integer(as.numeric(tot__var_class_neigh[2]) - length(which(agent_df[x, c(variable)] == list_class_names[2])))
+                print(paste("strat 2:", abs_diff))
                 if(abs_diff <= 1|is.na(abs_diff)){
                   fitness = 1
                 }
@@ -693,13 +695,13 @@ for (i in 1:nrow(neigh_stats)){
 
 agents = calc_propens_agents(dataframe =  migrat_stats, variable =  "have_kids", total_population =  "TotaalAantalPersonenInHuishoudens_1", agent_df =  agents, list_conditional_var = c("age_group_20", "sex", "migrationbackground") )
 
-x = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", variable=  "havechild", list_var_classes_neigh_df = c("nr_ppl_with_kids", "nr_ppl_without_kids"), list_agent_propens =  c("likeli_kids"), list_class_names = c(0, 1),  agent_exclude = c("ischild", "hh_single"))
+x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single","likeli_kids", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western", "prop_singlehh" ,"prop_have_kids" ,"ischild" )]
 
-neigh_stats$nr_ppl_with_kids[30]
-neigh_stats$nr_ppl_without_kids[30]
-neigh_stats$AantalInwoners_5[30]
+x = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", variable=  "havechild", list_var_classes_neigh_df = c("nr_ppl_with_kids", "nr_ppl_without_kids"), list_agent_propens =  c("likeli_kids"), list_class_names = c(1, 0),  agent_exclude = c("ischild", "hh_single"))
 
-agents= agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single","likeli_kids", "havechild")]
+
+
+agents= agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", "havechild", "likeli_kids", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western", "prop_singlehh" ,"prop_have_kids" )]
 write.csv(agents, "Agent_pop.csv")
 
 
