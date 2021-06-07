@@ -287,9 +287,15 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
   if(missing(list_class_names)){
     list_class_names = list_var_classes_neigh_df
   }
+  if(!missing(agent_exclude)){
+    agent_df[, c("excluded")] = 0
+    for(i in 1:length(agent_exclude)){
+      agent_df[which(agent_df[, c(agent_exclude[i])] == 1) , c("excluded")] =  1
+    }
+  }
   for (i in 1:nrow(neigh_df)){
     if(!missing(agent_exclude)){
-        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)] & agent_df[, c(agent_exclude)] != 1)
+        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)] & agent_df[, c("excluded")] != 1)
     }
     else{
         x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)])
@@ -694,8 +700,6 @@ for (i in 1:nrow(neigh_stats)){
 }
 
 agents = calc_propens_agents(dataframe =  migrat_stats, variable =  "have_kids", total_population =  "TotaalAantalPersonenInHuishoudens_1", agent_df =  agents, list_conditional_var = c("age_group_20", "sex", "migrationbackground") )
-
-x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single","likeli_kids", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western", "prop_singlehh" ,"prop_have_kids" ,"ischild" )]
 
 x = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", variable=  "havechild", list_var_classes_neigh_df = c("nr_ppl_with_kids", "nr_ppl_without_kids"), list_agent_propens =  c("likeli_kids"), list_class_names = c(1, 0),  agent_exclude = c("ischild", "hh_single"))
 
