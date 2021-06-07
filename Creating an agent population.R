@@ -665,7 +665,7 @@ for (i in 1:nrow(neigh_stats)) {
 
 agents = calc_propens_agents(dataframe =  migrat_stats, variable =  "singlehh", total_population =  "TotaalAantalPersonenInHuishoudens_1", agent_df =  agents, list_conditional_var = c("age_group_20", "sex", "migrationbackground") )
 
-x = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", agent_exclude = c("ischild"),
+agents = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", agent_exclude = c("ischild"),
                                        variable=  "hh_single",  list_var_classes_neigh_df = c("Eenpersoonshuishoudens_29", "nr_multiplehh"), list_agent_propens =  c("prop_singlehh"), 
                                        list_class_names = c(1, 0))
 
@@ -693,7 +693,7 @@ for (i in 1:nrow(neigh_stats)){
 
 agents = calc_propens_agents(dataframe =  migrat_stats, variable =  "have_kids", total_population =  "TotaalAantalPersonenInHuishoudens_1", agent_df =  agents, list_conditional_var = c("age_group_20", "sex", "migrationbackground") )
 
-x = distr_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", variable=  "havechild", list_var_classes_neigh_df = c("nr_ppl_with_kids", "nr_ppl_without_kids"), list_agent_propens =  c("likeli_kids"), list_class_names = c(0, 1),  agent_exclude = c("ischild", "hh_single"))
+x = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", variable=  "havechild", list_var_classes_neigh_df = c("nr_ppl_with_kids", "nr_ppl_without_kids"), list_agent_propens =  c("likeli_kids"), list_class_names = c(0, 1),  agent_exclude = c("ischild", "hh_single"))
 
 neigh_stats$nr_ppl_with_kids[30]
 neigh_stats$nr_ppl_without_kids[30]
@@ -738,175 +738,3 @@ agents$agent_ID = paste("Agent_",1:tot_pop, sep="")
 write.csv(agents, "Agent_pop.csv")
 
 
-
-############################ former code
-
-
-agents$sex = ""
-for (i in 1:nrow(neigh_stats)){
-  x = which(agents$neighb_code == neigh_stats$Codering_3[i])
-  nr_females = neigh_stats$Vrouwen_7[i]
-  nr_males = neigh_stats$Mannen_6[i]
-  random = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
-  if(length(x) != 0){
-    for(m in 1:length(x)){
-      if(nr_females != 0 & nr_males != 0){
-        if(agents$likeli_female[x[m]]>= random[m]){
-          agents$sex[x[m]] = "female"
-          nr_females = nr_females - 1
-        }
-        else{
-          agents$sex[x[m]] = "male"
-          nr_males = nr_males - 1
-        }
-      }
-      if(nr_females == 0 & nr_males != 0){
-        agents$sex[x[m]] = "male"
-        nr_males = nr_males - 1
-      }
-      if(nr_females != 0 & nr_males == 0){
-        agents$sex[x[m]] = "female"
-        nr_females = nr_females - 1
-      }
-      if(nr_females == 0 & nr_males == 0){
-        if(agents$likeli_female[x[m]]> random[m]){
-          agents$sex[x[m]] = "female"
-        }
-        else{
-          agents$sex[m] = "male"
-        }
-      }
-    }
-  }
-}
-
-agents$migrationbackground = ""
-for (i in 1:nrow(neigh_stats)){
-  x = which(agents$neighb_code == neigh_stats$Codering_3[i])
-  nr_Western = neigh_stats$WestersTotaal_17[i]
-  nr_Non_Western = neigh_stats$NietWestersTotaal_18[i]
-  nr_Dutch = length(x)- (nr_Western + nr_Non_Western)
-  random = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
-  if(length(x) != 0){
-    for(m in 1:length(x)){
-      if(nr_Western != 0 & nr_Dutch != 0 & nr_Non_Western != 0){
-        if(agents$likeli_dutch[x[m]]>= random[m]){
-          agents$migrationbackground[x[m]] = "Dutch"
-          nr_Dutch = nr_Dutch - 1
-        }
-        else if(agents$likeli_dutch[x[m]]< random[m] & (agents$likeli_western[x[m]] + agents$likeli_dutch[x[m]]) >= random[m]){
-          agents$migrationbackground[x[m]] = "Western"
-          nr_Western = nr_Western - 1
-        }
-        else if((agents$likeli_western[x[m]] + agents$likeli_dutch[x[m]]) < random[m]){
-          agents$migrationbackground[x[m]] = "Non-Western"
-          nr_Non_Western = nr_Non_Western - 1
-        }
-      }
-      else if(nr_Western == 0 & nr_Dutch != 0 & nr_Non_Western != 0){
-        if((agents$likeli_dutch[x[m]]+ (agents$likeli_western[x[m]]/2)) >= random[m]){
-          agents$migrationbackground[x[m]] = "Dutch"
-          nr_Dutch = nr_Dutch - 1
-        }
-        else if((agents$likeli_dutch[x[m]]+ (agents$likeli_western[x[m]]/2)) < random[m]){
-          agents$migrationbackground[x[m]] = "Non-Western"
-          nr_Non_Western = nr_Non_Western - 1
-        }
-      }
-      else if(nr_Western != 0 & nr_Dutch != 0 & nr_Non_Western == 0){
-        if((agents$likeli_dutch[x[m]]+ (agents$likeli_non_western[x[m]]/2)) >= random[m]){
-          agents$migrationbackground[x[m]] = "Dutch"
-          nr_Dutch = nr_Dutch - 1
-        }
-        else if((agents$likeli_dutch[x[m]]+ (agents$likeli_non_western[x[m]]/2)) < random[m]){
-          agents$migrationbackground[x[m]] = "Western"
-          nr_Western = nr_Western - 1
-        }
-      }
-      else if(nr_Western != 0 & nr_Dutch == 0 & nr_Non_Western != 0){
-        if((agents$likeli_western[x[m]]+ (agents$likeli_dutch[x[m]]/2)) >= random[m]){
-          agents$migrationbackground[x[m]] = "Western"
-          nr_Western = nr_Western - 1
-        }
-        else if((agents$likeli_western[x[m]]+ (agents$likeli_dutch[x[m]]/2)) < random[m]){
-          agents$migrationbackground[x[m]] = "Non-Western"
-          nr_Non_Western = nr_Non_Western - 1
-        }
-      }
-      else if(nr_Western == 0 & nr_Dutch != 0 & nr_Non_Western == 0){
-        agents$migrationbackground[x[m]] = "Dutch"
-        nr_Dutch = nr_Dutch - 1
-      }
-      else if(nr_Western != 0 & nr_Dutch == 0 & nr_Non_Western == 0){
-        agents$migrationbackground[x[m]] = "Western"
-        nr_Western = nr_Western - 1
-      }
-      else if(nr_Western == 0 & nr_Dutch == 0 & nr_Non_Western != 0){
-        agents$migrationbackground[x[m]] = "Non-Western"
-        nr_Non_Western = nr_Non_Western - 1
-      }
-    }
-  }
-}
-
-
-
-agents$hh_single = 0
-for (i in 1:nrow(neigh_stats)){
-  x = which(agents$neighb_code == neigh_stats$Codering_3[i] & agents$ischild != 1)
-  nr_singlehh = neigh_stats$Eenpersoonshuishoudens_29[i]
-  nr_multiplehh = length(x) - nr_singlehh
-  random = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
-  if(length(x) != 0){
-    for(m in 1:length(x)){
-      if(nr_singlehh != 0 & nr_multiplehh != 0){
-        if(agents$likeli_singlehh[x[m]]>= random[m]){
-          agents$hh_single[x[m]] = "1"
-          nr_singlehh = nr_singlehh - 1
-        }
-        else{
-          agents$hh_single[x[m]] = 0
-          nr_multiplehh = nr_multiplehh - 1
-        }
-      }
-      if(nr_singlehh == 0 & nr_multiplehh != 0){
-        agents$hh_single[x[m]] = 0
-        nr_multiplehh = nr_multiplehh - 1
-      }
-      if(nr_singlehh != 0 & nr_multiplehh == 0){
-        agents$hh_single[x[m]] = "1"
-        nr_singlehh = nr_singlehh - 1
-      }
-    }
-  }
-}
-
-
-agents$havechild = 0
-for (i in 1:nrow(neigh_stats)){
-  x = which(agents$neighb_code == neigh_stats$Codering_3[i] & agents$ischild != 1)
-  nr_kids = length (which(agents$neighb_code == neigh_stats$Codering_3[i] & agents$ischild == 1))
-  random = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
-  if(length(x) != 0){
-    for(m in 1:length(x)){
-      if(nr_singlehh != 0 & nr_multiplehh != 0){
-        if(agents$likeli_singlehh[x[m]]>= random[m]){
-          agents$hh_single[x[m]] = "1"
-          nr_singlehh = nr_singlehh - 1
-        }
-        else{
-          agents$hh_single[x[m]] = 0
-          nr_multiplehh = nr_multiplehh - 1
-        }
-      }
-      if(nr_singlehh == 0 & nr_multiplehh != 0){
-        agents$hh_single[x[m]] = 0
-        nr_multiplehh = nr_multiplehh - 1
-      }
-      if(nr_singlehh != 0 & nr_multiplehh == 0){
-        agents$hh_single[x[m]] = "1"
-        nr_singlehh = nr_singlehh - 1
-      }
-    }
-  }
-}
