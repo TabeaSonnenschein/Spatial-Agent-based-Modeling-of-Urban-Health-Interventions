@@ -136,150 +136,6 @@ calc_propens_agents = function(dataframe, variable, total_population, agent_df, 
 ### agent_exclude = an optional variable containing one or multiple variable names of the agent dataset on which basis agents should be excluded from the attribute assignment
 ### if that variable(s) is 1, then the agents will be excluded
 
-distr_attr_strat_n_neigh_stats2 = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
-  print(Sys.time())
-  agent_df[, c(variable)] = 0
-  if(missing(list_class_names)){
-    list_class_names = list_var_classes_neigh_df
-  }
-  if(length(list_var_classes_neigh_df)== 2){
-    for (i in 1:nrow(neigh_df)){
-      print(paste("neighbporhood:", i))
-      if(!missing(agent_exclude)){
-        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)] & agent_df[, c(agent_exclude)] != 1)
-      }
-      else{
-        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)])
-      }
-      x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)])
-      tot__var_class_neigh = neigh_df[i, list_var_classes_neigh_df]
-      random = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
-      if(length(x) != 0){
-        for(m in 1:length(x)){
-          if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] != 0){
-            if(agent_df[x[m],c(list_agent_propens[1])]>= random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[1]
-              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
-            }
-            else{
-              agent_df[x[m],  c(variable)] = list_class_names[2]
-              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
-            }
-          }
-          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] != 0){
-            agent_df[x[m],  c(variable)] = list_class_names[2]
-            tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
-          }
-          else if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] == 0){
-            agent_df[x[m],  c(variable)] = list_class_names[1]
-            tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
-          }
-          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] == 0){
-            if(agent_df[x[m],c(list_agent_propens[1])]>= random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[1]
-            }
-            else{
-              agent_df[x[m],  c(variable)] = list_class_names[2]
-            }
-          }
-          print(paste("agent:", m))
-        }
-      }
-    }
-  }
-  else if(length(list_var_classes_neigh_df)== 3){
-    for (i in 1:nrow(neigh_df)){
-      if(!missing(agent_exclude)){
-        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)] & agent_df[, c(agent_exclude)] != 1)
-      }
-      else{
-        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)])
-      }
-      tot__var_class_neigh = neigh_df[i, list_var_classes_neigh_df]
-      random = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
-      if(length(x) != 0){
-        for(m in 1:length(x)){
-          if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] != 0 & tot__var_class_neigh[3] != 0){
-            if(agent_df[x[m],c(list_agent_propens[1])]>= random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[1]
-              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
-            }
-            else if(agent_df[x[m],c(list_agent_propens[1])]< random[m] & (agent_df[x[m],c(list_agent_propens[2])] + agent_df[x[m],c(list_agent_propens[1])]) >= random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[2]
-              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
-            }
-            else if((agent_df[x[m],c(list_agent_propens[2])] + agent_df[x[m],c(list_agent_propens[1])]) < random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[3]
-              tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
-            }
-          }
-          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] != 0 & tot__var_class_neigh[3] != 0){
-            if((agent_df[x[m],c(list_agent_propens[2])]+ (agent_df[x[m],c(list_agent_propens[1])]/2)) >= random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[2]
-              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
-            }
-            else if((agent_df[x[m],c(list_agent_propens[2])]+ (agent_df[x[m],c(list_agent_propens[1])]/2)) < random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[3]
-              tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
-            }
-          }
-          else if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] != 0 & tot__var_class_neigh[3] == 0){
-            if((agent_df[x[m],c(list_agent_propens[1])]+ (agent_df[x[m],c(list_agent_propens[3])]/2)) >= random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[1]
-              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
-            }
-            else if((agent_df[x[m],c(list_agent_propens[1])]+ (agent_df[x[m],c(list_agent_propens[3])]/2)) < random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[2]
-              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
-            }
-          }
-          else if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] == 0 & tot__var_class_neigh[3] != 0){
-            if((agent_df[x[m],c(list_agent_propens[1])]+ (agent_df[x[m],c(list_agent_propens[2])]/2)) >= random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[1]
-              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
-            }
-            else if((agent_df[x[m],c(list_agent_propens[1])]+ (agent_df[x[m],c(list_agent_propens[2])]/2)) < random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[3]
-              tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
-            }
-          }
-          else if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] == 0 & tot__var_class_neigh[3] == 0){
-            agent_df[x[m],  c(variable)] = list_class_names[1]
-            tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
-          }
-          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] != 0 & tot__var_class_neigh[3] == 0){
-            agent_df[x[m],  c(variable)] = list_class_names[2]
-            tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
-          }
-          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] == 0 & tot__var_class_neigh[3] != 0){
-            agent_df[x[m],  c(variable)] = list_class_names[3]
-            tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
-          }
-          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] == 0 & tot__var_class_neigh[3] == 0){
-            if(agent_df[x[m],c(list_agent_propens[1])]>= random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[1]
-              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
-            }
-            else if(agent_df[x[m],c(list_agent_propens[1])]< random[m] & (agent_df[x[m],c(list_agent_propens[2])] + agent_df[x[m],c(list_agent_propens[1])]) >= random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[2]
-              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
-            }
-            else if((agent_df[x[m],c(list_agent_propens[2])] + agent_df[x[m],c(list_agent_propens[1])]) < random[m]){
-              agent_df[x[m],  c(variable)] = list_class_names[3]
-              tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
-            }
-          }
-        }
-      }
-    }
-  }
-  random_seq = sample(nrow(agent_df))
-  agent_df = agent_df[random_seq,]
-  print(Sys.time())
-  return(agent_df)
-}
-
-
 
 distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
   print(Sys.time())
@@ -327,8 +183,9 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
                 else{
                  class = which(agent_df[x, c(variable)] == list_class_names[2])[1:as.numeric(abs_diff)]
                  class = class[!is.na(class)]
-               # percent_diff = ((tot__var_class_neigh[1] - length(which(agent_df[x, c(variable)] == list_class_names[1])))/length(x))
-               # agent_df[x, c(list_agent_propens[1])] = agent_df[x, c(list_agent_propens[1])] + (percent_diff/10)
+                 if(length(class) == 0){
+                   fitness = 1
+                 }
                  agent_df[x[class], c(list_agent_propens[1])] = agent_df[x[class], c(list_agent_propens[1])] + 0.5
                 }
               }
@@ -341,15 +198,16 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
                 else{
                   class = which(agent_df[x, c(variable)] == list_class_names[1])[1:as.numeric(abs_diff)]
                   class = class[!is.na(class)]
-                #percent_diff = ((tot__var_class_neigh[2] - length(which(agent_df[x, c(variable)] == list_class_names[2])))/length(x))
-                #agent_df[x, c(list_agent_propens[1])] = agent_df[x, c(list_agent_propens[1])] - (percent_diff/10)
+                  if(length(class) == 0){
+                    fitness = 1
+                  }
                   agent_df[x[class], c(list_agent_propens[1])] = agent_df[x[class], c(list_agent_propens[1])] - 0.5
                 }
               }
             }
-           else if(length(x) < 10){
+            else if(length(x) < 10){
              fitness = 1
-           }
+            }
             else if(sum(tot__var_class_neigh) > length(x)){
               percent_diff1 = length(which(agent_df[x, c(variable)] == list_class_names[1]))/as.numeric(tot__var_class_neigh[1])
               percent_diff2 = length(which(agent_df[x, c(variable)] == list_class_names[2]))/as.numeric(tot__var_class_neigh[2])
@@ -367,6 +225,9 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
                   else{
                     class = which(agent_df[x, c(variable)] == list_class_names[2])[1:abs_diff]
                     class = class[!is.na(class)]
+                    if(length(class) == 0){
+                      fitness = 1
+                    }
                     agent_df[x[class], c(list_agent_propens[1])] = agent_df[x[class], c(list_agent_propens[1])] + 0.3
                   }
                 }
@@ -379,6 +240,9 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
                   else{
                     class = which(agent_df[x, c(variable)] == list_class_names[1])[1:abs_diff]
                     class = class[!is.na(class)]
+                    if(length(class) == 0){
+                      fitness = 1
+                    }
                      agent_df[x[class], c(list_agent_propens[1])] = agent_df[x[class], c(list_agent_propens[1])] - 0.3
                   }
                 }
@@ -623,9 +487,8 @@ neigh_stats$nr_Dutch = neigh_stats$AantalInwoners_5 - (neigh_stats$WestersTotaal
 x = distr_attr_strat_n_neigh_stats_3plus(agent_df =  agents, neigh_df =  neigh_stats, neigh_ID =  "neighb_code", variable =  "migrationbackground", 
                                    list_var_classes_neigh_df =  c("nr_Dutch", "WestersTotaal_17", "NietWestersTotaal_18"), 
                                    list_agent_propens =  c("prop_Dutch", "prop_Western", "prop_Non_Western"), list_class_names =  c("Dutch", "Western", "Non-Western"))
+#40 min
 
-17:46:35 
-18:26:19
 
 
 random_seq = sample(nrow(agents))
@@ -742,4 +605,149 @@ agents$agent_ID = paste("Agent_",1:tot_pop, sep="")
 
 write.csv(agents, "Agent_pop.csv")
 
+
+############## old code#######################
+
+distr_attr_strat_n_neigh_stats2 = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
+  print(Sys.time())
+  agent_df[, c(variable)] = 0
+  if(missing(list_class_names)){
+    list_class_names = list_var_classes_neigh_df
+  }
+  if(length(list_var_classes_neigh_df)== 2){
+    for (i in 1:nrow(neigh_df)){
+      print(paste("neighbporhood:", i))
+      if(!missing(agent_exclude)){
+        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)] & agent_df[, c(agent_exclude)] != 1)
+      }
+      else{
+        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)])
+      }
+      x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)])
+      tot__var_class_neigh = neigh_df[i, list_var_classes_neigh_df]
+      random = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
+      if(length(x) != 0){
+        for(m in 1:length(x)){
+          if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] != 0){
+            if(agent_df[x[m],c(list_agent_propens[1])]>= random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[1]
+              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
+            }
+            else{
+              agent_df[x[m],  c(variable)] = list_class_names[2]
+              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
+            }
+          }
+          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] != 0){
+            agent_df[x[m],  c(variable)] = list_class_names[2]
+            tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
+          }
+          else if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] == 0){
+            agent_df[x[m],  c(variable)] = list_class_names[1]
+            tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
+          }
+          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] == 0){
+            if(agent_df[x[m],c(list_agent_propens[1])]>= random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[1]
+            }
+            else{
+              agent_df[x[m],  c(variable)] = list_class_names[2]
+            }
+          }
+          print(paste("agent:", m))
+        }
+      }
+    }
+  }
+  else if(length(list_var_classes_neigh_df)== 3){
+    for (i in 1:nrow(neigh_df)){
+      if(!missing(agent_exclude)){
+        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)] & agent_df[, c(agent_exclude)] != 1)
+      }
+      else{
+        x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)])
+      }
+      tot__var_class_neigh = neigh_df[i, list_var_classes_neigh_df]
+      random = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
+      if(length(x) != 0){
+        for(m in 1:length(x)){
+          if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] != 0 & tot__var_class_neigh[3] != 0){
+            if(agent_df[x[m],c(list_agent_propens[1])]>= random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[1]
+              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
+            }
+            else if(agent_df[x[m],c(list_agent_propens[1])]< random[m] & (agent_df[x[m],c(list_agent_propens[2])] + agent_df[x[m],c(list_agent_propens[1])]) >= random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[2]
+              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
+            }
+            else if((agent_df[x[m],c(list_agent_propens[2])] + agent_df[x[m],c(list_agent_propens[1])]) < random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[3]
+              tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
+            }
+          }
+          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] != 0 & tot__var_class_neigh[3] != 0){
+            if((agent_df[x[m],c(list_agent_propens[2])]+ (agent_df[x[m],c(list_agent_propens[1])]/2)) >= random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[2]
+              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
+            }
+            else if((agent_df[x[m],c(list_agent_propens[2])]+ (agent_df[x[m],c(list_agent_propens[1])]/2)) < random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[3]
+              tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
+            }
+          }
+          else if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] != 0 & tot__var_class_neigh[3] == 0){
+            if((agent_df[x[m],c(list_agent_propens[1])]+ (agent_df[x[m],c(list_agent_propens[3])]/2)) >= random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[1]
+              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
+            }
+            else if((agent_df[x[m],c(list_agent_propens[1])]+ (agent_df[x[m],c(list_agent_propens[3])]/2)) < random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[2]
+              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
+            }
+          }
+          else if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] == 0 & tot__var_class_neigh[3] != 0){
+            if((agent_df[x[m],c(list_agent_propens[1])]+ (agent_df[x[m],c(list_agent_propens[2])]/2)) >= random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[1]
+              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
+            }
+            else if((agent_df[x[m],c(list_agent_propens[1])]+ (agent_df[x[m],c(list_agent_propens[2])]/2)) < random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[3]
+              tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
+            }
+          }
+          else if(tot__var_class_neigh[1] != 0 & tot__var_class_neigh[2] == 0 & tot__var_class_neigh[3] == 0){
+            agent_df[x[m],  c(variable)] = list_class_names[1]
+            tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
+          }
+          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] != 0 & tot__var_class_neigh[3] == 0){
+            agent_df[x[m],  c(variable)] = list_class_names[2]
+            tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
+          }
+          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] == 0 & tot__var_class_neigh[3] != 0){
+            agent_df[x[m],  c(variable)] = list_class_names[3]
+            tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
+          }
+          else if(tot__var_class_neigh[1] == 0 & tot__var_class_neigh[2] == 0 & tot__var_class_neigh[3] == 0){
+            if(agent_df[x[m],c(list_agent_propens[1])]>= random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[1]
+              tot__var_class_neigh[1] = tot__var_class_neigh[1] - 1
+            }
+            else if(agent_df[x[m],c(list_agent_propens[1])]< random[m] & (agent_df[x[m],c(list_agent_propens[2])] + agent_df[x[m],c(list_agent_propens[1])]) >= random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[2]
+              tot__var_class_neigh[2] = tot__var_class_neigh[2] - 1
+            }
+            else if((agent_df[x[m],c(list_agent_propens[2])] + agent_df[x[m],c(list_agent_propens[1])]) < random[m]){
+              agent_df[x[m],  c(variable)] = list_class_names[3]
+              tot__var_class_neigh[3] = tot__var_class_neigh[3] - 1
+            }
+          }
+        }
+      }
+    }
+  }
+  random_seq = sample(nrow(agent_df))
+  agent_df = agent_df[random_seq,]
+  print(Sys.time())
+  return(agent_df)
+}
 
