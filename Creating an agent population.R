@@ -609,15 +609,28 @@ neigh_stats[,c("AantalInkomensontvangers_70" , "GemiddeldInkomenPerInkomensontva
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/socioeconomics")
 income_stats = read.csv("income by gender and age.csv")
-
-
+personal_attributes = read.csv("personal_attributes.csv")
+colnames(personal_attributes)[1] = "Persoonskenmerken"
+income_stats = merge(income_stats, personal_attributes, by= "Persoonskenmerken", all.x = T, all.y = F)
 
 
 #social support
 c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSociaalMinimum_80", "HuishoudensTot120VanSociaalMinimum_81" ,"MediaanVermogenVanParticuliereHuish_82", 
   "PersonenPerSoortUitkeringBijstand_83" , "PersonenPerSoortUitkeringAO_84", "PersonenPerSoortUitkeringWW_85" , "PersonenPerSoortUitkeringAOW_86", "JongerenMetJeugdzorgInNatura_87",
   "PercentageJongerenMetJeugdzorg_88")
-  
+
+
+################### Health ###################################
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/Health")
+neigh_health = read.csv("Gezondheid_per_wijk_en_buurt_2016_09062021_151732.csv")
+colnames(neigh_health)
+
+c("ï..Wijken.en.buurten", "Gemeentenaam" ,"Soort.Regio",   "neighb_code", "Drankgebruik.Voldoet.aan.alcoholrichtlijn" , "Overgewicht.Obesitas",
+  "Roker" , "Lichamelijke.gezondheid.Langdurige.ziekte.of.aandoening", "Psychische.gezondheid.Hoog.risico.op.angst.of.depressie",
+  "Eenzaamheid.Ernstig.zeer.ernstig.eenzaam",   "Goed.zeer.goed.ervaren.gezondheid",  "Sporten.en.bewegen.Voldoet.aan.beweegrichtlijn",
+  "Mantelzorg.Mantelzorger"  , "Mantelzorg.Mantelzorg.ontvangen.nu..65.." )
+
+
 
 ######################## car ownership ##############################
 c("PersonenautoSTotaal_99", "PersonenautoSBrandstofBenzine_100" , "PersonenautoSOverigeBrandstof_101", "PersonenautoSPerHuishouden_102" , "PersonenautoSNaarOppervlakte_103" , "Motorfietsen_104" )
