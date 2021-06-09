@@ -52,8 +52,6 @@ for(i in 1:nrow(neigh_stats)){   # neighborhood indice
     nr_people = neigh_stats[i,g]
     agents$age_group[(n+1):(n+nr_people)] = colnam[g-9]
     agents$neighb_code[(n+1):(n+nr_people)] = neigh_stats$Codering_3[i]
-    agents$neigh_female[(n+1):(n+nr_people)] = neigh_stats$Vrouwen_7[i]
-    agents$neigh_male[(n+1):(n+nr_people)] = neigh_stats$Mannen_6[i]
     n = n + nr_people
   }
 }
@@ -63,7 +61,6 @@ agents = agents[random_seq,]
 
 ################################ age (year) based on lifeyear data for city ####################################################
 agents$age = ""
-# agents$sex = ""
 
 sexstats$age_group = "" #classifying ages into age groups to link to agent dataset
 # age groups are "k_0Tot15Jaar", "k_15Tot25Jaar" , "k_25Tot45Jaar", "k_45Tot65Jaar", "k_65JaarOfOuder"
@@ -176,7 +173,6 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
               }
               else if(length(which(agent_df[x, c(variable)] == list_class_names[1])) < tot__var_class_neigh[1]){
                 abs_diff = as.integer(as.numeric(tot__var_class_neigh[1]) - length(which(agent_df[x, c(variable)] == list_class_names[1])))
-                print(paste("strat 1:", abs_diff))
                 if(abs_diff <= 1|is.na(abs_diff)){
                   fitness = 1
                 }
@@ -191,7 +187,6 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
               }
               else if(length(which(agent_df[x, c(variable)] == list_class_names[2])) < tot__var_class_neigh[2]){
                 abs_diff = as.integer(as.numeric(tot__var_class_neigh[2]) - length(which(agent_df[x, c(variable)] == list_class_names[2])))
-                print(paste("strat 2:", abs_diff))
                 if(abs_diff <= 1|is.na(abs_diff)){
                   fitness = 1
                 }
@@ -218,7 +213,6 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
               else{
                 if( percent_diff_diff < 0){
                   abs_diff = as.integer((((as.numeric(abs(percent_diff_diff)))/2) * as.numeric(tot__var_class_neigh[1]))/3)
-                  print(paste("strat 3:", abs_diff))
                   if(abs_diff <= 1|is.na(abs_diff)){
                     fitness = 1
                   }
@@ -233,7 +227,6 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
                 }
                 else{
                   abs_diff = as.integer((((as.numeric(abs(percent_diff_diff)))/2) * as.numeric(tot__var_class_neigh[2]))/3)
-                  print(paste("strat 4:", abs_diff))
                   if(abs_diff <= 1|is.na(abs_diff)){
                     fitness = 1
                   }
@@ -266,10 +259,16 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
   if(missing(list_class_names)){
     list_class_names = list_var_classes_neigh_df
   }
+  if(!missing(agent_exclude)){
+    agent_df[, c("excluded")] = 0
+    for(i in 1:length(agent_exclude)){
+      agent_df[which(agent_df[, c(agent_exclude[i])] == 1) , c("excluded")] =  1
+    }
+  }
   lvar = length(list_var_classes_neigh_df)
   for (i in 1:nrow(neigh_df)){
     if(!missing(agent_exclude)){
-      x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)] & agent_df[, c(agent_exclude)] != 1)
+      x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)] & agent_df[, c("excluded")] != 1)
     }
     else{
       x = which(agent_df[, c(neigh_ID)] == neigh_df[i, c(neigh_ID)])
@@ -319,9 +318,13 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
                   abs_diff = (tot__var_class_neigh[n] - length(which(agent_df[x, c(variable)] == list_class_names[n])))
                   class = which(agent_df[x, c(variable)] %in% list_class_names[which(underrepresented == 0)])[1:as.numeric(abs_diff)]
                   class = class[!is.na(class)]
-                  agent_df[x[class], c(list_agent_propens[n])] = agent_df[x[class], c(list_agent_propens[n])] + 0.3
-                  agent_df[x[class], c(list_agent_propens[which(underrepresented == 0)])] = agent_df[x[class], c(list_agent_propens[which(underrepresented == 0)])] - (0.3/length(which(underrepresented == 0)))
+                  agent_df[x[class], c(variable)] = list_class_names[n]
+                  agent_df[x[class], c(list_agent_propens[n])] = agent_df[x[class], c(list_agent_propens[n])] + 0.5
+                  agent_df[x[class], c(list_agent_propens[which(underrepresented == 0)])] = agent_df[x[class], c(list_agent_propens[which(underrepresented == 0)])] - (0.5/length(which(underrepresented == 0)))
                 }
+              }
+              if(length(which(agent_df[x, c(variable)] == list_class_names[1])) >= tot__var_class_neigh[1] & length(which(agent_df[x, c(variable)] == list_class_names[2])) >= tot__var_class_neigh[2] & length(which(agent_df[x, c(variable)] == list_class_names[3])) >= tot__var_class_neigh[3]){
+                fitness = 1
               }
             }  
           }
@@ -352,7 +355,6 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
                   }
                 }
               }
-             #  agent_df[x, c("random_scores")] = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
             }
           }
         }
@@ -367,65 +369,63 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
 }
 
 
+#### cross validation #######################
 
-########## sex
+crossvalid = function(valid_df, agent_df, join_var, list_valid_var, agent_var, list_agent_attr ){
+  output = valid_df[,c(join_var, list_valid_var)]
+  for(i in 1:length(list_agent_attr)){
+    output[, c(paste("agent_",list_agent_attr[i], sep = ""))]= NA
+  }
+  if(length(join_var) > 1){
+    valid_df$ID = paste("ID",1:nrow(valid_df), sep="")
+    interm = merge(agent_df[, c(join_var, agent_var)], valid_df[, c(join_var, "ID")], by = join_var, all.x= T, all.y= F)
+  }
+  for(n in 1:nrow(output)){
+    for(i in 1:length(list_agent_attr)){
+      if(length(join_var) == 1){
+        output[n, c(paste("agent_",list_agent_attr[i], sep = ""))]= nrow(agent_df[which(agent_df[, c(join_var)] == valid_df[n, c(join_var)] & agent_df[, c(agent_var)] == list_agent_attr[i]),])
+      }
+      else{
+        output[n, c(paste("agent_",list_agent_attr[i], sep = ""))]= nrow(interm[which(interm[, c("ID")] == valid_df[n, c("ID")] & interm[, c(agent_var)] == list_agent_attr[i]),])
+      }
+    }
+  }
+  return(output)
+}
 
+############################################
+########## sex #############################
+############################################
+
+## Data Preparation
 colnames(sexstats)[1] = "age"
+colnames(neigh_stats)[5] = "neighb_code"
+
+## Conditional Propensities
 agents = calc_propens_agents(sexstats, "female", "totpop", agents, c("age"))
 
-colnames(neigh_stats)[5] = "neighb_code"
-x = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", 
+## assigning attributes to agents
+agents = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", 
                                     variable=  "sex",  list_var_classes_neigh_df = c("Vrouwen_7", "Mannen_6"), list_agent_propens =  c("prop_female"), 
                                     list_class_names = c("female", "male"))
 # 2min run for agent pop of 872754
 
-y = distr_attr_strat_n_neigh_stats2(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", 
-                                   variable=  "sex2",  list_var_classes_neigh_df = c("Vrouwen_7", "Mannen_6"), list_agent_propens =  c("prop_female"), 
-                                   list_class_names = c("female", "male"))
-#1:40min run for agent pop of 872754
+## cross validating with neighborhood and stratified totals
+neigh_valid = crossvalid(valid_df = neigh_stats, agent_df = agents, join_var = "neighb_code", list_valid_var = c("Mannen_6", "Vrouwen_7"), 
+                         agent_var = "sex", list_agent_attr = c("male", "female") )
+
+strat_valid = crossvalid(valid_df = sexstats, agent_df = agents, join_var = "age", list_valid_var = c("male", "female"), 
+                         agent_var = "sex", list_agent_attr = c("male", "female") )
 
 write.csv(agents, "Agent_pop.csv")
 agents = read.csv("Agent_pop.csv") ## count of people per age group per neighborhood
-agents= agents[,c("agent_ID","neighb_code",  "age_group"  , "age" , "sex", "prop_female")]
+agents = agents[,c("agent_ID","neighb_code",  "age_group"  , "age" , "sex")]
 
-############################# cross validating with neighborhood and age dependent sex totals
-  
-neigh = neigh_stats[,c("neighb_code", "Mannen_6", "Vrouwen_7" )]
+##################################################################
+################## migration background ##########################
+##################################################################
 
-neigh$agent_male = ""
-neigh$agent_female = ""
-for(i in 1:nrow(neigh)){
-  neigh$agent_female[i] = nrow(agents[which(agents$neighb_code == neigh$neighb_code[i] & agents$sex == "female"),])
-  neigh$agent_male[i] = nrow(agents[which(agents$neighb_code == neigh$neighb_code[i] & agents$sex == "male"),])
-}
-
-
-neigh$agent_male2 = ""
-neigh$agent_female2 = ""
-for(i in 1:nrow(neigh)){
-  neigh$agent_female2[i] = nrow(x[which(x$neighb_code == neigh$neighb_code[i] & x$sex2 == "female"),])
-  neigh$agent_male2[i] = nrow(x[which(x$neighb_code == neigh$neighb_code[i] & x$sex2 == "male"),])
-}
-
-
-sexstats$agent_male = ""
-sexstats$agent_female = ""
-for(i in 1:nrow(sexstats)){
-  sexstats$agent_female[i] = nrow(agents[which(agents$age== sexstats$age[i] & agents$sex == "female"),])
-  sexstats$agent_male[i] = nrow(agents[which(agents$age == sexstats$age[i] & agents$sex == "male"),])
-}
-
-sexstats$agent_male2 = ""
-sexstats$agent_female2 = ""
-for(i in 1:nrow(sexstats)){
-  sexstats$agent_female2[i] = nrow(agents[which(x$age== sexstats$age[i] & x$sex2 == "female"),])
-  sexstats$agent_male2[i] = nrow(agents[which(x$age == sexstats$age[i] & x$sex2 == "male"),])
-}
-
-random_seq = sample(nrow(agents))
-agents = agents[random_seq,]
-
-################## migration background #####################################################################
+## Data Preparation
 migrat_stats = read.csv("age gender migrationbackground familie position.csv")
 migrat_stats = migrat_stats[which(migrat_stats$Generatie == "T001040"),]
 migrat_age = read.csv("agegroup coding_migration data.csv")
@@ -433,7 +433,6 @@ colnames(migrat_age) = c("Leeftijd", "age")
 migrat_stats = merge(migrat_stats, migrat_age, all.x = T, all.y = F, by = "Leeftijd")
 migrat_stats = migrat_stats[, c("age", "Geslacht" , "Migratieachtergrond" , "Perioden",  "TotaalAantalPersonenInHuishoudens_1" , "ThuiswonendKind_2" , "Alleenstaand_3" , "TotaalSamenwonendePersonen_4" ,  "PartnerInNietGehuwdPaarZonderKi_5" ,
                                 "PartnerInGehuwdPaarZonderKinderen_6" , "PartnerInNietGehuwdPaarMetKinderen_7",  "PartnerInGehuwdPaarMetKinderen_8",    "OuderInEenouderhuishouden_9" , "OverigLidHuishouden_10" , "PersonenInInstitutioneleHuishoudens_11" )]
-
 
 migrat_age = rbind(migrat_age, migrat_age)
 migrat_age$sex =""
@@ -478,47 +477,45 @@ agents$age_group_20[agents$age %in% 90:94] =  "90 tot 95 jaar"
 agents$age_group_20[agents$age %in% 95:104] =  "95 jaar of ouder" 
 
 colnames(migrat_age)[2] = "age_group_20"
+neigh_stats$nr_Dutch = neigh_stats$AantalInwoners_5 - (neigh_stats$WestersTotaal_17 + neigh_stats$NietWestersTotaal_18)
 
+
+## Conditional Propensities
 agents = calc_propens_agents(migrat_age, "Dutch", "tot", agents, c("age_group_20", "sex") )
 agents = calc_propens_agents(migrat_age, "Western", "tot", agents, c("age_group_20", "sex") )
 agents = calc_propens_agents(migrat_age, "Non_Western", "tot", agents, c("age_group_20", "sex") )
 
-neigh_stats$nr_Dutch = neigh_stats$AantalInwoners_5 - (neigh_stats$WestersTotaal_17 + neigh_stats$NietWestersTotaal_18)
-x = distr_attr_strat_n_neigh_stats_3plus(agent_df =  agents, neigh_df =  neigh_stats, neigh_ID =  "neighb_code", variable =  "migrationbackground", 
+## assigning attributes to agents
+agents = distr_attr_strat_n_neigh_stats_3plus(agent_df =  agents, neigh_df =  neigh_stats, neigh_ID =  "neighb_code", variable =  "migrationbackground", 
                                    list_var_classes_neigh_df =  c("nr_Dutch", "WestersTotaal_17", "NietWestersTotaal_18"), 
                                    list_agent_propens =  c("prop_Dutch", "prop_Western", "prop_Non_Western"), list_class_names =  c("Dutch", "Western", "Non-Western"))
-#40 min
 
+## cross validating with neighborhood and stratified totals
+neigh_valid = crossvalid(valid_df = neigh_stats, agent_df = agents, join_var = "neighb_code", list_valid_var = c("nr_Dutch", "WestersTotaal_17", "NietWestersTotaal_18"), 
+                         agent_var = "migrationbackground", list_agent_attr = c("Dutch", "Western", "Non-Western") )
 
-
-random_seq = sample(nrow(agents))
-agents = agents[random_seq,]
-
-neigh = neigh_stats[,c("neighb_code","nr_Dutch", "WestersTotaal_17", "NietWestersTotaal_18")]
-for(i in 1:nrow(neigh)){
-  neigh$agent_Western[i] = nrow(agents[which(agents$neighb_code == neigh$neighb_code[i] & agents$migrationbackground == "Western"),])
-  neigh$agent_non_western[i] = nrow(agents[which(agents$neighb_code == neigh$neighb_code[i] & agents$migrationbackground == "Non-Western"),])
-  neigh$agent_dutch[i] = nrow(agents[which(agents$neighb_code == neigh$neighb_code[i] & agents$migrationbackground == "Dutch"),])
-}
-
-neigh = neigh_stats[,c("neighb_code","nr_Dutch", "WestersTotaal_17", "NietWestersTotaal_18")]
-for(i in 1:nrow(neigh)){
-  neigh$agent_Western[i] = nrow(agents[which(x$neighb_code == neigh$neighb_code[i] & x$migrationbackground == "Western"),])
-  neigh$agent_non_western[i] = nrow(agents[which(x$neighb_code == neigh$neighb_code[i] & x$migrationbackground == "Non-Western"),])
-  neigh$agent_dutch[i] = nrow(agents[which(x$neighb_code == neigh$neighb_code[i] & x$migrationbackground == "Dutch"),])
-}
+strat_valid = crossvalid(valid_df = migrat_age, agent_df = agents, join_var = c("age_group_20", "sex"), list_valid_var =  c("Dutch", "Western", "Non_Western"), 
+                         agent_var = "migrationbackground", list_agent_attr =  c("Dutch", "Western", "Non-Western") )
 
 
 agents= agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground")]
 write.csv(agents, "Agent_pop.csv")
 
-######################################### household position ###############################################
+######################################################################
+################### household composition ############################
+######################################################################
 householdstats = read.csv("household position age gender.csv") ## count of people per age group per neighborhood
 # and migrat_stats 
+
+#### is a child
 
 agents$ischild = 0
 agents$ischild[which(agents$age %in%0:17)] = 1
 
+
+### Single Household or not
+
+## Data Preparation
 migrat_stats$migrationbackground = ""
 migrat_stats$migrationbackground[migrat_stats$Migratieachtergrond == "\"Westerse migratieachtergrond\""] = "Western"
 migrat_stats$migrationbackground[migrat_stats$Migratieachtergrond == "\"Niet-westerse migratieachtergrond\""] = "Non-Western"
@@ -534,22 +531,26 @@ for (i in 1:nrow(neigh_stats)) {
   }
 }
 
+
+## Conditional Propensities
 agents = calc_propens_agents(dataframe =  migrat_stats, variable =  "singlehh", total_population =  "TotaalAantalPersonenInHuishoudens_1", agent_df =  agents, list_conditional_var = c("age_group_20", "sex", "migrationbackground") )
 
+## assigning attributes to agents
 agents = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", agent_exclude = c("ischild"),
                                        variable=  "hh_single",  list_var_classes_neigh_df = c("Eenpersoonshuishoudens_29", "nr_multiplehh"), list_agent_propens =  c("prop_singlehh"), 
                                        list_class_names = c(1, 0))
 
-neigh = neigh_stats[,c("neighb_code","Eenpersoonshuishoudens_29", "nr_multiplehh")]
-for(i in 1:nrow(neigh)){
-  neigh$agent_hhsingle[i] = nrow(agents[which(x$neighb_code == neigh$neighb_code[i] & x$hh_single == 1),])
-  neigh$agent_hhmultiple[i] = nrow(agents[which(x$neighb_code == neigh$neighb_code[i] & x$hh_single == 0),])
-}
+## cross validating with neighborhood and stratified totals
+neigh_valid = crossvalid(valid_df = neigh_stats, agent_df = agents, join_var = "neighb_code", list_valid_var = c("Eenpersoonshuishoudens_29", "nr_multiplehh"), 
+                         agent_var = "hh_single", list_agent_attr = c(1, 0) )
 
-neigh_stats$Eenpersoonshuishoudens_29[274]
-neigh_stats$nr_multiplehh[274]
+strat_valid = crossvalid(valid_df = migrat_stats, agent_df = agents, join_var = c("age_group_20", "sex", "migrationbackground"), list_valid_var =  c("singlehh"), 
+                         agent_var = "hh_single", list_agent_attr =  c(1, 0) )
 
 
+### has a child
+
+## Data Preparation
 migrat_stats$have_kids = migrat_stats$PartnerInNietGehuwdPaarMetKinderen_7 + migrat_stats$PartnerInGehuwdPaarMetKinderen_8
 
 neigh_stats$nr_kids = 0
@@ -562,23 +563,56 @@ for (i in 1:nrow(neigh_stats)){
   neigh_stats$nr_ppl_without_kids[i] = (length(which(agents$neighb_code == neigh_stats$neighb_code[i] & agents$ischild != 1 & agents$hh_single != 1)))- neigh_stats$nr_ppl_with_kids[i]
 }
 
+## Conditional Propensities
 agents = calc_propens_agents(dataframe =  migrat_stats, variable =  "have_kids", total_population =  "TotaalAantalPersonenInHuishoudens_1", agent_df =  agents, list_conditional_var = c("age_group_20", "sex", "migrationbackground") )
 
-x = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", variable=  "havechild", list_var_classes_neigh_df = c("nr_ppl_with_kids", "nr_ppl_without_kids"), list_agent_propens =  c("likeli_kids"), list_class_names = c(1, 0),  agent_exclude = c("ischild", "hh_single"))
+## assigning attributes to agents
+agents = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", variable=  "havechild", list_var_classes_neigh_df = c("nr_ppl_with_kids", "nr_ppl_without_kids"), list_agent_propens =  c("prop_have_kids"), list_class_names = c(1, 0),  agent_exclude = c("ischild", "hh_single"))
+
+## cross validating with neighborhood and stratified totals
+neigh_valid = crossvalid(valid_df = neigh_stats, agent_df = agents, join_var = "neighb_code", list_valid_var = c("nr_ppl_with_kids", "nr_ppl_without_kids"), 
+                         agent_var = "havechild", list_agent_attr = c(1, 0) )
+
+strat_valid = crossvalid(valid_df = migrat_stats, agent_df = agents, join_var = c("age_group_20", "sex", "migrationbackground"), list_valid_var =  c("have_kids"), 
+                         agent_var = "havechild", list_agent_attr =  c(1, 0) )
 
 
-agents= agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", "havechild", "likeli_kids", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western", "prop_singlehh" ,"prop_have_kids" )]
+agents = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", "havechild", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western", "prop_singlehh", "prop_have_kids")]
 write.csv(agents, "Agent_pop.csv")
-
 
 ############################# socioeconomics ################################################
 # education level
-c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66")
+neigh_stats[,c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66")]
+
+## Data Preparation
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/socioeconomics")
+absolved_edu = read.csv("diplomaabsolvation conditioned by age sex and migrationbackground.csv")
+current_edu = read.csv("students conditioned by age sex and migrationbackground.csv")
+age_coding = read.csv("age_coding.csv")
+edu_coding = read.csv("education_coding.csv")
+colnames(age_coding)[1] = "Leeftijd"
+colnames(edu_coding)[1] = "Onderwijssoort"
+absolved_edu = merge(absolved_edu, age_coding, by= "Leeftijd", all.x = T, all.y = F)
+current_edu = merge(current_edu, age_coding, by= "Leeftijd", all.x = T, all.y = F)
+absolved_edu = merge(absolved_edu, edu_coding, by= "Onderwijssoort", all.x = T, all.y = F)
+current_edu = merge(current_edu, edu_coding, by= "Onderwijssoort", all.x = T, all.y = F)
+
+
+
+
+
 # employment
 c("NettoArbeidsparticipatie_67" , "PercentageWerknemers_68", "PercentageZelfstandigen_69" )
 #income
-c("AantalInkomensontvangers_70" , "GemiddeldInkomenPerInkomensontvanger_71" , "GemiddeldInkomenPerInwoner_72", "k_40PersonenMetLaagsteInkomen_73" , "k_20PersonenMetHoogsteInkomen_74", 
- "GemGestandaardiseerdInkomenVanHuish_75" , "k_40HuishoudensMetLaagsteInkomen_76",  "k_20HuishoudensMetHoogsteInkomen_77",  "HuishoudensMetEenLaagInkomen_78")
+neigh_stats[,c("AantalInkomensontvangers_70" , "GemiddeldInkomenPerInkomensontvanger_71" , "GemiddeldInkomenPerInwoner_72", "k_40PersonenMetLaagsteInkomen_73" , "k_20PersonenMetHoogsteInkomen_74", 
+ "GemGestandaardiseerdInkomenVanHuish_75" , "k_40HuishoudensMetLaagsteInkomen_76",  "k_20HuishoudensMetHoogsteInkomen_77",  "HuishoudensMetEenLaagInkomen_78")]
+
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/socioeconomics")
+income_stats = read.csv("income by gender and age.csv")
+
+
+
+
 #social support
 c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSociaalMinimum_80", "HuishoudensTot120VanSociaalMinimum_81" ,"MediaanVermogenVanParticuliereHuish_82", 
   "PersonenPerSoortUitkeringBijstand_83" , "PersonenPerSoortUitkeringAO_84", "PersonenPerSoortUitkeringWW_85" , "PersonenPerSoortUitkeringAOW_86", "JongerenMetJeugdzorgInNatura_87",
@@ -751,3 +785,7 @@ distr_attr_strat_n_neigh_stats2 = function(agent_df, neigh_df, neigh_ID, variabl
   return(agent_df)
 }
 
+y = distr_attr_strat_n_neigh_stats2(agent_df = agents, neigh_df = neigh_stats, neigh_ID = "neighb_code", 
+                                    variable=  "sex2",  list_var_classes_neigh_df = c("Vrouwen_7", "Mannen_6"), list_agent_propens =  c("prop_female"), 
+                                    list_class_names = c("female", "male"))
+#1:40min run for agent pop of 872754
