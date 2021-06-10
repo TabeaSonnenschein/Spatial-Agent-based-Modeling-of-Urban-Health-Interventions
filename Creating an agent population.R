@@ -3,110 +3,32 @@
 # representative for a population of a city and can be used for simulation purposes, such as an agent-based model.
 
 
-################## loading the census datasets and if necessary subselecting relevant parts #################################
-setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
-popstats = read.csv("Neighborhood statistics 2020.csv") ## count of people per age group per neighborhood
-popstats[is.na(popstats)] = 0
-neigh_stats = popstats[which(popstats$SoortRegio_2 == "Buurt     "),]
-popstats2 = read.csv("Neighborhood statistics 2018.csv") ## count of people per age group per neighborhood
-wijk_stats = popstats[which(popstats$SoortRegio_2 == "Wijk      "),]
+########################################################################################################
+############### Generic Functions to generate a synthetic agent population #############################
+########################################################################################################
 
-sexstats = read.csv("Amsterdam_tot_sex_gender2020.csv") # count of people per lifeyear and gender in all of Amsterdam
-sexstats$totpop = sexstats$male + sexstats$female
-agents = read.csv("Agent_pop.csv") ## count of people per age group per neighborhood
+####### Generating an agent dataframe of the population size and assigning a unique ID
 
-
-################################## size of agent population ###################################
-## Amsterdam official total population
-#2021 872497
-#2020 872757
-#2018 854047
-
-# CBS neighborhood summary statistics dataset 2020
-## CBS must have made a mistake, probably with the age grouping, because the total is larger than the general population. 
-sum(neigh_stats[,10:14]) # 875920 tot when summarizing age groups per neighborhood
-sum(neigh_stats[,8:9]) #870535 tot when summarizing sex per neighborhood
-sum(neigh_stats[,7]) # 871395 tot when summarizing tot pop per neighborhood
-sum(wijk_stats[,10:14]) # 873165 tot  when summarizing age groups per district
-sum(wijk_stats[,8:9]) # 871955 tot when summarizing sex ¨per district
-sum(wijk_stats[,7]) # 872165 when summarizing tot pop per district
-
-# testing if excess population when summarizing age groups could be due to double counting of edge ages of age classes (eg. 15 counted as part of 0-15 and 5-25)
-sum(sexstats$totpop[sexstats$ï..age == 15], sexstats$totpop[sexstats$ï..age == 25], sexstats$totpop[sexstats$ï..age == 45], sexstats$totpop[sexstats$ï..age == 65])
-#However, the sum of these edge ages is 44941, which is way larger than the excess population
-
-tot_pop = 875920
-agent_ID = paste("Agent_",1:tot_pop, sep="")
-agents = as.data.frame(agent_ID)
-
-################################ agegroup within neighborhood ##########################################
-agents$age_group = ""
-agents$neighb_code = ""
-
-colnames(neigh_stats)
-colnam = c("k_0Tot15Jaar", "k_15Tot25Jaar" , "k_25Tot45Jaar", "k_45Tot65Jaar", "k_65JaarOfOuder" )
-
-n = 0 # indice of agent population that is populated with attributes
-for(i in 1:nrow(neigh_stats)){   # neighborhood indice
-  for(g in 10:14) {            # agegroup indice
-    nr_people = neigh_stats[i,g]
-    agents$age_group[(n+1):(n+nr_people)] = colnam[g-9]
-    agents$neighb_code[(n+1):(n+nr_people)] = neigh_stats$Codering_3[i]
-    n = n + nr_people
-  }
+gen_agent_df = function(pop_size){
+  agent_ID = paste("Agent_",1:pop_size, sep="")
+  agent_df = as.data.frame(agent_ID)
+  return(agent_df)
 }
 
-random_seq = sample(nrow(agents))
-agents = agents[random_seq,]
 
-################################ age (year) based on lifeyear data for city ####################################################
-agents$age = ""
+####### Calculating the conditional probabilities to have an attribute
 
-sexstats$age_group = "" #classifying ages into age groups to link to agent dataset
-# age groups are "k_0Tot15Jaar", "k_15Tot25Jaar" , "k_25Tot45Jaar", "k_45Tot65Jaar", "k_65JaarOfOuder"
-sexstats$age_group[sexstats$ï..age %in% 0:14] = "k_0Tot15Jaar"
-sexstats$age_group[sexstats$ï..age %in% 15:24] = "k_15Tot25Jaar"
-sexstats$age_group[sexstats$ï..age %in% 25:44] = "k_25Tot45Jaar"
-sexstats$age_group[sexstats$ï..age %in% 45:64] = "k_45Tot65Jaar"
-sexstats$age_group[sexstats$ï..age %in% 65:105] = "k_65JaarOfOuder"
-
-
-#only age
-n = 0 # indice of agent population that is populated with attributes
-for(g in 1:5){   # agegroup indice
-  x = which(agents$age_group == colnam[g])
-  f = 0
-  for(m in min(which(sexstats$age_group == colnam[g])):max(which(sexstats$age_group == colnam[g]))){
-      nr_people = sexstats[(m), 6]
-      agents$age[(x[(f+1):(f+nr_people)])] = sexstats$ï..age[m]
-      f = f + nr_people
-    }
-}
-
-agents = agents[which(agents$age != ""),]
-
-random_seq = sample(nrow(agents))
-agents = agents[random_seq,]
-
-############################### sex (based on sex per neighborhood and sex per age statistics) ######################################################################
-colnames(neigh_stats)
-c("Codering_3", "Mannen_6", "Vrouwen_7", "WestersTotaal_17", "NietWestersTotaal_18",  "HuishoudensTotaal_28", "Eenpersoonshuishoudens_29" , 
-  "HuishoudensZonderKinderen_30", "HuishoudensMetKinderen_31" , "GemiddeldeHuishoudensgrootte_32" )
-
-#also interesting to account for demographic change and birth rate in future
-c("GeboorteTotaal_24", "GeboorteRelatief_25" , "SterfteTotaal_26" , "SterfteRelatief_27")
-
-
-### This is a function to calculate the probability/propensity to have a specific class of a variable conditional on other variables.
-### It requires a stratified dataframe (@dataframe) which includes all combinations of the conditional variables (the ones based on which we want to calculate the propensity), 
-### the number of people with the variable class (@variable) for which we want to calculate the propensity, 
-### and the total number of people within the combination of conditional variables (@total_population).
-### The function calculates the propensity to have a specific class based on the conditional variables, 
-### by dividing the number of people with the class if interest by the total number of people within the combination of conditional variables.
-### Further, the function joins these probabilities with the agent dataset (@agent_df) 
-### based on the list of conditional variables (@list_conditional_var).
-### This requires the variable/column names of the conditional variables to be equal for the stratified and the agent dataframe.
-### Finally, it shuffles the agent dataset to avoid biases due to a non random order in the next steps.
+### EXPLANATION
+# This is a function to calculate the probability/propensity to have a specific class of a variable conditional on other variables.
+# It requires a stratified dataframe (@dataframe) which includes all combinations of the conditional variables (the ones based on which we want to calculate the propensity), 
+# the number of people with the variable class (@variable) for which we want to calculate the propensity, 
+# and the total number of people within the combination of conditional variables (@total_population).
+# The function calculates the propensity to have a specific class based on the conditional variables, 
+# by dividing the number of people with the class if interest by the total number of people within the combination of conditional variables.
+# Further, the function joins these probabilities with the agent dataset (@agent_df) 
+# based on the list of conditional variables (@list_conditional_var).
+# This requires the variable/column names of the conditional variables to be equal for the stratified and the agent dataframe.
+# Finally, it shuffles the agent dataset to avoid biases due to a non random order in the next steps.
 
 calc_propens_agents = function(dataframe, variable, total_population, agent_df, list_conditional_var){
   dataframe[,c(paste("prop_",variable, sep = ""))] = dataframe[,c(variable)]/dataframe[, c(total_population)]
@@ -119,20 +41,24 @@ calc_propens_agents = function(dataframe, variable, total_population, agent_df, 
 }
 
 
-### This function distributes attribute classes in the agent population based on the conditional propensities and the neighborhood statistics
-### agent_df = Dataframe of the unique agents with their attributes
-### neigh_df = Dataframe of aggregate statistical data per neighborhood, specifically the total population 
-### per neighborhood and the counts per variable class.
-### variable = the new variable that we want to add based on the stratified and neighborhood marginal distributions
-### list_var_classes_neigh_df = a list of the column names in the Neighborhood dataset with 
-### the classes of the variable that will be modeled (e.g. c("Men", "Women", "Non-Binary"), which are the classes of sex). 
-### list_agent_propens = A list of the columns in the agent dataset that contain the propensities for the classes of the variable based on the other agents conditional attributes.
-### This list has to be in the same order as the list_var_classes_neigh_df, but can leave out the last propensity as it is 1 minus the other propensities.
-### The list_class_names is optional and contains the values that the new created agent variable should have for the different variable classes.
-### It has to be in the same order and of the same length as the list_var_classes_neigh_df. If left empty, the list_var_classes_neigh_df will become the default values for the classes.
-### agent_exclude = an optional variable containing one or multiple variable names of the agent dataset on which basis agents should be excluded from the attribute assignment
-### if that variable(s) is 1, then the agents will be excluded
+####### distributing attributes across agent population based on conditional proabilities and neighborhood totals 
 
+### EXPLANATION
+# This function distributes attribute classes in the agent population based on the conditional propensities and the neighborhood statistics
+# agent_df = Dataframe of the unique agents with their attributes
+# neigh_df = Dataframe of aggregate statistical data per neighborhood, specifically the total population 
+# per neighborhood and the counts per variable class.
+# variable = the new variable that we want to add based on the stratified and neighborhood marginal distributions
+# list_var_classes_neigh_df = a list of the column names in the Neighborhood dataset with 
+# the classes of the variable that will be modeled (e.g. c("Men", "Women", "Non-Binary"), which are the classes of sex). 
+# list_agent_propens = A list of the columns in the agent dataset that contain the propensities for the classes of the variable based on the other agents conditional attributes.
+# This list has to be in the same order as the list_var_classes_neigh_df, but can leave out the last propensity as it is 1 minus the other propensities.
+# The list_class_names is optional and contains the values that the new created agent variable should have for the different variable classes.
+# It has to be in the same order and of the same length as the list_var_classes_neigh_df. If left empty, the list_var_classes_neigh_df will become the default values for the classes.
+# agent_exclude = an optional variable containing one or multiple variable names of the agent dataset on which basis agents should be excluded from the attribute assignment
+# if that variable(s) is/are 1, then the agents will be excluded
+
+## distr_bin_attr_strat_n_neigh_stats is for binary attributes
 
 distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
   print(Sys.time())
@@ -252,6 +178,7 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
   return(agent_df)
 }
 
+## distr_attr_strat_n_neigh_stats_3plus is for attributes with three or more values
 
 distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
   print(Sys.time())
@@ -369,7 +296,17 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
 }
 
 
-#### cross validation #######################
+#### cross validation with the neighborhood and stratified marginal distributions #######################
+
+### EXPLANATION
+# valid_df is the dataset that contains the marginal distributions, this can be the neighborhood totals dataset or the stratified dataset
+# agent_df is the agent dataset, which now contains the newly generated variable
+# join_var is the variable or variables on which basis the datasets should be joined/ compared. 
+# For a neighborhood totals dataset this would be the neighborhood code, while for a stratified dataset this would be all the conditional variables.
+# list_valid_var lists the variables in the valid_df that should be compared to the newly generated variable. 
+# (e.g when having generated the variable sex, then the variables we want to compare would be perhaps c("men", "women", "non_binary"))
+# agent_var 
+
 
 crossvalid = function(valid_df, agent_df, join_var, list_valid_var, agent_var, list_agent_attr ){
   output = valid_df[,c(join_var, list_valid_var)]
@@ -393,9 +330,145 @@ crossvalid = function(valid_df, agent_df, join_var, list_valid_var, agent_var, l
   return(output)
 }
 
-############################################
-########## sex #############################
-############################################
+############################################################################################
+######################## Data Preparation and Application for Amsterdam ####################
+############################################################################################
+
+
+################## loading the census datasets and if necessary subselecting relevant parts #################################
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
+popstats = read.csv("Neighborhood statistics 2020.csv") ## count of people per age group per neighborhood
+popstats[is.na(popstats)] = 0
+neigh_stats = popstats[which(popstats$SoortRegio_2 == "Buurt     "),]
+popstats2 = read.csv("Neighborhood statistics 2018.csv") ## count of people per age group per neighborhood
+wijk_stats = popstats[which(popstats$SoortRegio_2 == "Wijk      "),]
+
+sexstats = read.csv("Amsterdam_tot_sex_gender2020.csv") # count of people per lifeyear and gender in all of Amsterdam
+sexstats$totpop = sexstats$male + sexstats$female
+agents = read.csv("Agent_pop.csv") ## count of people per age group per neighborhood
+
+
+#### Interesting variables in neighborhood dataset
+
+###################
+## Demographics ###
+###################
+neigh_stats[,c( "k_0Tot15Jaar", "k_15Tot25Jaar" , "k_25Tot45Jaar", "k_45Tot65Jaar", "k_65JaarOfOuder", 
+                "Mannen_6", "Vrouwen_7", "WestersTotaal_17", "NietWestersTotaal_18" )]
+
+#also interesting to account for demographic change and birth rate in future
+neigh_stats[,c("GeboorteTotaal_24", "GeboorteRelatief_25" , "SterfteTotaal_26" , "SterfteRelatief_27")]
+
+############################
+## Household Composition ###
+############################
+
+neigh_stats[,c( "HuishoudensTotaal_28", "Eenpersoonshuishoudens_29" , 
+"HuishoudensZonderKinderen_30", "HuishoudensMetKinderen_31" , "GemiddeldeHuishoudensgrootte_32")]
+
+####################
+## Socioeconomics ##
+####################
+
+# education level
+neigh_stats[,c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66")]
+
+# employment
+neigh_stats[,c("NettoArbeidsparticipatie_67" , "PercentageWerknemers_68", "PercentageZelfstandigen_69" )]
+#income
+neigh_stats[,c("AantalInkomensontvangers_70" , "GemiddeldInkomenPerInkomensontvanger_71" , "GemiddeldInkomenPerInwoner_72", "k_40PersonenMetLaagsteInkomen_73" , "k_20PersonenMetHoogsteInkomen_74", 
+               "GemGestandaardiseerdInkomenVanHuish_75" , "k_40HuishoudensMetLaagsteInkomen_76",  "k_20HuishoudensMetHoogsteInkomen_77",  "HuishoudensMetEenLaagInkomen_78")]
+
+#social support
+neigh_stats[, c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSociaalMinimum_80", "HuishoudensTot120VanSociaalMinimum_81" ,"MediaanVermogenVanParticuliereHuish_82", 
+  "PersonenPerSoortUitkeringBijstand_83" , "PersonenPerSoortUitkeringAO_84", "PersonenPerSoortUitkeringWW_85" , "PersonenPerSoortUitkeringAOW_86", "JongerenMetJeugdzorgInNatura_87",
+  "PercentageJongerenMetJeugdzorg_88")]
+
+
+
+
+
+################################## determining size of agent population ###################################
+## Amsterdam official total population
+#2021 872497
+#2020 872757
+#2018 854047
+
+# CBS neighborhood summary statistics dataset 2020
+## CBS must have made a mistake, probably with the age grouping, because the total is larger than the general population. 
+sum(neigh_stats[,10:14]) # 875920 tot when summarizing age groups per neighborhood
+sum(neigh_stats[,8:9]) #870535 tot when summarizing sex per neighborhood
+sum(neigh_stats[,7]) # 871395 tot when summarizing tot pop per neighborhood
+sum(wijk_stats[,10:14]) # 873165 tot  when summarizing age groups per district
+sum(wijk_stats[,8:9]) # 871955 tot when summarizing sex ¨per district
+sum(wijk_stats[,7]) # 872165 when summarizing tot pop per district
+
+# testing if excess population when summarizing age groups could be due to double counting of edge ages of age classes (eg. 15 counted as part of 0-15 and 5-25)
+sum(sexstats$totpop[sexstats$ï..age == 15], sexstats$totpop[sexstats$ï..age == 25], sexstats$totpop[sexstats$ï..age == 45], sexstats$totpop[sexstats$ï..age == 65])
+#However, the sum of these edge ages is 44941, which is way larger than the excess population
+
+agents = gen_agent_df(875920)
+
+#####################################################################################################
+######################## Start with a spatial reference and initial variable:  ######################
+################################ agegroup within neighborhood #######################################
+agents$age_group = ""
+agents$neighb_code = ""
+
+colnames(neigh_stats)
+colnam = c("k_0Tot15Jaar", "k_15Tot25Jaar" , "k_25Tot45Jaar", "k_45Tot65Jaar", "k_65JaarOfOuder" )
+
+n = 0 # indice of agent population that is populated with attributes
+for(i in 1:nrow(neigh_stats)){   # neighborhood indice
+  for(g in 10:14) {            # agegroup indice
+    nr_people = neigh_stats[i,g]
+    agents$age_group[(n+1):(n+nr_people)] = colnam[g-9]
+    agents$neighb_code[(n+1):(n+nr_people)] = neigh_stats$Codering_3[i]
+    n = n + nr_people
+  }
+}
+
+random_seq = sample(nrow(agents))
+agents = agents[random_seq,]
+
+############################################################################################################################
+################################ Translating age groups into interger age based on age dataset #############################
+################################ age (year) based on lifeyear data for city ################################################
+agents$age = ""
+
+sexstats$age_group = "" #classifying ages into age groups to link to agent dataset
+# age groups are "k_0Tot15Jaar", "k_15Tot25Jaar" , "k_25Tot45Jaar", "k_45Tot65Jaar", "k_65JaarOfOuder"
+sexstats$age_group[sexstats$ï..age %in% 0:14] = "k_0Tot15Jaar"
+sexstats$age_group[sexstats$ï..age %in% 15:24] = "k_15Tot25Jaar"
+sexstats$age_group[sexstats$ï..age %in% 25:44] = "k_25Tot45Jaar"
+sexstats$age_group[sexstats$ï..age %in% 45:64] = "k_45Tot65Jaar"
+sexstats$age_group[sexstats$ï..age %in% 65:105] = "k_65JaarOfOuder"
+
+
+#only age
+n = 0 # indice of agent population that is populated with attributes
+for(g in 1:5){   # agegroup indice
+  x = which(agents$age_group == colnam[g])
+  f = 0
+  for(m in min(which(sexstats$age_group == colnam[g])):max(which(sexstats$age_group == colnam[g]))){
+    nr_people = sexstats[(m), 6]
+    agents$age[(x[(f+1):(f+nr_people)])] = sexstats$ï..age[m]
+    f = f + nr_people
+  }
+}
+
+agents = agents[which(agents$age != ""),]
+
+random_seq = sample(nrow(agents))
+agents = agents[random_seq,]
+
+
+############################################ #############################################################################
+########## First Application of the conditional propensity & neighborhood constraint functions: ############################
+######################################## Variable: Sex ###################################################################
+##########################################################################################################################
+
+############################### sex (based on sex per neighborhood and sex per age statistics) ######################################################################
 
 ## Data Preparation
 colnames(sexstats)[1] = "age"
