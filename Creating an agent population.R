@@ -1,7 +1,6 @@
 
-## this script generates a set of agents based on statistical data that is 
-# representative for a population of a city and can be used for simulation purposes, such as an agent-based model.
-
+## This script generates a set of agents based on statistical data that is 
+## representative for a population of a city and can be used for simulation purposes, such as an agent-based model.
 
 ########################################################################################################
 ############### Generic Functions to generate a synthetic agent population #############################
@@ -338,47 +337,66 @@ crossvalid = function(valid_df, agent_df, join_var, list_valid_var, agent_var, l
 ######################## Data Preparation and Application for Amsterdam ####################
 ############################################################################################
 
-
 ################## loading the census datasets and if necessary subselecting relevant parts #################################
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
+
+## Neighborhood dataset
 popstats = read.csv("Neighborhood statistics 2020.csv") ## count of people per age group per neighborhood
 popstats[is.na(popstats)] = 0
 neigh_stats = popstats[which(popstats$SoortRegio_2 == "Buurt     "),]
 popstats2 = read.csv("Neighborhood statistics 2018.csv") ## count of people per age group per neighborhood
-wijk_stats = popstats[which(popstats$SoortRegio_2 == "Wijk      "),]
 
+#Stratified datasets
 sexstats = read.csv("Amsterdam_tot_sex_gender2020.csv") # count of people per lifeyear and gender in all of Amsterdam
 sexstats$totpop = sexstats$male + sexstats$female
-agents = read.csv("Agent_pop.csv") ## count of people per age group per neighborhood
+
+migrat_stats = read.csv("age gender migrationbackground familie position.csv")
+migrat_stats = migrat_stats[which(migrat_stats$Generatie == "T001040"),]
+migrat_age = read.csv("agegroup coding_migration data.csv")
+colnames(migrat_age) = c("Leeftijd", "age")
+migrat_stats = merge(migrat_stats, migrat_age, all.x = T, all.y = F, by = "Leeftijd")
 
 
-#### Interesting variables in neighborhood dataset
+
+#### Interesting variables
 
 ###################
 ## Demographics ###
 ###################
+## Neighborhood dataset
 neigh_stats[,c( "k_0Tot15Jaar", "k_15Tot25Jaar" , "k_25Tot45Jaar", "k_45Tot65Jaar", "k_65JaarOfOuder", 
-                "Mannen_6", "Vrouwen_7", "WestersTotaal_17", "NietWestersTotaal_18" )]
+                "Mannen_6", "Vrouwen_7", "WestersTotaal_17", "NietWestersTotaal_18",
+                "GeboorteTotaal_24", "GeboorteRelatief_25" , "SterfteTotaal_26" , "SterfteRelatief_27")] 
 
-#also interesting to account for demographic change and birth rate in future
-neigh_stats[,c("GeboorteTotaal_24", "GeboorteRelatief_25" , "SterfteTotaal_26" , "SterfteRelatief_27")]
+## Stratified datasets
+sexstats[, c("age",  "male" , "female" , "totpop")]
+
+migrat_stats[, c("age", "Geslacht" , "Migratieachtergrond")]
 
 ############################
 ## Household Composition ###
 ############################
-
+## Neighborhood dataset
 neigh_stats[,c( "HuishoudensTotaal_28", "Eenpersoonshuishoudens_29" , 
 "HuishoudensZonderKinderen_30", "HuishoudensMetKinderen_31" , "GemiddeldeHuishoudensgrootte_32")]
+
+## Stratified datasets
+migrat_stats[, c("age", "Geslacht" , "Migratieachtergrond" , "TotaalAantalPersonenInHuishoudens_1" , "ThuiswonendKind_2" , "Alleenstaand_3" , 
+                 "TotaalSamenwonendePersonen_4" ,  "PartnerInNietGehuwdPaarZonderKi_5" ,     "PartnerInGehuwdPaarZonderKinderen_6" , 
+                 "PartnerInNietGehuwdPaarMetKinderen_7",  "PartnerInGehuwdPaarMetKinderen_8",    "OuderInEenouderhuishouden_9"  )]
+
 
 ####################
 ## Socioeconomics ##
 ####################
+## Neighborhood dataset
 
 # education level
 neigh_stats[,c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66")]
 
 # employment
 neigh_stats[,c("NettoArbeidsparticipatie_67" , "PercentageWerknemers_68", "PercentageZelfstandigen_69" )]
+
 #income
 neigh_stats[,c("AantalInkomensontvangers_70" , "GemiddeldInkomenPerInkomensontvanger_71" , "GemiddeldInkomenPerInwoner_72", "k_40PersonenMetLaagsteInkomen_73" , "k_20PersonenMetHoogsteInkomen_74", 
                "GemGestandaardiseerdInkomenVanHuish_75" , "k_40HuishoudensMetLaagsteInkomen_76",  "k_20HuishoudensMetHoogsteInkomen_77",  "HuishoudensMetEenLaagInkomen_78")]
@@ -388,7 +406,7 @@ neigh_stats[, c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSocia
   "PersonenPerSoortUitkeringBijstand_83" , "PersonenPerSoortUitkeringAO_84", "PersonenPerSoortUitkeringWW_85" , "PersonenPerSoortUitkeringAOW_86", "JongerenMetJeugdzorgInNatura_87",
   "PercentageJongerenMetJeugdzorg_88")]
 
-
+## Stratified datasets
 
 
 
@@ -403,9 +421,6 @@ neigh_stats[, c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSocia
 sum(neigh_stats[,10:14]) # 875920 tot when summarizing age groups per neighborhood
 sum(neigh_stats[,8:9]) #870535 tot when summarizing sex per neighborhood
 sum(neigh_stats[,7]) # 871395 tot when summarizing tot pop per neighborhood
-sum(wijk_stats[,10:14]) # 873165 tot  when summarizing age groups per district
-sum(wijk_stats[,8:9]) # 871955 tot when summarizing sex ¨per district
-sum(wijk_stats[,7]) # 872165 when summarizing tot pop per district
 
 # testing if excess population when summarizing age groups could be due to double counting of edge ages of age classes (eg. 15 counted as part of 0-15 and 5-25)
 sum(sexstats$totpop[sexstats$ï..age == 15], sexstats$totpop[sexstats$ï..age == 25], sexstats$totpop[sexstats$ï..age == 45], sexstats$totpop[sexstats$ï..age == 65])
@@ -512,13 +527,10 @@ agents = agents[,c("agent_ID","neighb_code",  "age_group"  , "age" , "sex")]
 ##################################################################
 
 ## Data Preparation
-migrat_stats = read.csv("age gender migrationbackground familie position.csv")
-migrat_stats = migrat_stats[which(migrat_stats$Generatie == "T001040"),]
-migrat_age = read.csv("agegroup coding_migration data.csv")
-colnames(migrat_age) = c("Leeftijd", "age")
-migrat_stats = merge(migrat_stats, migrat_age, all.x = T, all.y = F, by = "Leeftijd")
-migrat_stats = migrat_stats[, c("age", "Geslacht" , "Migratieachtergrond" , "Perioden",  "TotaalAantalPersonenInHuishoudens_1" , "ThuiswonendKind_2" , "Alleenstaand_3" , "TotaalSamenwonendePersonen_4" ,  "PartnerInNietGehuwdPaarZonderKi_5" ,
-                                "PartnerInGehuwdPaarZonderKinderen_6" , "PartnerInNietGehuwdPaarMetKinderen_7",  "PartnerInGehuwdPaarMetKinderen_8",    "OuderInEenouderhuishouden_9" , "OverigLidHuishouden_10" , "PersonenInInstitutioneleHuishoudens_11" )]
+migrat_stats = migrat_stats[, c("age", "Geslacht" , "Migratieachtergrond" ,  "TotaalAantalPersonenInHuishoudens_1" , "ThuiswonendKind_2" , 
+                                "Alleenstaand_3" , "TotaalSamenwonendePersonen_4" ,  "PartnerInNietGehuwdPaarZonderKi_5" ,
+                                "PartnerInGehuwdPaarZonderKinderen_6" , "PartnerInNietGehuwdPaarMetKinderen_7",  "PartnerInGehuwdPaarMetKinderen_8",   
+                                "OuderInEenouderhuishouden_9" )]
 
 migrat_age = rbind(migrat_age, migrat_age)
 migrat_age$sex =""
