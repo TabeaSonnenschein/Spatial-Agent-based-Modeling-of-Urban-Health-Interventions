@@ -411,6 +411,8 @@ sum(wijk_stats[,7]) # 872165 when summarizing tot pop per district
 sum(sexstats$totpop[sexstats$ï..age == 15], sexstats$totpop[sexstats$ï..age == 25], sexstats$totpop[sexstats$ï..age == 45], sexstats$totpop[sexstats$ï..age == 65])
 #However, the sum of these edge ages is 44941, which is way larger than the excess population
 
+# I chose the total sum of all agegroups as a starting population size as this is also my initial variable.
+# When translating into integer age at hand of a lifeyear dataset, the redundant agent population can be deleted.
 agents = gen_agent_df(875920)
 
 #####################################################################################################
@@ -449,7 +451,6 @@ sexstats$age_group[sexstats$ï..age %in% 45:64] = "k_45Tot65Jaar"
 sexstats$age_group[sexstats$ï..age %in% 65:105] = "k_65JaarOfOuder"
 
 
-#only age
 n = 0 # indice of agent population that is populated with attributes
 for(g in 1:5){   # agegroup indice
   x = which(agents$age_group == colnam[g])
@@ -461,10 +462,18 @@ for(g in 1:5){   # agegroup indice
   }
 }
 
+## As discussed when determining the population size, there the sum of all neighborhood agegroup totals was chosen, 
+## which exceeds the official total population of Amsterdam. The lifeyear dataset adds up to the official total population. 
+## Herewith the excess population that was not covered with the lifeyear dataset is cut out.
 agents = agents[which(agents$age != ""),]
 
+
+## To avoid biases in the data generation due to non-arbitrary order, this piece of code shuffles the dataset randomly.
 random_seq = sample(nrow(agents))
 agents = agents[random_seq,]
+
+
+plot(density(as.numeric(agents$age)))
 
 
 ############################################ #############################################################################
@@ -712,19 +721,10 @@ c("ï..Wijken.en.buurten", "Gemeentenaam" ,"Soort.Regio",   "neighb_code", "Drank
 ######################## car ownership ##############################
 c("PersonenautoSTotaal_99", "PersonenautoSBrandstofBenzine_100" , "PersonenautoSOverigeBrandstof_101", "PersonenautoSPerHuishouden_102" , "PersonenautoSNaarOppervlakte_103" , "Motorfietsen_104" )
 
-  
-
-##########################checking descriptive stats for representativeness################################
-agents = agents[which(agents$age != ""),]
-summary(as.numeric(agents$age))
-plot(density(as.numeric(agents$age)))
-summary(as.factor(agents$sex))
 
 
-random_seq = sample(nrow(agents))
-agents = agents[random_seq,]
+
 
 agents$agent_ID = paste("Agent_",1:tot_pop, sep="")
-
 
 write.csv(agents, "Agent_pop.csv")
