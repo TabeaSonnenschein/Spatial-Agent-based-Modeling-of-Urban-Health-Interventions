@@ -32,13 +32,16 @@ gen_agent_df = function(pop_size){
 calc_propens_agents = function(dataframe, variable, total_population, agent_df, list_conditional_var){
   dataframe[,c(paste("prop_",variable, sep = ""))] = dataframe[,c(variable)]/dataframe[, c(total_population)]
   order_agent_df = colnames(agent_df)
+  if(paste("prop_",variable, sep = "") %in% order_agent_df){
+    x = which(order_agent_df == paste("prop_",variable, sep = ""))
+    agent_df = subset(agent_df, select = -c(x))
+  }
   agent_df = merge(agent_df, dataframe[,c(list_conditional_var, paste("prop_",variable, sep = ""))], all.x = T, all.y= F, by = list_conditional_var)
   agent_df = agent_df[,c(order_agent_df, paste("prop_",variable, sep = ""))]
   random_seq = sample(nrow(agent_df))
   agent_df = agent_df[random_seq,]
   return(agent_df)
 }
-
 
 ####### distributing attributes across agent population based on conditional proabilities and neighborhood totals 
 
@@ -213,7 +216,7 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
             }
           }
           agent_df[x[which(rowSums(agent_df[x, c(list_agent_propens[1:(lvar -1)])]) < agent_df[x,c("random_scores")])], c(variable)] = list_class_names[lvar]
-          if(length(which(agent_df[x, c(variable)] == list_class_names[1])) >= tot__var_class_neigh[1] & length(which(agent_df[x, c(variable)] == list_class_names[2])) >= tot__var_class_neigh[2] & length(which(agent_df[x, c(variable)] == list_class_names[3])) >= tot__var_class_neigh[3]){
+          if((length(which(agent_df[x, c(variable)] == list_class_names[1])) >= tot__var_class_neigh[1] & length(which(agent_df[x, c(variable)] == list_class_names[2])) >= tot__var_class_neigh[2] & length(which(agent_df[x, c(variable)] == list_class_names[3])) >= tot__var_class_neigh[3]) | sum(tot__var_class_neigh) == 0 | is.na(sum(tot__var_class_neigh))){
             fitness = 1
           }
           else if(sum(tot__var_class_neigh) <= length(x)){
@@ -257,32 +260,70 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
           else if(sum(tot__var_class_neigh) > length(x)){
             percent_diff = c()
             for(n in 1:(lvar)){
-              percent_diff = append(percent_diff, length(which(agent_df[x, c(variable)] == list_class_names[n]))/as.numeric(tot__var_class_neigh[n]))
+              if(tot__var_class_neigh[n] != 0){
+                percent_diff = append(percent_diff, length(which(agent_df[x, c(variable)] == list_class_names[n]))/as.numeric(tot__var_class_neigh[n]))
+              }
+              else{
+                percent_diff = append(percent_diff, NA)
+              }
             }
+            print(percent_diff)
             percent_diff_diff = as.data.frame(matrix(data = NA, nrow = length(list_var_classes_neigh_df), ncol = length(list_var_classes_neigh_df)))
             for(n in 1:(lvar)){
               for(k in 1:(lvar)){
                 percent_diff_diff[n, k] = percent_diff[n] - percent_diff[k]
               }
             }
-            if(all(abs(percent_diff_diff) < 0.03)){
+            if(all(abs(na.omit(percent_diff_diff)) < 0.03)){
               fitness = 1
             }
             else{
+              tot_abs_diff = c()
               for(n in 1:(lvar)){
                 m = which(percent_diff_diff[n,] < (-0.03))
-                abs_diff = as.numeric(((sum(as.numeric(abs(percent_diff_diff[n, m])))/length(m)) * as.numeric(tot__var_class_neigh[n])))/3
                 if(length(m)> 0){
+                  abs_diff = as.numeric(((sum(as.numeric(abs(percent_diff_diff[n, m])))/length(m)) * as.numeric(tot__var_class_neigh[n])))
+                  tot_abs_diff = append(tot_abs_diff, abs_diff )
                   for(l in m){
-                    class = which(agent_df[x, c(variable)] %in% list_class_names[l])[1:as.integer(abs_diff*(as.numeric(tot__var_class_neigh[l])/sum(as.numeric(tot__var_class_neigh[m]))))]
+                    class = which(agent_df[x, c(variable)] %in% list_class_names[l])[1:as.integer((abs_diff/3)*(as.numeric(tot__var_class_neigh[l])/sum(as.numeric(tot__var_class_neigh[m]))))]
                     class = class[!is.na(class)]
+                    agent_df[x[class], c(variable)] = list_class_names[n]
                     agent_df[x[class], c(list_agent_propens[n])] = agent_df[x[class], c(list_agent_propens[n])] + 0.3
                     agent_df[x[class], c(list_agent_propens[m])] = agent_df[x[class], c(list_agent_propens[m])] - (0.3/length(m))
                   }
                 }
               }
+              if(all(abs(tot_abs_diff) < 3)){
+                fitness = 1
+              }
+              else{
+                percent_diff = c()
+                for(n in 1:(lvar)){
+                  if(tot__var_class_neigh[n] != 0){
+                    percent_diff = append(percent_diff, length(which(agent_df[x, c(variable)] == list_class_names[n]))/as.numeric(tot__var_class_neigh[n]))
+                  }
+                  else{
+                    percent_diff = append(percent_diff, NA)
+                  }                }
+                print(percent_diff)
+                percent_diff_diff = as.data.frame(matrix(data = NA, nrow = length(list_var_classes_neigh_df), ncol = length(list_var_classes_neigh_df)))
+                for(n in 1:(lvar)){
+                  for(k in 1:(lvar)){
+                    percent_diff_diff[n, k] = percent_diff[n] - percent_diff[k]
+                  }
+                }
+                if(all(abs(na.omit(percent_diff_diff)) < 0.05)){
+                  fitness = 1
+                }
+                # else{
+                #   agent_df[x, c("random_scores")] = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
+                # } 
+              }
             }
           }
+        }
+        else if(lvar == 2){
+          print("use binary attribute function: distr_bin_attr_strat_n_neigh_stats() ")
         }
       }
     } 
@@ -293,6 +334,48 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
   print(Sys.time())
   return(agent_df)
 }
+
+
+
+
+#### assigning attributes purely based on conditional probabilities
+
+distr_attr_cond_prop = function(agent_df, variable, list_agent_propens, list_class_names, agent_exclude){
+  print(Sys.time())
+  agent_df[, c(variable, "random_scores")] = 0
+  if(!missing(agent_exclude)){
+    agent_df[, c("excluded")] = 0
+    for(i in 1:length(agent_exclude)){
+      agent_df[which(agent_df[, c(agent_exclude[i])] == 1) , c("excluded")] =  1
+    }
+    x = which(agent_df[, c("excluded")] != 1)
+  }
+  else{
+    x = which(agent_df[, c(variable)] == 0)
+  }
+  lvar = length(list_class_names)
+  agent_df[x, c("random_scores")] = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
+  if(lvar == 2){
+    agent_df[x[which(agent_df[x, c(list_agent_propens[1])] >= agent_df[x,c("random_scores")])], c(variable)] = list_class_names[1]
+    agent_df[x[which(agent_df[x, c(list_agent_propens[1])] < agent_df[x,c("random_scores")])], c(variable)] = list_class_names[2]
+  }
+  else if(lvar > 2){
+    agent_df[x[which(agent_df[x, c(list_agent_propens[1])] >= agent_df[x,c("random_scores")])], c(variable)] = list_class_names[1]
+    agent_df[x[which(agent_df[x, c(list_agent_propens[1])] < agent_df[x,c("random_scores")] & rowSums(agent_df[x, c(list_agent_propens[1:2])]) >= agent_df[x,c("random_scores")])], c(variable)] = list_class_names[2]
+    if(lvar >3){
+      for(n in 3:(lvar -1)){
+        agent_df[x[which(rowSums(agent_df[x, c(list_agent_propens[1:(n-1)])]) < agent_df[x,c("random_scores")] & rowSums(agent_df[x, c(list_agent_propens[1:n])]) >= agent_df[x,c("random_scores")])], c(variable)] = list_class_names[n]
+      }
+    }
+    agent_df[x[which(rowSums(agent_df[x, c(list_agent_propens[1:(lvar -1)])]) < agent_df[x,c("random_scores")])], c(variable)] = list_class_names[lvar]
+  }
+  random_seq = sample(nrow(agent_df))
+  agent_df = agent_df[random_seq,]
+  print(Sys.time())
+  return(agent_df)
+}
+
+
 
 
 #### cross validation with the neighborhood and stratified marginal distributions #######################
@@ -342,19 +425,37 @@ setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
 
 ## Neighborhood dataset
 popstats = read.csv("Neighborhood statistics 2020.csv") ## count of people per age group per neighborhood
-popstats[is.na(popstats)] = 0
 neigh_stats = popstats[which(popstats$SoortRegio_2 == "Buurt     "),]
-popstats2 = read.csv("Neighborhood statistics 2018.csv") ## count of people per age group per neighborhood
+popstats2 = read.csv("Neighborhood statistics 2019.csv") ## count of people per age group per neighborhood
+neigh_stats2 = popstats2[which(popstats2$SoortRegio_2 == "Buurt     "),]
+popstats3 = read.csv("Neighborhood statistics 2018.csv") ## count of people per age group per neighborhood
+neigh_stats3 = popstats3[which(popstats3$SoortRegio_2 == "Buurt     "),]
 
 #Stratified datasets
+# SEX - AGE
 sexstats = read.csv("Amsterdam_tot_sex_gender2020.csv") # count of people per lifeyear and gender in all of Amsterdam
 sexstats$totpop = sexstats$male + sexstats$female
 
+# AGE - SEX - MIGRATIONBACKGROUND - HOUSEHOLD COMPOSITION
 migrat_stats = read.csv("age gender migrationbackground familie position.csv")
 migrat_stats = migrat_stats[which(migrat_stats$Generatie == "T001040"),]
 migrat_age = read.csv("agegroup coding_migration data.csv")
 colnames(migrat_age) = c("Leeftijd", "age")
 migrat_stats = merge(migrat_stats, migrat_age, all.x = T, all.y = F, by = "Leeftijd")
+
+# EDUCATION - AGE - SEX - MIGRATIONBACKGROUND
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/socioeconomics")
+absolved_edu = read.csv("diplomaabsolvation conditioned by age sex and migrationbackground.csv")
+current_edu = read.csv("students conditioned by age sex and migrationbackground.csv")
+age_coding = read.csv("age_coding.csv")
+edu_coding = read.csv("education_coding.csv")
+colnames(age_coding)[1] = "Leeftijd"
+colnames(edu_coding)[1:2] = c("Onderwijssoort", "education_level")
+absolved_edu = merge(absolved_edu, age_coding, by= "Leeftijd", all.x = T, all.y = F)
+current_edu = merge(current_edu, age_coding, by= "Leeftijd", all.x = T, all.y = F)
+absolved_edu = merge(absolved_edu, edu_coding, by= "Onderwijssoort", all.x = T, all.y = F)
+current_edu = merge(current_edu, edu_coding, by= "Onderwijssoort", all.x = T, all.y = F)
+
 
 
 
@@ -392,14 +493,15 @@ migrat_stats[, c("age", "Geslacht" , "Migratieachtergrond" , "TotaalAantalPerson
 ## Neighborhood dataset
 
 # education level
-neigh_stats[,c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66")]
+neigh_stats2[,c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66")]
 
 # employment
 neigh_stats[,c("NettoArbeidsparticipatie_67" , "PercentageWerknemers_68", "PercentageZelfstandigen_69" )]
 
 #income
-neigh_stats[,c("AantalInkomensontvangers_70" , "GemiddeldInkomenPerInkomensontvanger_71" , "GemiddeldInkomenPerInwoner_72", "k_40PersonenMetLaagsteInkomen_73" , "k_20PersonenMetHoogsteInkomen_74", 
-               "GemGestandaardiseerdInkomenVanHuish_75" , "k_40HuishoudensMetLaagsteInkomen_76",  "k_20HuishoudensMetHoogsteInkomen_77",  "HuishoudensMetEenLaagInkomen_78")]
+neigh_stats3[,c("AantalInkomensontvangers_67"  , "k_40PersonenMetLaagsteInkomen_70" , "k_20PersonenMetHoogsteInkomen_71",  
+                "k_40HuishoudensMetLaagsteInkomen_73",  "k_20HuishoudensMetHoogsteInkomen_74",  "HuishoudensMetEenLaagInkomen_75",
+                "HuishOnderOfRondSociaalMinimum_76")]
 
 #social support
 neigh_stats[, c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSociaalMinimum_80", "HuishoudensTot120VanSociaalMinimum_81" ,"MediaanVermogenVanParticuliereHuish_82", 
@@ -408,9 +510,15 @@ neigh_stats[, c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSocia
 
 ## Stratified datasets
 
+# education level
+current_edu[, c("education_level" , "age" ,  "sex"  , "Migratieachtergrond"  , "LeerlingenDeelnemersStudenten_1")]           
+absolved_edu[, c("education_level" , "age" ,  "sex"  , "Migratieachtergrond"  , "Gediplomeerden_1")]  
 
 
+###########################################################################################################
 ################################## determining size of agent population ###################################
+###########################################################################################################
+
 ## Amsterdam official total population
 #2021 872497
 #2020 872757
@@ -678,9 +786,14 @@ strat_valid = crossvalid(valid_df = migrat_stats, agent_df = agents, join_var = 
 agents = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", "havechild", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western", "prop_singlehh", "prop_have_kids")]
 write.csv(agents, "Agent_pop.csv")
 
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
+agents = read.csv("Agent_pop.csv")
+
 ############################# socioeconomics ################################################
 # education level
-neigh_stats[,c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66")]
+x = neigh_stats2[,c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66")]
+colnames(neigh_stats2)[5] = "neighb_code"
+colnames(neigh_stats2)
 
 ## Data Preparation
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/socioeconomics")
@@ -689,27 +802,172 @@ current_edu = read.csv("students conditioned by age sex and migrationbackground.
 age_coding = read.csv("age_coding.csv")
 edu_coding = read.csv("education_coding.csv")
 colnames(age_coding)[1] = "Leeftijd"
-colnames(edu_coding)[1] = "Onderwijssoort"
+colnames(edu_coding)[1:2] = c("Onderwijssoort", "education_level")
 absolved_edu = merge(absolved_edu, age_coding, by= "Leeftijd", all.x = T, all.y = F)
 current_edu = merge(current_edu, age_coding, by= "Leeftijd", all.x = T, all.y = F)
 absolved_edu = merge(absolved_edu, edu_coding, by= "Onderwijssoort", all.x = T, all.y = F)
 current_edu = merge(current_edu, edu_coding, by= "Onderwijssoort", all.x = T, all.y = F)
 
+current_edu[, c("education_level" , "age" ,  "sex"  , "Migratieachtergrond"  , "LeerlingenDeelnemersStudenten_1")]           
+absolved_edu[, c("education_level" , "age" ,  "sex"  , "Migratieachtergrond"  , "Gediplomeerden_1")]  
+
+edu_stats = unique(absolved_edu[, c("age" ,  "sex"  , "Migratieachtergrond")])
+for(n in 1:nrow(edu_stats)){
+  edu_stats$absolved_high[n] = sum(absolved_edu$Gediplomeerden_1[which(absolved_edu$age == edu_stats$age[n] & absolved_edu$sex == edu_stats$sex[n] & absolved_edu$Migratieachtergrond == edu_stats$Migratieachtergrond[n] & absolved_edu$ranking == "high")])
+  edu_stats$absolved_middle[n] = sum(absolved_edu$Gediplomeerden_1[which(absolved_edu$age == edu_stats$age[n] & absolved_edu$sex == edu_stats$sex[n] & absolved_edu$Migratieachtergrond == edu_stats$Migratieachtergrond[n] & absolved_edu$ranking == "middle")])
+  edu_stats$absolved_low[n] = sum(absolved_edu$Gediplomeerden_1[which(absolved_edu$age == edu_stats$age[n] & absolved_edu$sex == edu_stats$sex[n] & absolved_edu$Migratieachtergrond == edu_stats$Migratieachtergrond[n] & absolved_edu$ranking == "low")])
+  edu_stats$absolved_tot[n] = sum(absolved_edu$Gediplomeerden_1[which(absolved_edu$age == edu_stats$age[n] & absolved_edu$sex == edu_stats$sex[n] & absolved_edu$Migratieachtergrond == edu_stats$Migratieachtergrond[n] & absolved_edu$ranking != "")])
+  edu_stats$current_high[n] = sum(current_edu$LeerlingenDeelnemersStudenten_1[which(current_edu$age == edu_stats$age[n] & current_edu$sex == edu_stats$sex[n] & current_edu$Migratieachtergrond == edu_stats$Migratieachtergrond[n] & current_edu$ranking == "high")])
+  edu_stats$current_middle[n] = sum(current_edu$LeerlingenDeelnemersStudenten_1[which(current_edu$age == edu_stats$age[n] & current_edu$sex == edu_stats$sex[n] & current_edu$Migratieachtergrond == edu_stats$Migratieachtergrond[n] & current_edu$ranking == "middle")])
+  edu_stats$current_low[n] = sum(current_edu$LeerlingenDeelnemersStudenten_1[which(current_edu$age == edu_stats$age[n] & current_edu$sex == edu_stats$sex[n] & current_edu$Migratieachtergrond == edu_stats$Migratieachtergrond[n] & current_edu$ranking == "low")])
+  edu_stats$current_totalindf[n] = sum(current_edu$LeerlingenDeelnemersStudenten_1[which(current_edu$age == edu_stats$age[n] & current_edu$sex == edu_stats$sex[n] & current_edu$Migratieachtergrond == edu_stats$Migratieachtergrond[n] & current_edu$ranking != "")])
+  edu_stats$current_total[n] = nrow(agents[ which(agents$age_group_new  == edu_stats$age[n] & agents$sex == edu_stats$sex[n] & agents$migrationbackground == edu_stats$Migratieachtergrond[n]), ])
+  edu_stats$current_no_edu[n] = (edu_stats$current_total[n] - sum(edu_stats$current_low[n], edu_stats$current_middle[n], edu_stats$current_high[n]))
+}
+
+edu_stats = edu_stats[edu_stats$age_group_new != "Totaal" & edu_stats$sex != "Total" & edu_stats$migrationbackground != "Total",]
+colnames(edu_stats)[1:3] = c("age_group_new", "sex", "migrationbackground")
+
+agents$age_group_new = agents$age
+agents$age_group_new[agents$age %in% 30:34] = "30 tot 35 jaar"
+agents$age_group_new[agents$age %in% 35:39] = "35 tot 40 jaar"
+agents$age_group_new[agents$age %in% 40:44] = "40 tot 45 jaar" 
+agents$age_group_new[agents$age %in% 45:49] = "45 tot 50 jaar" 
+agents$age_group_new[agents$age >= 50] = "50 jaar of ouder"  
 
 
+neigh_stats2[,c("OpleidingsniveauLaag_64")] = as.numeric(neigh_stats2[,c("OpleidingsniveauLaag_64")])
+neigh_stats2[,c("OpleidingsniveauMiddelbaar_65" )] = as.numeric(neigh_stats2[,c("OpleidingsniveauMiddelbaar_65" )])
+neigh_stats2[,c("OpleidingsniveauHoog_66")] = as.numeric(neigh_stats2[,c("OpleidingsniveauHoog_66")])
+
+
+## Conditional Propensities
+agents = calc_propens_agents(dataframe =  edu_stats, variable = "absolved_high", total_population =  "absolved_tot", agent_df =  agents, list_conditional_var = c("age_group_new", "sex", "migrationbackground") )
+agents = calc_propens_agents(dataframe =  edu_stats, variable = "absolved_middle", total_population =  "absolved_tot", agent_df =  agents, list_conditional_var = c("age_group_new", "sex", "migrationbackground") )
+agents = calc_propens_agents(dataframe =  edu_stats, variable = "absolved_low", total_population =  "absolved_tot", agent_df =  agents, list_conditional_var = c("age_group_new", "sex", "migrationbackground") )
+agents = calc_propens_agents(dataframe =  edu_stats, variable = "current_high", total_population =  "current_total", agent_df =  agents, list_conditional_var = c("age_group_new", "sex", "migrationbackground") )
+agents = calc_propens_agents(dataframe =  edu_stats, variable = "current_middle", total_population =  "current_total", agent_df =  agents, list_conditional_var = c("age_group_new", "sex", "migrationbackground") )
+agents = calc_propens_agents(dataframe =  edu_stats, variable = "current_low", total_population =  "current_total", agent_df =  agents, list_conditional_var = c("age_group_new", "sex", "migrationbackground") )
+agents = calc_propens_agents(dataframe =  edu_stats, variable = "current_no_edu", total_population =  "current_total", agent_df =  agents, list_conditional_var = c("age_group_new", "sex", "migrationbackground") )
+
+
+## assigning attributes to agents
+agents$current_edu_exclude = 0
+agents$current_edu_exclude[which(is.na(agents$prop_current_high))] = 1
+
+agents = distr_attr_cond_prop(agent_df = agents, variable=  "current_education",   list_agent_propens =  c("prop_current_low",  "prop_current_middle", "prop_current_high", "prop_current_no_edu"), 
+                              list_class_names = c("low", "middle", "high", "no_current_edu"), agent_exclude = "current_edu_exclude")
+
+agents$current_education[which(agents$age < 15 & agents$age > 5) ] = "low"
+agents$current_education[which( agents$age <= 5) ] = "no_current_edu"
+
+agents$absolved = ""
+agents$absolved[agents$current_education == "middle"] = "low"
+agents$absolved[agents$current_education == "high" & agents$age <= 22] = "middle"
+agents$absolved[agents$current_education == "high" & agents$age > 22] = "high"
+
+neigh_stats2$LowerEdu = 0
+neigh_stats2$MiddleEdu = 0
+neigh_stats2$HigherEdu = 0
+
+for(i in 1:nrow(neigh_stats2)){
+  neigh_stats2[i,c("LowerEdu")] = neigh_stats2[i,c("OpleidingsniveauLaag_64")] - nrow(agents[agents$absolved == "low" & agents$neighb_code == neigh_stats2$neighb_code[i] & agents$age >= 15,])
+  neigh_stats2[i,c("MiddleEdu" )] = neigh_stats2[i,c("OpleidingsniveauMiddelbaar_65" )]- nrow(agents[agents$absolved == "middle" & agents$neighb_code == neigh_stats2$neighb_code[i] & agents$age >= 15,])
+  neigh_stats2[i,c("HigherEdu")] = neigh_stats2[i,c("OpleidingsniveauHoog_66")] - nrow(agents[agents$absolved == "high" & agents$neighb_code == neigh_stats2$neighb_code[i] & agents$age >= 15,])
+}
+
+
+neigh_stats2$LowerEdu[neigh_stats2$LowerEdu < 0] = 0
+neigh_stats2$MiddleEdu[neigh_stats2$MiddleEdu < 0] = 0
+neigh_stats2$HigherEdu[neigh_stats2$HigherEdu < 0] = 0
+
+neigh_stats2[, c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66")]
+neigh_stats2[, c("LowerEdu" , "MiddleEdu" ,"HigherEdu")]
+
+agents$diplm_exclude = 0
+agents$diplm_exclude[which(is.na(agents$prop_absolved_high)| agents$age < 15 | agents$absolved != "") ] = 1
+
+agents = distr_attr_strat_n_neigh_stats_3plus(agent_df = agents, neigh_df = neigh_stats2, neigh_ID = "neighb_code", variable=  "absolved_education", 
+                                            list_var_classes_neigh_df = c("LowerEdu" , "MiddleEdu" ,"HigherEdu"), 
+                                            list_agent_propens =  c("prop_absolved_low",  "prop_absolved_middle", "prop_absolved_high" ), 
+                                            list_class_names = c("low", "middle", "high"),  agent_exclude = c("diplm_exclude"))
+
+
+agents$absolved_education[agents$absolved != ""] = agents$absolved[agents$absolved != ""]
+
+## cross validating with neighborhood and stratified totals
+neigh_valid = crossvalid(valid_df = neigh_stats2, agent_df = agents, join_var = "neighb_code", list_valid_var = c("OpleidingsniveauLaag_64" , "OpleidingsniveauMiddelbaar_65" ,"OpleidingsniveauHoog_66"), 
+                         agent_var = "absolved_education", list_agent_attr = c("low", "middle", "high") )
+
+strat_valid = crossvalid(valid_df = edu_stats, agent_df = agents, join_var = c("age_group_new", "sex", "migrationbackground"), list_valid_var =  c("absolved_low", "absolved_middle", "absolved_high"), 
+                         agent_var = "absolved_education", list_agent_attr = c("low", "middle", "high") )
+
+
+
+colnames(agents)
+agents = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", 
+                   "havechild", "current_education", "absolved_education", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western",
+                   "prop_singlehh", "prop_have_kids",  "prop_absolved_high", "prop_absolved_middle","prop_absolved_low" ,"prop_current_high",   
+                   "prop_current_middle", "prop_current_low" ,"prop_current_no_edu" )]
+
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
+write.csv(agents, "Agent_pop_with_prop.csv")
+
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population")
+agents_clean = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", 
+                   "havechild", "current_education", "absolved_education" )]
+write.csv(agents_clean, "Agent_pop.csv")
 
 
 # employment
 c("NettoArbeidsparticipatie_67" , "PercentageWerknemers_68", "PercentageZelfstandigen_69" )
+
 #income
-neigh_stats[,c("AantalInkomensontvangers_70" , "GemiddeldInkomenPerInkomensontvanger_71" , "GemiddeldInkomenPerInwoner_72", "k_40PersonenMetLaagsteInkomen_73" , "k_20PersonenMetHoogsteInkomen_74", 
- "GemGestandaardiseerdInkomenVanHuish_75" , "k_40HuishoudensMetLaagsteInkomen_76",  "k_20HuishoudensMetHoogsteInkomen_77",  "HuishoudensMetEenLaagInkomen_78")]
+x = neigh_stats3[,c("AantalInkomensontvangers_67"  , "k_40PersonenMetLaagsteInkomen_70" , "k_20PersonenMetHoogsteInkomen_71",  
+                    "k_40HuishoudensMetLaagsteInkomen_73",  "k_20HuishoudensMetHoogsteInkomen_74",  "HuishoudensMetEenLaagInkomen_75",
+                    "HuishOnderOfRondSociaalMinimum_76")]
+
+# k_40PersonenMetLaagsteInkomen_70 Share of persons in private households that belong to national 40% people with the lowest personal income.       
+# k_20PersonenMetHoogsteInkomen_71 Share of persons in private households that belong to national 20% people with the highest personal income
+
+
+colnames(neigh_stats2)
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/socioeconomics")
 income_stats = read.csv("income by gender and age.csv")
 personal_attributes = read.csv("personal_attributes.csv")
 colnames(personal_attributes)[1] = "Persoonskenmerken"
 income_stats = merge(income_stats, personal_attributes, by= "Persoonskenmerken", all.x = T, all.y = F)
+
+personal_attributes
+c("Migratieachtergrond: Nederland" , "Migratieachtergrond: westers", "Migratieachtergrond: niet-westers",  "Totaal personen"  , "Leeftijd: 0 tot 15 jaar" ,
+  "Leeftijd: 15 tot 25 jaar", "Leeftijd: 25 tot 45 jaar" , "Leeftijd: 45 tot 65 jaar" , "Leeftijd: 65 jaar of ouder", "Positie hh: hoofdkostw. zonder partner",
+  "Positie hh: hoofdkostw. met partner" , "Positie hh: hoofdkostwinner", "Positie hh: partner van hoofdkostwinner", "Positie hh: kind < 18 jaar" ,
+  "Positie hh: kind >=18 jaar" ,"Positie hh: overig lid"  , "SEC: zelfstandige"  ,"SEC: uitkerings- en pensioenontvanger" , 
+  "SEC: ontvanger werkloosheidsuitkering", "SEC: ontvanger van sociale voorziening", "SEC: arbeidsongeschikte", "SEC: overige (zonder inkomen)",
+  "SEC: werknemer" , "SEC: uitkeringsontvanger",  "SEC: pensioenontvanger" , "SEC:(school)kind of student"  )  
+
+# in English
+c("Migration background: the Netherlands", "migration background: western", "migration background: non-western", "Total persons", "age: 0 to 15 years old",
+"Age: 15 to 25 years old", "age: 25 to 45 years old", "age: 45 to 65 years old", "age: 65 years or older", "position HH: main kostw. Without partner",
+"HH position: main kostw. With partner", "HH position: main kostwinner", "position HH: partner of main kostwinner", "position HH: child <18 years old",
+"Position HH: child> = 18 years", "position HH: other member", "sec: self-employed", "sec: benefit and pension receiver",
+"Sec: recipient unemployment benefit", "SEC: Social Provision Recipient", "SEC: Incapacitated", "SEC: Other (without income)",
+"SEC: employee", "SEC: Benefit receiver", "SEC: Pension Recipient", "SEC: (School) Child or Student")
+
+
+
+
+calc_propens_agents = function(dataframe, variable, total_population, agent_df, list_conditional_var){
+  dataframe[,c(paste("prop_",variable, sep = ""))] = dataframe[,c(variable)]/dataframe[, c(total_population)]
+  order_agent_df = colnames(agent_df)
+  agent_df = merge(agent_df, dataframe[,c(list_conditional_var, paste("prop_",variable, sep = ""))], all.x = T, all.y= F, by = list_conditional_var)
+  agent_df = agent_df[,c(order_agent_df, paste("prop_",variable, sep = ""))]
+  random_seq = sample(nrow(agent_df))
+  agent_df = agent_df[random_seq,]
+  return(agent_df)
+}
+
 
 
 #social support
@@ -722,11 +980,109 @@ c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSociaalMinimum_80",
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/Health")
 neigh_health = read.csv("Gezondheid_per_wijk_en_buurt_2016_09062021_151732.csv")
 colnames(neigh_health)
+neigh_health = neigh_health[which(neigh_health$Soort.Regio == "Buurt"),]
+
 
 c("ï..Wijken.en.buurten", "Gemeentenaam" ,"Soort.Regio",   "neighb_code", "Drankgebruik.Voldoet.aan.alcoholrichtlijn" , "Overgewicht.Obesitas",
   "Roker" , "Lichamelijke.gezondheid.Langdurige.ziekte.of.aandoening", "Psychische.gezondheid.Hoog.risico.op.angst.of.depressie",
   "Eenzaamheid.Ernstig.zeer.ernstig.eenzaam",   "Goed.zeer.goed.ervaren.gezondheid",  "Sporten.en.bewegen.Voldoet.aan.beweegrichtlijn",
   "Mantelzorg.Mantelzorger"  , "Mantelzorg.Mantelzorg.ontvangen.nu..65.." )
+
+# percentage of people 19 years or older  
+# (1)Drankgebruik.Voldoet.aan.alcoholrichtlijn = people adhering to alcohol guideline (0-1 glas of alcohol per day)
+# (2) Overgewicht.Obesitas = people met een BMI van 30,0 kg/m2 en hoger
+# (3) Roker = Smoker
+
+neigh_health[,c( "neighb_code", "Drankgebruik.Voldoet.aan.alcoholrichtlijn" , "Overgewicht.Obesitas", "Roker")]
+
+
+obesity_stats = read.csv("table__83021NED.csv")
+obesity_stats= obesity_stats[which(obesity_stats$Marges == "Waarde"),]
+colnames(obesity_stats)[4:8] = c("Underweight" , "Normal_weight", "Overweight" , "Moderate_Overweight", "Obese")
+
+x = c("Underweight" , "Normal_weight", "Overweight" , "Moderate_Overweight", "Obese")
+for (i in x){
+  obesity_stats[,x] = gsub(",", ".", obesity_stats[,x])
+  
+}
+
+# 1. Ondergewicht: BMI < 18,5
+# 2. Normaal gewicht: BMI >= 18,5 en < 25,0
+# 3. Overgewicht: BMI >= 25,0
+# a. Matig overgewicht: BMI >= 25,0 en < 30,0
+# b. Ernstig overgewicht: BMI >= 30,0
+
+unique(obesity_stats$Kenmerken.personen)
+c("Geslacht: Mannen", "Geslacht: Vrouwen", "Leeftijd: 0 tot 4 jaar", "Leeftijd: 4 tot 12 jaar"  , "Leeftijd: 12 tot 16 jaar"  ,
+  "Leeftijd: 16 tot 20 jaar" , "Leeftijd: 20 tot 30 jaar" , "Leeftijd: 30 tot 40 jaar" , "Leeftijd: 40 tot 50 jaar" , "Leeftijd: 50 tot 55 jaar",
+  "Leeftijd: 55 tot 65 jaar"    , "Leeftijd: 65 tot 75 jaar"  ,  "Leeftijd: 75 jaar of ouder",  "Leeftijd: 0 tot 12 jaar" ,  "Leeftijd: 12 tot 18 jaar",
+  "Leeftijd: 18 jaar of ouder"  , "Positie: alleenstaande <40 jaar" ,  "Positie: alleenstaande 40 tot 65 jaar" , "Positie: alleenstaande >=65 jaar" ,
+  "Positie: kind <18 jaar, eenoudergezin",  "Positie: kind >= 18 jaar eenoudergezin", "Positie: kind <18 jaar bij paar"  , "Positie: kind >=18 jaar bij paar" ,
+ "Positie: ouder in eenoudergezin" , "Positie: partner in paar met kind" , "Positie: partner paar <40, geen kind", "Positie: partner paar 40-65, geen kind",
+ "Positie: partner paar >=65, geen kind", "Positie: overig lid" , "Migratieachtergrond: Nederland" , "Migratieachtergrond: westers" ,
+ "Migratieachtergrond: 1e gen westers", "Migratieachtergrond: 2e gen westers")
+
+
+x = list(c("Geslacht: Mannen", "Geslacht: Vrouwen"),c("Leeftijd: 0 tot 4 jaar", "Leeftijd: 4 tot 12 jaar"  , "Leeftijd: 12 tot 16 jaar"  ,
+  "Leeftijd: 16 tot 20 jaar" , "Leeftijd: 20 tot 30 jaar" , "Leeftijd: 30 tot 40 jaar" , "Leeftijd: 40 tot 50 jaar" , "Leeftijd: 50 tot 55 jaar",
+  "Leeftijd: 55 tot 65 jaar"    , "Leeftijd: 65 tot 75 jaar"  ,  "Leeftijd: 75 jaar of ouder",  "Leeftijd: 0 tot 12 jaar" ,  "Leeftijd: 12 tot 18 jaar",
+  "Leeftijd: 18 jaar of ouder"))
+
+length(x[[2]])
+
+x = list(c("Geslacht: Mannen", "Geslacht: Vrouwen"),c("Leeftijd: 0 tot 4 jaar", "Leeftijd: 4 tot 12 jaar"  , "Leeftijd: 12 tot 16 jaar"  ,
+                                                      "Leeftijd: 16 tot 20 jaar" , "Leeftijd: 20 tot 30 jaar" , "Leeftijd: 30 tot 40 jaar" , "Leeftijd: 40 tot 50 jaar" , "Leeftijd: 50 tot 55 jaar",
+                                                      "Leeftijd: 55 tot 65 jaar"    , "Leeftijd: 65 tot 75 jaar"  ,  "Leeftijd: 75 jaar of ouder",  "Leeftijd: 0 tot 12 jaar" ,  "Leeftijd: 12 tot 18 jaar",
+                                                      "Leeftijd: 18 jaar of ouder"))
+
+
+
+
+
+create_stratified_prob_table = function(nested_cond_attr_list, column_names, orig_df, strat_var, var_for_pred){
+  ncondVar = length(nested_cond_attr_list)
+  attr_length = c()
+  for(i in 1:ncondVar){
+    attr_length = append(attr_length, length(nested_cond_attr_list[[i]]))
+  }
+  new_strat_df = as.data.frame(matrix(nrow = prod(attr_length), ncol = (ncondVar + length(var_for_pred))))
+  for(i in 1:ncondVar){
+    if(i == ncondVar){
+      new_strat_df[,i] = rep(nested_cond_attr_list[[i]], times =  (prod(attr_length)/attr_length[i]))
+    }
+    else{
+      var_comb = c()
+      for(n in 1:attr_length[i]){
+        var_comb = append(var_comb, rep(nested_cond_attr_list[[i]][n], times = prod(attr_length[(i+1):ncondVar])))
+      }
+      new_strat_df[,i] = rep(var_comb, times = prod(attr_length)/prod(attr_length[(i):ncondVar]))
+    }
+
+  }
+  colnames(new_strat_df) = c(column_names, var_for_pred)
+  for(i in 1:nrow(new_strat_df)){
+    for(n in 1:length(var_for_pred)){
+      new_strat_df[i,n+ncondVar] = sum(orig_df[which(orig_df[,c(strat_var)] %in% c(new_strat_df[i,1:ncondVar])),c(var_for_pred[n])])/ncondVar
+    }
+  }
+  
+  return(new_strat_df)
+}
+
+sum(obesity_stats[which(obesity_stats[,c("Kenmerken.personen")] %in% c(BMI_stats[2,1:2])),c("Underweight")])
+
+as.numeric(obesity_stats[which(obesity_stats[,c("Kenmerken.personen")] %in% c(BMI_stats[2,1:2])),c("Underweight")])
+
+
+obesity_stats[,c("Kenmerken.personen")]
+
+BMI_stats = create_stratified_prob_table(nested_cond_attr_list = list(c("Geslacht: Mannen", "Geslacht: Vrouwen"),c("Leeftijd: 0 tot 4 jaar", "Leeftijd: 4 tot 12 jaar"  , "Leeftijd: 12 tot 16 jaar"  ,
+                                                                                                                  "Leeftijd: 16 tot 20 jaar" , "Leeftijd: 20 tot 30 jaar" , "Leeftijd: 30 tot 40 jaar" , "Leeftijd: 40 tot 50 jaar" , "Leeftijd: 50 tot 55 jaar",
+                                                                                                                  "Leeftijd: 55 tot 65 jaar"    , "Leeftijd: 65 tot 75 jaar"  ,  "Leeftijd: 75 jaar of ouder",  "Leeftijd: 0 tot 12 jaar" ,  "Leeftijd: 12 tot 18 jaar",
+                                                                                                                  "Leeftijd: 18 jaar of ouder")),
+                                         column_names = c("sex", "age_group"), var_for_pred = c("Underweight" , "Normal_weight", "Overweight" , "Moderate_Overweight", "Obese"),
+                                         orig_df = obesity_stats, strat_var = "Kenmerken.personen")
+
 
 
 

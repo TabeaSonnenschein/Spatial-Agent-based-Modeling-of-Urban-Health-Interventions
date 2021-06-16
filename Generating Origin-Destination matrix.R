@@ -3,10 +3,11 @@ pkgs <- c("sf", "sp", "stplanr", "rgdal", "igraph")
 sapply(pkgs, require, character.only = T) #load 
 rm(pkgs)
 
+install.packages("sf", "sp", "stplanr", "rgdal", "igraph")
 
 city = "Amsterdam"
 
-setwd("C:/Dokumente/PhD EXPANSE/Courses/Spatial Data Analysis and Simulation Modeling/case study/data/final model data")
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/case study/data/final model data")
 
 if(city == "Utrecht"){
   dsn <- "C:/Dokumente/PhD EXPANSE/Courses/Spatial Data Analysis and Simulation Modeling/case study/data/final model data"
@@ -18,6 +19,7 @@ if(city == "Amsterdam"){
   #Streets <- readOGR(dsn=dsn_data ,layer="Car Traffic_ED50window")
   Streets <- readOGR(dsn=dsn_data ,layer="Car Traffic_ED50window_small")
   #Streets <- readOGR(dsn=dsn_data ,layer="Car Traffic")
+  BikeLanes = 
   crs <- "+init=EPSG:23095" #ED_1950_TM_5_NE
 }
 
@@ -125,7 +127,7 @@ for(O in 1:nrow(OD_matrix)){
 #   }
 # }
 
-write.csv(OD_matrix, paste("OD_Matrix1_", city, ".csv", sep = ""))
+write.csv(OD_matrix, paste("OD_Matrix_", city, ".csv", sep = ""))
 
 
 
