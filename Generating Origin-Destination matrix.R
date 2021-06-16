@@ -3,8 +3,6 @@ pkgs <- c("sf", "sp", "stplanr", "rgdal", "igraph")
 sapply(pkgs, require, character.only = T) #load 
 rm(pkgs)
 
-install.packages("sf", "sp", "stplanr", "rgdal", "igraph")
-
 city = "Amsterdam"
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/case study/data/final model data")
@@ -19,7 +17,8 @@ if(city == "Amsterdam"){
   #Streets <- readOGR(dsn=dsn_data ,layer="Car Traffic_ED50window")
   Streets <- readOGR(dsn=dsn_data ,layer="Car Traffic_ED50window_small")
   #Streets <- readOGR(dsn=dsn_data ,layer="Car Traffic")
-  BikeLanes = 
+  dsn_data <- "C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/bike"
+  BikeLanes = readOGR(dsn=dsn_data ,layer="Bike_Network_ED50_ small_window")
   crs <- "+init=EPSG:23095" #ED_1950_TM_5_NE
 }
 

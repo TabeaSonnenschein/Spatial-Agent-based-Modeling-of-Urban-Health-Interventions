@@ -30,7 +30,9 @@ gen_agent_df = function(pop_size){
 # Finally, it shuffles the agent dataset to avoid biases due to a non random order in the next steps.
 
 calc_propens_agents = function(dataframe, variable, total_population, agent_df, list_conditional_var){
-  dataframe[,c(paste("prop_",variable, sep = ""))] = dataframe[,c(variable)]/dataframe[, c(total_population)]
+  if(!missing(total_population)){
+    dataframe[,c(paste("prop_",variable, sep = ""))] = dataframe[,c(variable)]/dataframe[, c(total_population)]
+  }
   order_agent_df = colnames(agent_df)
   if(paste("prop_",variable, sep = "") %in% order_agent_df){
     x = which(order_agent_df == paste("prop_",variable, sep = ""))
@@ -42,6 +44,55 @@ calc_propens_agents = function(dataframe, variable, total_population, agent_df, 
   agent_df = agent_df[random_seq,]
   return(agent_df)
 }
+
+
+
+## this function creates a stratified probability table from single attribute propensities
+
+create_stratified_prob_table = function(nested_cond_attr_list, column_names, orig_df, strat_var, var_for_pred, total_population){
+  ncondVar = length(column_names)
+  attr_length = c()
+  for(i in 1:ncondVar){
+    attr_length = append(attr_length, length(nested_cond_attr_list[[i]]))
+  }
+  new_strat_df = as.data.frame(matrix(nrow = prod(attr_length), ncol = (ncondVar + length(var_for_pred))))
+  for(i in 1:ncondVar){
+    if(i == ncondVar){
+      new_strat_df[,i] = rep(nested_cond_attr_list[[i]], times =  (prod(attr_length)/attr_length[i]))
+    }
+    else{
+      var_comb = c()
+      for(n in 1:attr_length[i]){
+        var_comb = append(var_comb, rep(nested_cond_attr_list[[i]][n], times = prod(attr_length[(i+1):ncondVar])))
+      }
+      new_strat_df[,i] = rep(var_comb, times = prod(attr_length)/prod(attr_length[(i):ncondVar]))
+    }
+    
+  }
+  colnames(new_strat_df) = c(column_names, paste("prop_",var_for_pred, sep = ""))
+  if(missing(total_population)){
+    for(i in 1:nrow(new_strat_df)){
+      for(n in 1:length(var_for_pred)){
+        new_strat_df[i,n+ncondVar] = sum(orig_df[which(orig_df[,c(strat_var)] %in% c(new_strat_df[i,1:ncondVar])),c(var_for_pred[n])])/ncondVar
+      }
+    }
+  }
+  else{
+    for(i in 1:length(var_for_pred)){
+      orig_df[,c(paste("prop_",var_for_pred[i], sep = ""))] = orig_df[,c(var_for_pred[i])]/orig_df[, c(total_population)]
+    }
+    for(i in 1:nrow(new_strat_df)){
+      for(n in 1:length(var_for_pred)){
+        new_strat_df[i,n+ncondVar] = sum(orig_df[which(orig_df[,c(strat_var)] %in% c(new_strat_df[i,1:ncondVar])),c(paste("prop_",var_for_pred[n], sep = ""))])/ncondVar
+      }
+    }
+  }
+  return(new_strat_df)
+}
+
+
+
+
 
 ####### distributing attributes across agent population based on conditional proabilities and neighborhood totals 
 
@@ -912,6 +963,7 @@ agents = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
 write.csv(agents, "Agent_pop_with_prop.csv")
+agents = read.csv("Agent_pop.csv")
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population")
 agents_clean = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", 
@@ -938,7 +990,7 @@ income_stats = read.csv("income by gender and age.csv")
 personal_attributes = read.csv("personal_attributes.csv")
 colnames(personal_attributes)[1] = "Persoonskenmerken"
 income_stats = merge(income_stats, personal_attributes, by= "Persoonskenmerken", all.x = T, all.y = F)
-
+income_stats$Personen_1
 personal_attributes
 c("Migratieachtergrond: Nederland" , "Migratieachtergrond: westers", "Migratieachtergrond: niet-westers",  "Totaal personen"  , "Leeftijd: 0 tot 15 jaar" ,
   "Leeftijd: 15 tot 25 jaar", "Leeftijd: 25 tot 45 jaar" , "Leeftijd: 45 tot 65 jaar" , "Leeftijd: 65 jaar of ouder", "Positie hh: hoofdkostw. zonder partner",
@@ -956,17 +1008,11 @@ c("Migration background: the Netherlands", "migration background: western", "mig
 "SEC: employee", "SEC: Benefit receiver", "SEC: Pension Recipient", "SEC: (School) Child or Student")
 
 
-
-
-calc_propens_agents = function(dataframe, variable, total_population, agent_df, list_conditional_var){
-  dataframe[,c(paste("prop_",variable, sep = ""))] = dataframe[,c(variable)]/dataframe[, c(total_population)]
-  order_agent_df = colnames(agent_df)
-  agent_df = merge(agent_df, dataframe[,c(list_conditional_var, paste("prop_",variable, sep = ""))], all.x = T, all.y= F, by = list_conditional_var)
-  agent_df = agent_df[,c(order_agent_df, paste("prop_",variable, sep = ""))]
-  random_seq = sample(nrow(agent_df))
-  agent_df = agent_df[random_seq,]
-  return(agent_df)
-}
+Inc_stats = create_stratified_prob_table(nested_cond_attr_list = list(c("Leeftijd: 0 tot 15 jaar" ,"Leeftijd: 15 tot 25 jaar", "Leeftijd: 25 tot 45 jaar" , 
+                                                                        "Leeftijd: 45 tot 65 jaar" , "Leeftijd: 65 jaar of ouder"),
+                                                                      c("Migratieachtergrond: Nederland" , "Migratieachtergrond: westers", "Migratieachtergrond: niet-westers")),
+                                         column_names = c("age_group", "migrationbackground"), var_for_pred = c("PersonenMetPersoonlijkInkomen_2"), total_population = "Personen_1",
+                                         orig_df = income_stats, strat_var = "Title")
 
 
 
@@ -1002,8 +1048,8 @@ colnames(obesity_stats)[4:8] = c("Underweight" , "Normal_weight", "Overweight" ,
 
 x = c("Underweight" , "Normal_weight", "Overweight" , "Moderate_Overweight", "Obese")
 for (i in x){
-  obesity_stats[,x] = gsub(",", ".", obesity_stats[,x])
-  
+  obesity_stats[,c(i)] = gsub(",", ".", obesity_stats[,c(i)])
+  obesity_stats[,c(i)] = as.numeric(obesity_stats[,c(i)])/100
 }
 
 # 1. Ondergewicht: BMI < 18,5
@@ -1023,67 +1069,47 @@ c("Geslacht: Mannen", "Geslacht: Vrouwen", "Leeftijd: 0 tot 4 jaar", "Leeftijd: 
  "Migratieachtergrond: 1e gen westers", "Migratieachtergrond: 2e gen westers")
 
 
-x = list(c("Geslacht: Mannen", "Geslacht: Vrouwen"),c("Leeftijd: 0 tot 4 jaar", "Leeftijd: 4 tot 12 jaar"  , "Leeftijd: 12 tot 16 jaar"  ,
-  "Leeftijd: 16 tot 20 jaar" , "Leeftijd: 20 tot 30 jaar" , "Leeftijd: 30 tot 40 jaar" , "Leeftijd: 40 tot 50 jaar" , "Leeftijd: 50 tot 55 jaar",
-  "Leeftijd: 55 tot 65 jaar"    , "Leeftijd: 65 tot 75 jaar"  ,  "Leeftijd: 75 jaar of ouder",  "Leeftijd: 0 tot 12 jaar" ,  "Leeftijd: 12 tot 18 jaar",
-  "Leeftijd: 18 jaar of ouder"))
-
-length(x[[2]])
-
-x = list(c("Geslacht: Mannen", "Geslacht: Vrouwen"),c("Leeftijd: 0 tot 4 jaar", "Leeftijd: 4 tot 12 jaar"  , "Leeftijd: 12 tot 16 jaar"  ,
-                                                      "Leeftijd: 16 tot 20 jaar" , "Leeftijd: 20 tot 30 jaar" , "Leeftijd: 30 tot 40 jaar" , "Leeftijd: 40 tot 50 jaar" , "Leeftijd: 50 tot 55 jaar",
-                                                      "Leeftijd: 55 tot 65 jaar"    , "Leeftijd: 65 tot 75 jaar"  ,  "Leeftijd: 75 jaar of ouder",  "Leeftijd: 0 tot 12 jaar" ,  "Leeftijd: 12 tot 18 jaar",
-                                                      "Leeftijd: 18 jaar of ouder"))
-
-
+agents$age_group_new[agents$age %in% 0:3] = "Leeftijd: 0 tot 4 jaar"
+agents$age_group_new[agents$age %in% 4:11] = "Leeftijd: 4 tot 12 jaar"
+agents$age_group_new[agents$age %in% 12:15] = "Leeftijd: 12 tot 16 jaar"
+agents$age_group_new[agents$age %in% 16:19] = "Leeftijd: 16 tot 20 jaar" 
+agents$age_group_new[agents$age %in% 20:29] = "Leeftijd: 20 tot 30 jaar"
+agents$age_group_new[agents$age %in% 30:39] = "Leeftijd: 30 tot 40 jaar"
+agents$age_group_new[agents$age %in% 40:49] = "Leeftijd: 40 tot 50 jaar"
+agents$age_group_new[agents$age %in% 50:54] = "Leeftijd: 50 tot 55 jaar"
+agents$age_group_new[agents$age %in% 55:64] = "Leeftijd: 55 tot 65 jaar" 
+agents$age_group_new[agents$age %in% 65:75] = "Leeftijd: 65 tot 75 jaar" 
+agents$age_group_new[agents$age >= 75] = "Leeftijd: 75 jaar of ouder" 
 
 
-
-create_stratified_prob_table = function(nested_cond_attr_list, column_names, orig_df, strat_var, var_for_pred){
-  ncondVar = length(nested_cond_attr_list)
-  attr_length = c()
-  for(i in 1:ncondVar){
-    attr_length = append(attr_length, length(nested_cond_attr_list[[i]]))
-  }
-  new_strat_df = as.data.frame(matrix(nrow = prod(attr_length), ncol = (ncondVar + length(var_for_pred))))
-  for(i in 1:ncondVar){
-    if(i == ncondVar){
-      new_strat_df[,i] = rep(nested_cond_attr_list[[i]], times =  (prod(attr_length)/attr_length[i]))
-    }
-    else{
-      var_comb = c()
-      for(n in 1:attr_length[i]){
-        var_comb = append(var_comb, rep(nested_cond_attr_list[[i]][n], times = prod(attr_length[(i+1):ncondVar])))
-      }
-      new_strat_df[,i] = rep(var_comb, times = prod(attr_length)/prod(attr_length[(i):ncondVar]))
-    }
-
-  }
-  colnames(new_strat_df) = c(column_names, var_for_pred)
-  for(i in 1:nrow(new_strat_df)){
-    for(n in 1:length(var_for_pred)){
-      new_strat_df[i,n+ncondVar] = sum(orig_df[which(orig_df[,c(strat_var)] %in% c(new_strat_df[i,1:ncondVar])),c(var_for_pred[n])])/ncondVar
-    }
-  }
-  
-  return(new_strat_df)
-}
-
-sum(obesity_stats[which(obesity_stats[,c("Kenmerken.personen")] %in% c(BMI_stats[2,1:2])),c("Underweight")])
-
-as.numeric(obesity_stats[which(obesity_stats[,c("Kenmerken.personen")] %in% c(BMI_stats[2,1:2])),c("Underweight")])
-
-
-obesity_stats[,c("Kenmerken.personen")]
-
-BMI_stats = create_stratified_prob_table(nested_cond_attr_list = list(c("Geslacht: Mannen", "Geslacht: Vrouwen"),c("Leeftijd: 0 tot 4 jaar", "Leeftijd: 4 tot 12 jaar"  , "Leeftijd: 12 tot 16 jaar"  ,
-                                                                                                                  "Leeftijd: 16 tot 20 jaar" , "Leeftijd: 20 tot 30 jaar" , "Leeftijd: 30 tot 40 jaar" , "Leeftijd: 40 tot 50 jaar" , "Leeftijd: 50 tot 55 jaar",
-                                                                                                                  "Leeftijd: 55 tot 65 jaar"    , "Leeftijd: 65 tot 75 jaar"  ,  "Leeftijd: 75 jaar of ouder",  "Leeftijd: 0 tot 12 jaar" ,  "Leeftijd: 12 tot 18 jaar",
-                                                                                                                  "Leeftijd: 18 jaar of ouder")),
-                                         column_names = c("sex", "age_group"), var_for_pred = c("Underweight" , "Normal_weight", "Overweight" , "Moderate_Overweight", "Obese"),
+BMI_stats = create_stratified_prob_table(nested_cond_attr_list = list(c("Geslacht: Mannen", "Geslacht: Vrouwen"),
+                                                                      c("Leeftijd: 0 tot 4 jaar", "Leeftijd: 4 tot 12 jaar"  , "Leeftijd: 12 tot 16 jaar"  ,
+                                                                        "Leeftijd: 16 tot 20 jaar" , "Leeftijd: 20 tot 30 jaar" , "Leeftijd: 30 tot 40 jaar" ,
+                                                                        "Leeftijd: 40 tot 50 jaar" , "Leeftijd: 50 tot 55 jaar", "Leeftijd: 55 tot 65 jaar",
+                                                                        "Leeftijd: 65 tot 75 jaar"  ,  "Leeftijd: 75 jaar of ouder",  "Leeftijd: 0 tot 12 jaar" ,  "Leeftijd: 12 tot 18 jaar",
+                                                                        "Leeftijd: 18 jaar of ouder")),
+                                         column_names = c("sex", "age_group_new"), var_for_pred = c("Underweight" , "Normal_weight", "Overweight" , "Moderate_Overweight", "Obese"),
                                          orig_df = obesity_stats, strat_var = "Kenmerken.personen")
 
+BMI_stats$sex = gsub("Geslacht: Mannen", "male", BMI_stats$sex)
+BMI_stats$sex = gsub("Geslacht: Vrouwen", "female", BMI_stats$sex)
 
+agents = calc_propens_agents(dataframe =  BMI_stats, variable = "Underweight", agent_df =  agents, list_conditional_var = c("sex", "age_group_new"))
+agents = calc_propens_agents(dataframe =  BMI_stats, variable = "Normal_weight", agent_df =  agents, list_conditional_var = c("sex", "age_group_new"))
+agents = calc_propens_agents(dataframe =  BMI_stats, variable = "Moderate_Overweight", agent_df =  agents, list_conditional_var = c("sex", "age_group_new"))
+agents = calc_propens_agents(dataframe =  BMI_stats, variable = "Obese", agent_df =  agents, list_conditional_var = c("sex", "age_group_new"))
+
+agents$weight_exclude = 0
+agents$weight_exclude[is.na(agents$prop_Underweight)]= 1
+
+
+agents = distr_attr_cond_prop(agent_df = agents, variable=  "BMI",   list_agent_propens =  c("prop_Underweight" ,"prop_Normal_weight", "prop_Moderate_Overweight", "prop_Obese"), 
+                              list_class_names = c("underweight", "normal_weight", "moderate_overweight", "obese"), agent_exclude = "weight_exclude")
+
+agents = distr_attr_strat_n_neigh_stats_3plus(agent_df = agents, neigh_df = neigh_stats2, neigh_ID = "neighb_code", variable=  "absolved_education", 
+                                              list_var_classes_neigh_df = c("LowerEdu" , "MiddleEdu" ,"HigherEdu"), 
+                                              list_agent_propens =  c("prop_absolved_low",  "prop_absolved_middle", "prop_absolved_high" ), 
+                                              list_class_names = c("low", "middle", "high"),  agent_exclude = c("diplm_exclude"))
 
 
 ######################## car ownership ##############################
