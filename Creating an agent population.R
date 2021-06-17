@@ -1117,8 +1117,6 @@ c("PersonenautoSTotaal_99", "PersonenautoSBrandstofBenzine_100" , "PersonenautoS
 
 
 
-
-
 agents$agent_ID = paste("Agent_",1:tot_pop, sep="")
 
 write.csv(agents, "Agent_pop.csv")
