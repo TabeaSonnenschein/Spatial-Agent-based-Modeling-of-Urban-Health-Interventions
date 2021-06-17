@@ -835,10 +835,10 @@ strat_valid = crossvalid(valid_df = migrat_stats, agent_df = agents, join_var = 
 
 
 agents = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", "havechild", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western", "prop_singlehh", "prop_have_kids")]
-write.csv(agents, "Agent_pop.csv")
+write.csv(agents, "Agent_pop_with_prop.csv")
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
-agents = read.csv("Agent_pop.csv")
+agents = read.csv("Agent_pop_with_prop.csv")
 
 ############################# socioeconomics ################################################
 # education level
@@ -963,7 +963,7 @@ agents = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
 write.csv(agents, "Agent_pop_with_prop.csv")
-agents = read.csv("Agent_pop.csv")
+agents = read.csv("Agent_pop_with_prop.csv")
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population")
 agents_clean = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", 
@@ -1111,6 +1111,18 @@ agents = distr_attr_strat_n_neigh_stats_3plus(agent_df = agents, neigh_df = neig
                                               list_agent_propens =  c("prop_absolved_low",  "prop_absolved_middle", "prop_absolved_high" ), 
                                               list_class_names = c("low", "middle", "high"),  agent_exclude = c("diplm_exclude"))
 
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
+agents = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", 
+                   "havechild", "current_education", "absolved_education", "BMI", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western",
+                   "prop_singlehh", "prop_have_kids",  "prop_absolved_high", "prop_absolved_middle","prop_absolved_low" ,"prop_current_high",   
+                   "prop_current_middle", "prop_current_low" ,"prop_current_no_edu","prop_Underweight" ,"prop_Normal_weight", "prop_Moderate_Overweight", "prop_Obese" )]
+write.csv(agents, "Agent_pop_with_prop.csv")
+agents = read.csv("Agent_pop_with_prop.csv")
+
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population")
+agents_clean = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", 
+                         "havechild", "current_education", "absolved_education", "BMI" )]
+write.csv(agents_clean, "Agent_pop.csv")
 
 ######################## car ownership ##############################
 c("PersonenautoSTotaal_99", "PersonenautoSBrandstofBenzine_100" , "PersonenautoSOverigeBrandstof_101", "PersonenautoSPerHuishouden_102" , "PersonenautoSNaarOppervlakte_103" , "Motorfietsen_104" )
