@@ -962,13 +962,13 @@ agents = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_
                    "prop_current_middle", "prop_current_low" ,"prop_current_no_edu" )]
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
-write.csv(agents, "Agent_pop_with_prop.csv")
+write.csv(agents, "Agent_pop_with_prop.csv", row.names = FALSE)
 agents = read.csv("Agent_pop_with_prop.csv")
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population")
 agents_clean = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", 
                    "havechild", "current_education", "absolved_education" )]
-write.csv(agents_clean, "Agent_pop.csv")
+write.csv(agents_clean, "Agent_pop.csv", row.names = FALSE)
 
 
 # employment
@@ -1039,7 +1039,23 @@ c("ï..Wijken.en.buurten", "Gemeentenaam" ,"Soort.Regio",   "neighb_code", "Drank
 # (2) Overgewicht.Obesitas = people met een BMI van 30,0 kg/m2 en hoger
 # (3) Roker = Smoker
 
-neigh_health[,c( "neighb_code", "Drankgebruik.Voldoet.aan.alcoholrichtlijn" , "Overgewicht.Obesitas", "Roker")]
+neigh_health = neigh_health[,c( "neighb_code", "Drankgebruik.Voldoet.aan.alcoholrichtlijn" , "Overgewicht.Obesitas", "Roker")]
+colnames(neigh_health) = c("neighb_code", "follows_Alcohol_guidelines_perc" , "Obesity_perc", "Smoker_perc")
+
+
+neigh_health = merge(neigh_stats["neighb_code"],  neigh_health, by = "neighb_code", all.x = T, all.y = F)
+neigh_health$Nr_people_19plus = 0
+for( i in 1:nrow(neigh_health)){
+  neigh_health$Nr_people_19plus[i] = length(which(agents$neighb_code == neigh_health$neighb_code[i] & agents$age > 18))
+}
+
+x = c("follows_Alcohol_guidelines_perc" , "Obesity_perc", "Smoker_perc")
+for (i in x){
+  neigh_health[,c(i)] = as.numeric(neigh_health[,c(i)])/100
+  neigh_health[,gsub("_perc", "", i)] = as.integer(neigh_health[,c(i)] * neigh_health$Nr_people_19plus)
+  neigh_health[,paste("not_", gsub("_perc", "", i), sep = "")] = neigh_health$Nr_people_19plus - neigh_health[,gsub("_perc", "", i)]
+}
+
 
 
 obesity_stats = read.csv("table__83021NED.csv")
@@ -1116,13 +1132,68 @@ agents = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_
                    "havechild", "current_education", "absolved_education", "BMI", "prop_female" ,"prop_Dutch", "prop_Western","prop_Non_Western",
                    "prop_singlehh", "prop_have_kids",  "prop_absolved_high", "prop_absolved_middle","prop_absolved_low" ,"prop_current_high",   
                    "prop_current_middle", "prop_current_low" ,"prop_current_no_edu","prop_Underweight" ,"prop_Normal_weight", "prop_Moderate_Overweight", "prop_Obese" )]
-write.csv(agents, "Agent_pop_with_prop.csv")
+write.csv(agents, "Agent_pop_with_prop.csv", row.names = FALSE)
 agents = read.csv("Agent_pop_with_prop.csv")
 
 setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population")
 agents_clean = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild", 
                          "havechild", "current_education", "absolved_education", "BMI" )]
-write.csv(agents_clean, "Agent_pop.csv")
+write.csv(agents_clean, "Agent_pop.csv", row.names = FALSE)
+
+setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/Health")
+riskfactor_stats = read.csv("table__83021NED2.csv")
+colnames(riskfactor_stats)
+
+x = c("Smokers" , "DailySmokers", "OccasionalSmokers" , "followAlcoholGuidelines")
+for (i in x){
+  riskfactor_stats[,c(i)] = gsub(",", ".", riskfactor_stats[,c(i)])
+  riskfactor_stats[,c(i)] = as.numeric(riskfactor_stats[,c(i)])/100
+}
+for (i in x){
+  riskfactor_stats[which(riskfactor_stats$Kenmerken.personen == "Onderwijsniveau: basisonderwijs"),c(i)] = ((riskfactor_stats[which(riskfactor_stats$Kenmerken.personen == "Onderwijsniveau: basisonderwijs"),c(i)] + 
+                                                                                                              riskfactor_stats[which(riskfactor_stats$Kenmerken.personen == "Onderwijsniveau: vmbo,mbo1,avo onderbouw"),c(i)])/2)
+  riskfactor_stats[which(riskfactor_stats$Kenmerken.personen == "Onderwijsniveau: hbo, wo bachelor"),c(i)] = ((riskfactor_stats[which(riskfactor_stats$Kenmerken.personen == "Onderwijsniveau: hbo, wo bachelor"),c(i)] + 
+                                                                                                              riskfactor_stats[which(riskfactor_stats$Kenmerken.personen == "Onderwijsniveau: wo, master, doctor"),c(i)])/2)
+}
+
+riskfactor_stats[,c("Kenmerken.personen")] = gsub("Onderwijsniveau: basisonderwijs", "low_edu", riskfactor_stats[,c("Kenmerken.personen")])
+riskfactor_stats[,c("Kenmerken.personen")] = gsub("Onderwijsniveau: havo, vwo, mbo", "middle_edu", riskfactor_stats[,c("Kenmerken.personen")])
+riskfactor_stats[,c("Kenmerken.personen")] = gsub("Onderwijsniveau: hbo, wo bachelor", "high_edu", riskfactor_stats[,c("Kenmerken.personen")])
+
+
+
+risk_stats = create_stratified_prob_table(nested_cond_attr_list = list(c("Geslacht: Mannen", "Geslacht: Vrouwen"),
+                                                                      c("Leeftijd: 12 tot 16 jaar"  ,
+                                                                        "Leeftijd: 16 tot 20 jaar" , "Leeftijd: 20 tot 30 jaar" , "Leeftijd: 30 tot 40 jaar" ,
+                                                                        "Leeftijd: 40 tot 50 jaar" , "Leeftijd: 50 tot 55 jaar", "Leeftijd: 55 tot 65 jaar",
+                                                                        "Leeftijd: 65 tot 75 jaar"  ,  "Leeftijd: 75 jaar of ouder"),
+                                                                      c("low_edu", "middle_edu", "high_edu")),
+                                         column_names = c("sex", "age_group_new", "absolved_education"), var_for_pred = c("Smokers" , "DailySmokers", "OccasionalSmokers" , "followAlcoholGuidelines"),
+                                         orig_df = riskfactor_stats, strat_var = "Kenmerken.personen")
+
+
+
+risk_stats$sex = gsub("Geslacht: Mannen", "male", risk_stats$sex)
+risk_stats$sex = gsub("Geslacht: Vrouwen", "female", risk_stats$sex)
+
+# Conditional Probabilities
+agents = calc_propens_agents(dataframe =  risk_stats, variable = "Smokers", agent_df =  agents, list_conditional_var = c("sex", "age_group_new", "absolved_education"))
+agents = calc_propens_agents(dataframe =  risk_stats, variable = "followAlcoholGuidelines", agent_df =  agents, list_conditional_var = c("sex", "age_group_new", "absolved_education"))
+
+
+## assigning attributes to agents
+agents$risk_exclude = 0
+agents$risk_exclude[which(is.na(agents$prop_Smokers) | agents$age < 12)] = 1
+
+colnames(neigh_health)
+
+agents = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_health, neigh_ID = "neighb_code", agent_exclude = c("risk_exclude"),
+                                            variable=  "Smoker",  list_var_classes_neigh_df = c("Smoker" , "not_Smoker" ), list_agent_propens =  c("prop_Smokers"), 
+                                            list_class_names = c(1, 0))
+
+agents = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_health, neigh_ID = "neighb_code", agent_exclude = c("risk_exclude"),
+                                            variable=  "follows_Alcohol_guidelines",  list_var_classes_neigh_df = c("follows_Alcohol_guidelines" , "not_follows_Alcohol_guidelines" ), list_agent_propens =  c("prop_followAlcoholGuidelines"), 
+                                            list_class_names = c(1, 0))
 
 ######################## car ownership ##############################
 c("PersonenautoSTotaal_99", "PersonenautoSBrandstofBenzine_100" , "PersonenautoSOverigeBrandstof_101", "PersonenautoSPerHuishouden_102" , "PersonenautoSNaarOppervlakte_103" , "Motorfietsen_104" )
