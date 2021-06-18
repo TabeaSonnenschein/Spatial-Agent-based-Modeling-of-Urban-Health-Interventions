@@ -1,5 +1,5 @@
 
-pkgs <- c("sf", "sp", "stplanr", "rgdal", "spatialEco")
+pkgs <- c("sf", "sp", "rgdal", "spatialEco")
 sapply(pkgs, require, character.only = T) #load 
 rm(pkgs)
 
@@ -7,6 +7,9 @@ rm(pkgs)
 joinPolygonAttr_to_PointSPDF = function(polygon_SPDF, point_SPDF, Country_ISO, poly_col_list){
   if(Country_ISO == "NL"){
     crs = "+init=EPSG:28992" #Amersfoort / RD New
+  }
+  else{
+    crs = "+proj=longlat +datum=WGS84"
   }
   polygon_SPDF@data = polygon_SPDF@data[,poly_col_list] # select only columns that should be joined to point dataset
   polygon_SPDF = spTransform(polygon_SPDF, CRSobj = crs)
