@@ -3,16 +3,7 @@ pkgs <- c("sf", "sp", "stplanr", "rgdal", "spatialEco")
 sapply(pkgs, require, character.only = T) #load 
 rm(pkgs)
 
-
-dsn_data = setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Administrative Units")
-polygon = readOGR(dsn=dsn_data ,layer="Netherlands_Neighborhoods")
-colnames(polygon@data) # select only columns that should be joined to point dataset
-
-dsn_data = setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings")
-point = readOGR(dsn=dsn_data ,layer="Residences")
-
-
-
+# generic function
 joinPolygonAttr_to_PointSPDF = function(polygon_SPDF, point_SPDF, Country_ISO, poly_col_list){
   if(Country_ISO == "NL"){
     crs = "+init=EPSG:28992" #Amersfoort / RD New
@@ -32,7 +23,18 @@ joinPolygonAttr_to_PointSPDF = function(polygon_SPDF, point_SPDF, Country_ISO, p
   }
 }
 
+# load datasets
+dsn_data = setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Administrative Units")
+polygon = readOGR(dsn=dsn_data ,layer="Netherlands_Neighborhoods")
+colnames(polygon@data) # select only columns that should be joined to point dataset
+
+dsn_data = setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings")
+point = readOGR(dsn=dsn_data ,layer="Residences")
+
+# apply spatial join function
 point = joinPolygonAttr_to_PointSPDF(polygon_SPDF = polygon, point_SPDF = point, Country_ISO = "NL", poly_col_list= c("buurtcode" , "buurtnaam"))
 
+# do final adjustments and write the data into a shapefile
+colnames(point@data)[4] = c("neighb_code")
 dsn_data = setwd("C:/Dokumente/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings")
 writeOGR(point, dsn=dsn_data ,layer="Residences_neighcode_RDNew",driver="ESRI Shapefile")
