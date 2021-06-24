@@ -1,1 +1,3 @@
-install.packages("osrm")
+#install.packages("osrm")
+
+require("osrm")
