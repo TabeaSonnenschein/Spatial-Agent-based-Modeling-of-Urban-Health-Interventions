@@ -1,4 +1,3 @@
-
 pkgs <- c("sf", "sp", "rgdal", "spatialEco")
 sapply(pkgs, require, character.only = T) #load 
 rm(pkgs)
