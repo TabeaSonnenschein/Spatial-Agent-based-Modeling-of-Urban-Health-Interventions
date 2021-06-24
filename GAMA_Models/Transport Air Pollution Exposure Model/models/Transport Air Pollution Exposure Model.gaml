@@ -5,7 +5,7 @@
 */
 
 model TransportAirPollutionExposureModel
-
+  
 global {
 	/** Insert the global definitions, variables and actions here */
 	file shape_file_buildings <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Buildings_RDNew.shp");
