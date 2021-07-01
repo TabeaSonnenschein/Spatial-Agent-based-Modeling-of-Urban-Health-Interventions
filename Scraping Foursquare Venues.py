@@ -28,7 +28,7 @@ import sys
 import foursquare
 import json
 import csv
-
+from itertools import chain
 import pandas as pd
 
 ##          'categoryId': '4d4b7105d754a06374d81259',       #Food
@@ -62,6 +62,8 @@ category_name = "Food"
 ##clientid ='AGXJHQICGJPFIS213RVXIC4K1YYL2OVCIWIAMZYB1POBUR2A'
 ##clientsecr = 'HQARUEPUG31GK5RUBE5L0T1L3G3QIALZZFJSVIPTQ2WQAEXO'
 
+time.sleep(3001)
+
 
 def coordinate_seq(coord, n):
     return [coord + (0.001 * n) for n in range(1, n + 1)]
@@ -73,8 +75,8 @@ def coordinate_seq(coord, n):
 
 minlat = 52.250
 minlon = 4.706
-lat_extent = 10
-lon_extent = 10
+lat_extent = 300
+lon_extent = 300
 latitude_sequence = coordinate_seq(coord=minlat, n=lat_extent)
 longitude_sequence = coordinate_seq(coord=minlon, n=lon_extent)
 
@@ -123,7 +125,7 @@ x = 0
 s = (len(coordinatedict)-1)
 while j < s:
     while x <= len(clientid_list) and j < s:
-        h = j + 20
+        h = j + 10
         while j < h and j < s:
             clientid = clientid_list[x]
             clientsecr = clientsecr_list[x]
@@ -149,7 +151,7 @@ while j < s:
 def writeJson(dictionary, outfile):
     with open(outfile, 'w') as fp:
         fp.seek(0)
-        dict2 = json.dumps(dictionary.values())
+        dict2 = list(chain.from_iterable(dictionary))
         json.dump(dict2, fp)
         fp.close()
 
