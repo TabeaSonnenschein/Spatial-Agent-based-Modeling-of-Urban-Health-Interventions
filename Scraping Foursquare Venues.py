@@ -62,8 +62,6 @@ category_name = "Food"
 ##clientid ='AGXJHQICGJPFIS213RVXIC4K1YYL2OVCIWIAMZYB1POBUR2A'
 ##clientsecr = 'HQARUEPUG31GK5RUBE5L0T1L3G3QIALZZFJSVIPTQ2WQAEXO'
 
-time.sleep(3001)
-
 
 def coordinate_seq(coord, n):
     return [coord + (0.001 * n) for n in range(1, n + 1)]
