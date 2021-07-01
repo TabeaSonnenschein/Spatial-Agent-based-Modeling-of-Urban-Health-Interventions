@@ -1,20 +1,28 @@
 #install.packages("osrm")
-remotes::install_github("riatelab/osrm")
+#remotes::install_github("riatelab/osrm")
+#remotes::install_github("rCarto/osrm", force = T)
+#install.packages("rJava")
 
-install.packages("remotes")
+pkgs <- c("osrm", "sp", "remotes", "rJava", "Runiversal")
+sapply(pkgs, require, character.only = T) #load 
 
-require("osrm")
-require("remotes")
-install.packages("rJava")
-library(osrm)
+mode = "car"
+mode = "bike"
+mode = "foot"
+#duration = minutes
+#distance = meters
 
+if(mode == "bike"){
+  options(osrm.server = "http://127.0.0.1:5001/", osrm.profile = "bike")
+  route <- osrmRoute(src = c(4.83, 52.36), dst = c(5.2, 53.26), overview = "full", returnclass = "sp")
+} else if(mode == "foot"){
+  options(osrm.server = "http://127.0.0.1:5002/", osrm.profile = "foot")
+  route <- osrmRoute(src = c(4.83, 52.36), dst = c(5.2, 53.26), overview = "full", returnclass = "sp")
+} else if(mode == "car"){
+  options(osrm.server = "http://127.0.0.1:5000/", osrm.profile =  "car")
+  route <- osrmRoute(src = c(4.83, 52.36), dst = c(5.2, 53.26), overview = "full", returnclass = "sp")
+}
 
-options(osrm.server = "http://0.0.0.0:5000/",  osrm.profile = "car")
-
-
-locations = data.frame(comm_id = c("A", "B", "C"), lon = c(52.36, 53.26, 52.76),  lat = c(4.83, 5.2, 4.32))
-
-osrmTable(loc = locations)
-
-
-route <- osrmRoute(src = c(52.36, 4.83), dst = c(53.26, 5.2), overview = "full", returnclass = "sf")
+crs = "+init=EPSG:28992" #Amersfoort / RD New
+route = spTransform(route, CRSobj = crs)
+route

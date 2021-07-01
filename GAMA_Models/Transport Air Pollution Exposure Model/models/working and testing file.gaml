@@ -10,6 +10,25 @@ model workingandtestingfile
 
 /* Insert your model definition here */
 global{
-	    result <- R_compute_param("C:/YourPath/Mean.R", X);
-        write result at 0;
+	geometry trip;
+	file result;
+//	file Rscript <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM - routing.txt");
+	init {
+//		do startR;
+	    result <- R_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM - routing.R");
+	    trip <- result.contents;
+	}
+
+}
+
+
+
+experiment workingandtestingfile type:gui {
+	output{
+			display map type:opengl {
+		 		graphics trip_map{
+    				draw trip color: #red;
+    	}
+		}
+	}
 }
