@@ -70,14 +70,14 @@ species Humans skills:[moving]{
 	init{
 		  residence <- one_of(Homes where (each.Neighborhood = self.Neighborhood)) ;
        	  location <- residence.location;
-       	  Home_Node <- Node_ID of (StreetNodes closest_to(self.location));
+       	  Home_Node <- int(Node_ID of (StreetNodes closest_to(self.location)));
        	  Destination_Node <- int(Node_ID of one_of(StreetNodes where (each.location != self.location)));
        	  Home_OD_position <- OD_columns index_of int(self.Home_Node);
        	  Destination_OD_position <- OD_columns index_of int(self.Destination_Node);
        	  write 'Home_Node: '+ Home_Node + ' postion ' + Home_OD_position + '; and Destination_Node: '+ Destination_Node+ ' postion ' + Destination_OD_position ;
        	  route_str <- OD_Matrix[(Home_OD_position + 1),Destination_OD_position];
        	  loop while: (route_str = ""){
-       	  	 Destination_Node <- Node_ID of one_of(StreetNodes where (each.location != self.location));
+       	  	 Destination_Node <- int(Node_ID of one_of(StreetNodes where (each.location != self.location)));
        	  	 Destination_OD_position <- OD_columns index_of int(self.Destination_Node);
        	  	 route_str <- OD_Matrix[Home_OD_position,Destination_OD_position];
        	  }
