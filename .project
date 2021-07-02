@@ -15,6 +15,16 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_100.csv</location>
 		</link>
 		<link>
+			<name>external/Amsterdam Diemen Oude Amstel Extent.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Amsterdam Diemen Oude Amstel Extent.shp</location>
+		</link>
+		<link>
+			<name>external/Amsterdam_Foursquarevenues_Food_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_Food_RDNew.shp</location>
+		</link>
+		<link>
 			<name>external/Amsterdam_kindergardens_RDNew.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_kindergardens_RDNew.shp</location>
