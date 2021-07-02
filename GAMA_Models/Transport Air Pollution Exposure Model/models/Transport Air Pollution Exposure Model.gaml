@@ -37,6 +37,7 @@ global {
         	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI')]; // careful: column 1 is has the index 0 in GAMA
     }
     float step <- 10 #mn;
+    int year;
 }
 
 
@@ -72,6 +73,20 @@ species Humans skills:[moving]{
 	list route;
 	string activity;
 	int trip_int <- 0;
+	list schedule;
+	string current_activity;
+	geometry destination_activity;
+	string modalchoice;
+	float bike_exposure;
+	float car_exposure;
+	float walk_exposure;
+	geometry track;
+	float daiy_PM10;
+	float yearly_PM10;
+	float daily_PM2_5;
+	float yearly_PM2_5;
+	float daily_Noise;
+	float yearly_Noise;
 	init{
 		  residence <- one_of(Homes where (each.Neighborhood = self.Neighborhood)) ;
        	  location <- residence.location;
@@ -89,21 +104,77 @@ species Humans skills:[moving]{
        	  route <- list(route_str);
        	  write route;
        	  activity <- "commuting";
+//       	  current_activity <- schedule[0];
        	  
 	}
-//	image_file human_icon <- image_file("../includes/images/human_icon.png") ;
+	reflex update when: length(schedule) != 0 {
+		 current_activity <- schedule[int(step)];
+		 if(current_activity != schedule[(int(step)-1)]){
+		 	if(current_activity = "work"){
+				destination_activity <- one_of(shape_file_Residences);		 		
+		 	}
+		 	else if(current_activity = "school"){
+		 		destination_activity <- closest_to(shape_file_Schools, self.location);
+		 	}
+		 	else if(current_activity = "university"){
+		 		destination_activity <- closest_to(shape_file_Universities, self.location);
+		 	}
+		 	else if(current_activity = "groceries_shopping"){
+		 		destination_activity <- closest_to(shape_file_Supermarkets, self.location);
+		 	}
+		 	else if(current_activity = "kindergarden"){
+		 		destination_activity <- closest_to(shape_file_Kindergardens, self.location);
+		 	}
+		 	else if(current_activity = "sleeping" or current_activity = "at_Home"){
+		 		destination_activity <- self.residence;
+		 	}
+		 	if(destination_activity != self.location){
+		 		activity <- "commuting";
+		 		if((self.location distance_to destination_activity) < 500){
+		 			modalchoice <- "walk";
+		 		}
+		 		else if((self.location distance_to destination_activity) < 1500){
+		 		 	modalchoice <- "bike";
+		 		}
+		 		else{
+		 		 	modalchoice <- "car";		 			
+		 		}
+		 	}
+		 	else{
+		 		activity <-"perform_activity";
+		 	}
+		 }
+	}
+	reflex perception{
+		
+	}
 	reflex sleeping when: current_date.hour = 23{
 		write "sleeping";
 	}
-    reflex time_to_work when: current_date.hour = 7 {
-//    the_target <- any_location_in (working_place);
-    }
     reflex commuting when: activity = "commuting"{
     	location <- StreetNodes where (each.Node_ID = self.route[(self.trip_int + 1)]);
+//    	track <- line_of_travel
+//		traveltime <- time of travel
     	self.trip_int <- self.trip_int + 1;
     	if((self.trip_int + 1) >= length(self.route)){
-    		activity <- "at work";
+    		activity <- "perform_activity";
+    		if(modalchoice = "bike"){
+    			bike_exposure <- bike_exposure + 0;
+    		}
+    		 else if(modalchoice = "walk"){
+    			walk_exposure <- 0;
+    		}
     	}
+    }
+    reflex acute_exposure_impacts when: current_date.hour = 0{
+//    	daily_PM10
+//		daily_PM2_5
+//		daily_Noise
+    }
+    reflex chronic_exposure_impacts when: current_date.year > year{
+//    	yearly_PM10
+//		yearly_PM2_5
+// 		yearly_Noise
     }
     aspect base {
     draw sphere(30) color: #yellow;
@@ -117,6 +188,8 @@ species Humans skills:[moving]{
 //	float AirPoll_NO2;
 //	float AirPoll_O3;
 //	float Noise_Decibel;
+
+
 //}
 
 
@@ -142,12 +215,12 @@ experiment TransportAirPollutionExposureModel type: gui {
 		}		
         species Humans aspect: base ;
     }
-//    display stats type: opengl{
-//		chart " my_chart " type: histogram {
-//			datalist ( distribution_of ( Humans collect each.age ,20 ,0 ,100) at " legend ") 
-//				value: ( distribution_of ( Humans collect each.age,20 ,0 ,100) at " values ");
-//		}
-//  	 }
+    display stats type: opengl{
+		chart " my_chart " type: histogram {
+			datalist ( distribution_of ( Humans collect each.age , 20 ,0 ,100) at " legend ") 
+				value: ( distribution_of ( Humans collect each.age, 20 ,0 ,100) at " values ");
+		}
+  	 }
     }
 }
 
