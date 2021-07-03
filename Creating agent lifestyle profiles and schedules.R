@@ -158,14 +158,96 @@ for (i in 0:1){ #sex
   }
 }
 
+profstatusTU = read.csv("tus_00profstat.csv", sep = ";")
+activities <- unique(profstatusTU$acl00)
+profstatusTU = profstatusTU[profstatusTU$geo == "NL",]
+profstatustypes = unique(profstatusTU$wstatus)
+
+profstatus_sex_act_TIME_SP = data.frame(matrix(nrow = (length(profstatustypes)*2), ncol = (length(activities)+2)))
+profstatus_sex_act_PTP_RT = data.frame(matrix(nrow = (length(profstatustypes)*2), ncol = (length(activities)+2)))
+profstatus_sex_act_PTP_TIME = data.frame(matrix(nrow = (length(profstatustypes)*2), ncol = (length(activities)+2)))
+
+profstatus_sex_act_TIME_SP[, 1] = c(profstatustypes, profstatustypes)
+profstatus_sex_act_TIME_SP[1:5, 2] = "F"
+profstatus_sex_act_TIME_SP[6:10, 2] = "M"
+colnames(profstatus_sex_act_TIME_SP) = c("profstatus", "sex", activities)
+for (i in 0:1){ #sex
+  for (x in 1:length(profstatustypes)){ #profstatusgroup
+    for (a in 1:length(activities)){ #activities
+      profstatus_sex_act_TIME_SP[(i*5)+x, a+2] = profstatusTU$time_X2010[which(profstatusTU$unit == "TIME_SP" & profstatusTU$sex == profstatus_sex_act_TIME_SP$sex[(i*5)+1] & profstatusTU$wstatus == profstatustypes[x] & profstatusTU$acl00 == activities[a] )]
+    }
+  }
+}
+
+profstatus_sex_act_PTP_RT[, 1] = c(profstatustypes, profstatustypes)
+profstatus_sex_act_PTP_RT[1:5, 2] = "F"
+profstatus_sex_act_PTP_RT[6:10, 2] = "M"
+colnames(profstatus_sex_act_PTP_RT) = c("profstatus", "sex", activities)
+for (i in 0:1){ #sex
+  for (x in 1:length(profstatustypes)){ #profstatusgroup
+    for (a in 1:length(activities)){ #activities
+      profstatus_sex_act_PTP_RT[(i*5)+x, a+2] = profstatusTU$time_X2010[which(profstatusTU$unit == "PTP_RT" & profstatusTU$sex == profstatus_sex_act_PTP_RT$sex[i*5 +1] & profstatusTU$wstatus == profstatustypes[x] & profstatusTU$acl00 == activities[a] )]
+    }
+  }
+}
+
+
+profstatus_sex_act_PTP_TIME[, 1] = c(profstatustypes, profstatustypes)
+profstatus_sex_act_PTP_TIME[1:5, 2] = "F"
+profstatus_sex_act_PTP_TIME[6:10, 2] = "M"
+colnames(profstatus_sex_act_PTP_TIME) = c("profstatus", "sex", activities)
+for (i in 0:1){ #sex
+  for (x in 1:length(profstatustypes)){ #profstatusgroup
+    for (a in 1:length(activities)){ #activities
+      profstatus_sex_act_PTP_TIME[(i*5)+x, a+2] = profstatusTU$time_X2010[which(profstatusTU$unit == "PTP_TIME" & profstatusTU$sex == profstatus_sex_act_PTP_TIME$sex[i*5 +1] & profstatusTU$wstatus == profstatustypes[x] & profstatusTU$acl00 == activities[a] )]
+    }
+  }
+}
+
+
+activities = c("sleep", "work", "at_study_facility", "eat", "childcare", "social_life", "entertainment", "physical_exercise", "walking_the_dog", "at_home")
+corr_activity_codes = c("AC01", "AC1A", "AC21A", "AC02", "AC38A", "AC38B", "AC51A", "AC51B", "AC52", "AC6A", "AC344")
+
+## preparing age sex dataset
+strat_activ_TU_age = age_sex_act_PTP_TIME[, c("agegroups", "sex", corr_activity_codes)]
+colnames(strat_activ_TU_age) = c("agegroups", "sex", "sleep", "work", "at_study_facility", "eat", "childcare1", "childcare2", "social_life1", "social_life2","entertainment", "physical_exercise", "walking_the_dog")
+write.csv(strat_activ_TU_age, "strat_activ_TU_age.csv")
+
+## preparing edu sex dataset
+edu_coding = as.data.frame(unique(edu_sex_act_PTP_TIME$educationlevels))
+edu_coding$edu_level = NA
+colnames(edu_coding)[1] = "educationlevels"
+edu_coding[edu_coding$educationlevels == "ED1", 2] = "low"
+edu_coding[edu_coding$educationlevels == "ED2" | edu_coding$educationlevels == "ED3_4", 2] = "middle"
+# edu_coding[edu_coding$educationlevels == "ED5A_6" | edu_coding$educationlevels == "ED5B", 2] = "high" # if ED5B not NA
+edu_coding[edu_coding$educationlevels == "ED5A_6", 2] = "high"
+
+strat_activ_TU_edu = edu_sex_act_PTP_TIME[, c("educationlevels", "sex", corr_activity_codes)]
+colnames(strat_activ_TU_edu) = c("educationlevels", "sex", "sleep", "work", "at_study_facility", "eat", "childcare1", "childcare2", "social_life1", "social_life2","entertainment", "physical_exercise", "walking_the_dog")
+strat_activ_TU_edu = merge(strat_activ_TU_edu, edu_coding, by = "educationlevels", all.x = T)
+strat_activ_TU_edu = strat_activ_TU_edu[, c("educationlevels", "edu_level", "sex", "sleep", "work", "at_study_facility", "eat", "childcare1", "childcare2", "social_life1", "social_life2","entertainment", "physical_exercise", "walking_the_dog")]
+write.csv(strat_activ_TU_edu, "strat_activ_TU_edu.csv")
+
+## preparing profstatus sex dataset
+profstatus_coding = as.data.frame(unique(profstatus_sex_act_PTP_TIME$profstatus))
+profstatus_coding$prof_status = NA
+
+strat_activ_TU_profstatus = profstatus_sex_act_PTP_TIME[, c("profstatus", "sex", corr_activity_codes)]
+colnames(strat_activ_TU_profstatus) = c("profstatus", "sex", "sleep", "work", "at_study_facility", "eat", "childcare1", "childcare2", "social_life1", "social_life2","entertainment", "physical_exercise", "walking_the_dog")
+strat_activ_TU_profstatus = merge(strat_activ_TU_profstatus, profstatus_coding, by = "educationlevels", all.x = T)
+strat_activ_TU_profstatus = strat_activ_TU_profstatus[, c("educationlevels", "edu_level", "sex", "sleep", "work", "at_study_facility", "eat", "childcare1", "childcare2", "social_life1", "social_life2","entertainment", "physical_exercise", "walking_the_dog")]
+write.csv(strat_activ_TU_profstatus, "strat_activ_TU_profstatus.csv")
+
+
+## preparing hhstatus sex dataset
+hhstatus_coding = as.data.frame(unique(hhstatus_sex_act_PTP_TIME$hhstatustypes))
+
+strat_activ_TU_hhstatus = hhstatus_sex_act_PTP_TIME[, c("hhstatustypes", "sex", corr_activity_codes)]
+colnames(strat_activ_TU_hhstatus) = c("hhstatustypes", "sex", "sleep", "work", "at_study_facility", "eat", "childcare1", "childcare2", "social_life1", "social_life2","entertainment", "physical_exercise", "walking_the_dog")
+write.csv(strat_activ_TU_hhstatus, "strat_activ_TU_hhstatus.csv")
 
 
 
 
 social_profiles_schedules <- as.data.frame(matrix(nrow = 6, ncol = 5))
 
-activities = c("sleep", "work", "at_study_facility", "eat", "childcare", "social_life", "entertainment", "physical_exercise", "walking_the_dog", "at_home")
-corr_activity_codes = c("AC01", "AC1A", "AC21A", "AC02", "AC38A", "AC38B", "AC51A", "AC51B", "AC52", "AC6A", "AC344")
-
-strat_activ_TU = age_sex_act_PTP_TIME[, c("agegroups", "sex", corr_activity_codes)]
-colnames(strat_activ_TU) =c("agegroups", "sex", "sleep", "work", "at_study_facility", "eat", "childcare1", "childcare2", "social_life1", "social_life2","entertainment", "physical_exercise", "walking_the_dog")

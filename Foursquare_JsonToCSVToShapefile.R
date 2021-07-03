@@ -1,14 +1,24 @@
 ####################################################################
 ##########  Transform Foursquare Json File into Data frame #########
 ####################################################################
-#install.packages("jsonlite")
+#install.packages("jsonlite") #uncomment when not yet installed
 library(jsonlite)
   
 setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam//Foursquare") ##seting the working directory to folder with json dataset
-
-Json_File <- fromJSON(txt= "Amsterdam_Foursquarevenues_Food.json")
 city = "Amsterdam"
-venuetype = "Food"
+
+### uncomment the venuetype from which you want to convert the json
+#venuetype = "Food"
+#venuetype = "ArtsEntertainment"
+venuetype = "Nightlife"
+#venuetype = "College_Uni"
+#venuetype = "Outdoors_Recreation"
+venuetype = "ShopsServ"
+#venuetype = "Profess_other"
+
+
+Json_File <- fromJSON(txt= paste(city,"_Foursquarevenues_",venuetype, ".json", sep=""))
+
 Dataframe  <- data.frame(c(seq(1, (length(Json_File)))))
 
 Dataframe$name <- NA
@@ -99,9 +109,10 @@ Dataframe_final$lon <- as.numeric(Dataframe_final$lon)
 Dataframe_final$venuename <- as.character(Dataframe_final$venuename)
 Dataframe_final$venueid <- as.character(Dataframe_final$venueid)
 
+Dataframe_final = Dataframe_final[!is.na(Dataframe_final$lat),]
 
 write.csv(as.data.frame(Dataframe_final), paste(city, "_Foursquarevenues_", venuetype, ".csv", sep = ""), row.names=TRUE)
-Dataframe_final = read.csv("Amsterdam_Foursquarevenues_Food.csv")
+Dataframe_final = read.csv(paste(city, "_Foursquarevenues_", venuetype, ".csv", sep = ""))
 
 ##################################################################################################
 ######## converting Foursquare CSV file to a spatial dataframe within study extent ###############

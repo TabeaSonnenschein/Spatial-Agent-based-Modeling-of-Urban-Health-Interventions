@@ -20,9 +20,24 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Amsterdam Diemen Oude Amstel Extent.shp</location>
 		</link>
 		<link>
+			<name>external/Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp</location>
+		</link>
+		<link>
 			<name>external/Amsterdam_Foursquarevenues_Food_RDNew.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_Food_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/Amsterdam_Foursquarevenues_Nightlife_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_Nightlife_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp</location>
 		</link>
 		<link>
 			<name>external/Amsterdam_kindergardens_RDNew.shp</name>
