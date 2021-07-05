@@ -6,7 +6,7 @@
 
 model TransportAirPollutionExposureModel
   
-global {
+global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
 	
 //	loading the spatial built environment
@@ -25,14 +25,16 @@ global {
     file shape_file_Entertainment <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp");
     file shape_file_ShopsnServ <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp");
     file shape_file_Nightlife <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_Nightlife_RDNew.shp");
-    file spatial_extent <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Amsterdam Diemen Oude Amstel Extent.shp");
-    
-    
+    file spatial_extent <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Amsterdam Diemen Oude Amstel Extent.shp");  
    	geometry shape <- envelope(spatial_extent); 
     
-    csv_file OD_Matrix_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/cars/OD_Matrix_Amsterdam_GAMA4.csv", ',', '"', string);
-    matrix OD_Matrix <- matrix(OD_Matrix_file);
-    list<int> OD_columns <- column_at(OD_Matrix, 0);
+//    list shape_file_Residences.WG84_coords <- shape_file_Residences.location CRS_transform("EPSG:4326");
+    
+    
+    file Rcode_bike_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_bike.R");
+//    csv_file OD_Matrix_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/cars/OD_Matrix_Amsterdam_GAMA4.csv", ',', '"', string);
+//    matrix OD_Matrix <- matrix(OD_Matrix_file);
+//    list<int> OD_columns <- column_at(OD_Matrix, 0);
     int nb_humans <- 100;
 //    csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop.csv", ",", string, true, {12, 100});
     csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_100.csv", ",", string, true);
@@ -58,7 +60,7 @@ species Homes{
 }
 
 
-species Humans skills:[moving]{
+species Humans skills:[moving, RSkill]{
 	 // definition of attributes, actions, behaviors	
 	string Agent_ID;
 	int Agent_index;
@@ -88,7 +90,7 @@ species Humans skills:[moving]{
 	float bike_exposure;
 	float car_exposure;
 	float walk_exposure;
-	geometry track;
+	path  track_path;
 	float daiy_PM10;
 	float yearly_PM10;
 	float daily_PM2_5;
@@ -98,19 +100,41 @@ species Humans skills:[moving]{
 	init{
 		  residence <- one_of(Homes where (each.Neighborhood = self.Neighborhood)) ;
        	  location <- residence.location;
-       	  Home_Node <- int(Node_ID of (StreetNodes closest_to(self.location)));
-       	  Destination_Node <- int(Node_ID of one_of(StreetNodes where (each.location != self.location)));
-       	  Home_OD_position <- OD_columns index_of int(self.Home_Node);
-       	  Destination_OD_position <- OD_columns index_of int(self.Destination_Node);
-       	  write 'Home_Node: '+ Home_Node + ' postion ' + Home_OD_position + '; and Destination_Node: '+ Destination_Node+ ' postion ' + Destination_OD_position ;
-       	  route_str <- OD_Matrix[(Home_OD_position + 1),Destination_OD_position];
-       	  loop while: (route_str = ""){
-       	  	 Destination_Node <- int(Node_ID of one_of(StreetNodes where (each.location != self.location)));
-       	  	 Destination_OD_position <- OD_columns index_of int(self.Destination_Node);
-       	  	 route_str <- OD_Matrix[Home_OD_position,Destination_OD_position];
-       	  }
-       	  route <- list(route_str);
-       	  write route;
+       	  
+       	  /// routing through OSRM via R interface
+       	  do startR;
+       	  destination_activity <- one_of(shape_file_Residences);		
+		  write R_eval("origin = " + to_R_data(container(residence.location CRS_transform("EPSG:4326"))));
+		  write R_eval("destination = " + to_R_data(container(destination_activity.location CRS_transform("EPSG:4326"))));	
+		  loop s over: Rcode_bike_routing.contents{
+				unknown a <- R_eval(s);
+//				write "R>"+s;
+//				write a;
+			}
+		  list track <- rows_list(matrix(R_eval("track")));
+		  write track;
+		  geometry track_line <- line(point(track));
+		  track_path <- path(track);
+		  float track_duration <- list(R_eval("route$duration"))[0];
+		  float track_length <- list(R_eval("route$distance"))[0];
+		  write track_duration;
+		  write track_length;
+		  
+		  
+//       	  /// routing through OD Matrix
+//       	  Home_Node <- int(Node_ID of (StreetNodes closest_to(self.location)));
+//       	  Destination_Node <- int(Node_ID of one_of(StreetNodes where (each.location != self.location)));
+//       	  Home_OD_position <- OD_columns index_of int(self.Home_Node);
+//       	  Destination_OD_position <- OD_columns index_of int(self.Destination_Node);
+//       	  write 'Home_Node: '+ Home_Node + ' postion ' + Home_OD_position + '; and Destination_Node: '+ Destination_Node+ ' postion ' + Destination_OD_position ;
+//       	  route_str <- OD_Matrix[(Home_OD_position + 1),Destination_OD_position];
+//       	  loop while: (route_str = ""){
+//       	  	 Destination_Node <- int(Node_ID of one_of(StreetNodes where (each.location != self.location)));
+//       	  	 Destination_OD_position <- OD_columns index_of int(self.Destination_Node);
+//       	  	 route_str <- OD_Matrix[Home_OD_position,Destination_OD_position];
+//       	  }
+//       	  route <- list(route_str);
+//       	  write route;
        	  activity <- "commuting";
 //       	  current_activity <- schedule[0];
        	  
@@ -163,11 +187,14 @@ species Humans skills:[moving]{
 		write "sleeping";
 	}
     reflex commuting when: activity = "commuting"{
-    	location <- StreetNodes where (each.Node_ID = self.route[(self.trip_int + 1)]);
-//    	track <- line_of_travel
-//		traveltime <- time of travel
-    	self.trip_int <- self.trip_int + 1;
-    	if((self.trip_int + 1) >= length(self.route)){
+//    	location <- StreetNodes where (each.Node_ID = self.route[(self.trip_int + 1)]);
+////    	track <- line_of_travel
+////		traveltime <- time of travel
+//    	self.trip_int <- self.trip_int + 1;
+//    	if((self.trip_int + 1) >= length(self.route)){
+		
+//		follow track;
+		if(self.location = destination_activity.location){
     		activity <- "perform_activity";
     		if(modalchoice = "bike"){
     			bike_exposure <- bike_exposure + 0;
@@ -223,7 +250,10 @@ experiment TransportAirPollutionExposureModel type: gui {
 		}
 		graphics GreenSpace{
     		draw shape_file_greenspace color: #green;
-		}		
+		}
+//		graphics Routes{
+//			draw  color: #purple;
+//		}		
         species Humans aspect: base ;
     }
     display stats type: opengl{
