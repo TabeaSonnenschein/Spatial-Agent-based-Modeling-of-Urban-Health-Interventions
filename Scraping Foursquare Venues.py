@@ -36,21 +36,21 @@ import pandas as pd
 # category_name = "Food" ##Foursquare category Food
 # category = '4d4b7105d754a06374d81259'
 
-category_name = "ArtsEntertainment" ##Foursquare category Nighlife Spot
-category = '4d4b7104d754a06370d81259'
+# category_name = "ArtsEntertainment" ##Foursquare category Nighlife Spot
+# category = '4d4b7104d754a06370d81259'
 
 # category_name = "Nightlife"  ##Foursquare category Nighlife Spot
 # category = '4d4b7105d754a06376d81259'
-#
+
 # category_name = "College_Uni" ##Foursquare category College & University
 # category = '4d4b7105d754a06372d81259'
 #
-# category_name = "Outdoors_Recreation" ##Foursquare category Outdoors & Recreation
-# category = '4d4b7105d754a06377d81259'
+category_name = "Outdoors_Recreation" ##Foursquare category Outdoors & Recreation
+category = '4d4b7105d754a06377d81259'
 #
 # category_name = "ShopsServ" ##Foursquare category Shop and Services
 # category = '4d4b7105d754a06378d81259'
-#
+# #
 # category_name = "Profess_other"  ##Foursquare category Professional and other places
 # category = '4d4b7105d754a06375d81259'
 
@@ -136,7 +136,7 @@ while j < s:
     if j >= s:
         print("total completed")
     else:
-        time.sleep(1301)
+        time.sleep(1001)
         x = 0
 
 
