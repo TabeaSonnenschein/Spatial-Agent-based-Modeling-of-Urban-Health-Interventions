@@ -48,6 +48,7 @@ global skills: [RSkill]{
     init {
         write "setting up the model";
 		create Homes from: shape_file_Residences with: [Neighborhood:: read('nghb_cd')];
+		create Noise_day from: shape_file_NoiseContour_day with: [Decibel :: float(read('bovengrens'))] ;
         create Humans from: Synth_Agent_file with:[Agent_ID :: read('Agent_ID'), Neighborhood :: read('neighb_code'), 
 	        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
@@ -62,6 +63,10 @@ species Homes{
 	string Neighborhood;
 }
 
+
+species Noise_day{
+	float Decibel;
+}
 
 species Humans skills:[moving, RSkill]{
 	 // definition of attributes, actions, behaviors	
@@ -124,6 +129,8 @@ species Humans skills:[moving, RSkill]{
 	float inhalation_rate_walking <- 25.0;	 //25 breaths per minute
 	float inhalation_rate_biking <- 40.0;	 //40 breaths per minute
 	float inhalation_rate_normal <- 15.0 ; //15 breaths per minute
+	float indoor_Noise_filter <- 0.20;
+	float indoor_AirPollutionFilter <- 0.60;
 	float bike_exposure;
 	float walk_exposure;
 	float activity_PM10;
@@ -133,6 +140,7 @@ species Humans skills:[moving, RSkill]{
 	float hourly_PM2_5;
 	float daily_PM2_5;
 	float yearly_PM2_5;
+	float activity_Noise;
 	float hourly_Noise;
 	float daily_Noise;
 	float yearly_Noise;
@@ -288,11 +296,16 @@ species Humans skills:[moving, RSkill]{
 		 	}
 		 }
 	}
-	reflex perception{
-		
+//	reflex any_activity when: activity = "perform_activity" and current_activity = "name of activity"{
+//		e.g. the activity could have an impact on health (sports...)
+//	}
+	reflex at_Place_exposure when: activity = "perform_activity"{
+		activity_PM10 <- (sum((Environment_stressors overlapping self) collect each.AirPoll_PM10)) * inhalation_rate_normal * indoor_AirPollutionFilter;
+		activity_Noise <- (sum((Noise_day overlapping self) collect each.Decibel)) * indoor_Noise_filter;
+		hourly_PM10 <- hourly_PM10 + activity_PM10;
+		hourly_Noise <- hourly_Noise + activity_Noise;
 	}
-	reflex sleeping when: activity = "perform_activity" and current_activity = "sleeping"{
-	}
+
     reflex commuting when: activity = "commuting"{
 //		if(self.return_dum = 1){
 //				do follow path: self.track_path speed: travelspeed return_path: true;	
@@ -304,26 +317,38 @@ species Humans skills:[moving, RSkill]{
     		activity <- "perform_activity";
     		if(modalchoice = "bike"){
     			bike_exposure <- bike_exposure + track_duration;
-//				activity_PM10 <- (sum(each.AirPoll_PM10 of (Environment_stressors overlapping self.track_geometry) )/ length(Environment_stressors overlapping self.track_geometry)) * inhalation_rate_biking * track_duration;
+				activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/( length(Environment_stressors overlapping self.track_geometry) + 1)) * inhalation_rate_biking * track_duration;
+				activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) +1) )  * track_duration;
 				hourly_PM10 <- hourly_PM10 + activity_PM10;
+				hourly_Noise <- hourly_Noise + activity_Noise;
     		}
     		 else if(modalchoice = "walk"){
     			walk_exposure <- walk_exposure + track_duration;
+    			activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/ (length(Environment_stressors overlapping self.track_geometry)+ 1)) * inhalation_rate_walking * track_duration;
+				activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) + 1))  * track_duration;
+				hourly_PM10 <- hourly_PM10 + activity_PM10;
+				hourly_Noise <- hourly_Noise + activity_Noise;
+				
     		}
     		else{
-    			
+    			activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/ (length(Environment_stressors overlapping self.track_geometry) +1 )) * inhalation_rate_normal * track_duration * 0.2;
+				activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) + 1))  * track_duration * 0.3;
+				hourly_PM10 <- hourly_PM10 + activity_PM10;
+				hourly_Noise <- hourly_Noise + activity_Noise;
+				
     		}
-    		if(self.return_dum = 1){
-    			return_dum <- 0;
-    		}
+//    		if(self.return_dum = 1){
+//    			return_dum <- 0;
+//    		}
+    		
     	}
     }
     reflex update_exposure when: current_date.minute = 0{
     	daily_PM10 <- daily_PM10 + hourly_PM10;
-    	hourly_PM10 <- 0;
+    	hourly_PM10 <- 0.0;
     }
-    reflex acute_exposure_impacts when: current_date.hour = 0{
-//    	daily_PM10
+    reflex acute_exposure_impacts when: current_date.hour = 0{	
+    	daily_PM10 <- 0.0;
 //		daily_PM2_5
 //		daily_Noise
     }
@@ -338,15 +363,15 @@ species Humans skills:[moving, RSkill]{
     	}
     	else if(activity = "commuting"){
     		if(modalchoice = "bike"){
-    			draw sphere(40) color: #blue;
+    			draw cube(40) color: #blue;
     			
     		}
     		else if(modalchoice =  "walk"){
-    			draw sphere(40) color: #green;
+    			draw cube(40) color: #green;
     			
     		}
     		else{
-    			draw sphere(40) color: #red;
+    			draw cube(40) color: #red;
     		}
     	}
     	
@@ -356,7 +381,7 @@ species Humans skills:[moving, RSkill]{
 
 grid Environment_stressors cell_width: 100 cell_height: 100 {
 	float AirPoll_PM2_5 <- 20.0;
-	float AirPoll_PM10 <- 10.0;///0.0 min: 0.0 max: 100.0;
+	float AirPoll_PM10 <- 10.0; ///0.0 min: 0.0 max: 100.0;
 	float AirPoll_NO2;
 	float AirPoll_O3;
 	float Noise_Decibel_night;
@@ -399,7 +424,7 @@ experiment TransportAirPollutionExposureModel type: gui {
 		}
         species Humans aspect: base ;
 //        grid Environment_stressors elevation: AirPoll_PM10 * 3.0 triangulation: true transparency: 0.7;
-		graphics Noise transparency: 0.85{
+		graphics Noise transparency: 0.7{
 			if(current_date.hour < 4 or current_date.hour > 22){
 				draw shape_file_NoiseContour_night color: #purple ;
 			}
@@ -411,7 +436,7 @@ experiment TransportAirPollutionExposureModel type: gui {
 //				draw Tiff_file_PM2_5 color:#forestgreen ;
 //		}        
 //        
-        overlay position: { 5, 5 } size: { 180 #px, 100 #px } background: # black transparency: 0.5 border: #black rounded: true
+        overlay position: { 5, 5 } size: { 180 #px, 100 #px } background: # black transparency: 0.3 border: #black rounded: true
             {
             	//for each possible type, we draw a square with the corresponding color and we write the name of the type
                 float y <- 30#px;
@@ -433,8 +458,11 @@ experiment TransportAirPollutionExposureModel type: gui {
 //		chart "Age Distribution" type: histogram background: #white size: {0.5,0.5} position: {0, 0.5}{
 //				data "age" value: Humans collect each.age;
 //		}
-		chart "Exposure" type: scatter x_label: "PM2.5 exposure" background: #white size: {1,0.5} position: {0, 0}{
-				data "Bike exposure" value: Humans collect each.bike_exposure color: #blue marker: false style: line;
+		chart "Noise Exposure" type: scatter x_label: "Noise exposure" background: #white size: {0.5,0.5} position: {0, 0}{
+				data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #blue marker: false style: line;
+		}
+		chart "PM10 Exposure" type: scatter x_label: "PM10 exposure" background: #white size: {0.5,0.5} position: {0.5, 0}{
+				data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #blue marker: false style: line;
 		}
 		chart "Agent Age Distribution" type: histogram background: #white size: {0.5,0.5} position: {0, 0.5} {
 				data "0-10" value: Humans count (each.age <= 10) color:#blue;
