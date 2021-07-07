@@ -43,7 +43,8 @@ import pandas as pd
 # category = '4d4b7105d754a06376d81259'
 
 # category_name = "College_Uni" ##Foursquare category College & University
-# category = '4d4b7105d754a06372d81259'
+# category = '4d4b7105d754a06372d81259'a
+
 #
 category_name = "Outdoors_Recreation" ##Foursquare category Outdoors & Recreation
 category = '4d4b7105d754a06377d81259'

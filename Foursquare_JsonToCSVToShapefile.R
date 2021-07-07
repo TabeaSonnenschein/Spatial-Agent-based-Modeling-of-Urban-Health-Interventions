@@ -10,10 +10,10 @@ city = "Amsterdam"
 ### uncomment the venuetype from which you want to convert the json
 #venuetype = "Food"
 #venuetype = "ArtsEntertainment"
-venuetype = "Nightlife"
+#venuetype = "Nightlife"
 #venuetype = "College_Uni"
-#venuetype = "Outdoors_Recreation"
-venuetype = "ShopsServ"
+venuetype = "Outdoors_Recreation"
+#venuetype = "ShopsServ"
 #venuetype = "Profess_other"
 
 
@@ -132,6 +132,7 @@ Dataframe_final = spTransform(Dataframe_final, CRSobj = crs)
 ## loading the spatial extent polygon
 dsn_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
 extent <- readOGR(dsn=dsn_data ,layer="Amsterdam Diemen Oude Amstel Extent")
+extent = spTransform(extent, CRSobj = crs)
 
 ## clipping spatial dataset by extent
 plot(Dataframe_final) # map before clipping

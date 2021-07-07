@@ -29,15 +29,15 @@ global skills: [RSkill]{
    	geometry shape <- envelope(spatial_extent); 
    	map<string,rgb> color_per_type <- ["streets"::#aqua, "vegetation":: #green, "buildings":: #red];
     
-//  loading Environmental Stressor Maps
-	file shape_file_NoiseContour_night <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
-	file shape_file_NoiseContour_day <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp");
-//    file Tiff_file_PM2_5 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PM2_5_RDNew_clipped.tif");
-    
 //  loading routing code
     file Rcode_foot_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_foot.R");
     file Rcode_car_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_car.R");
     file Rcode_bike_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_bike.R");
+    
+//    file shape_file_streetnodes <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/cars/Street_Nodes_Amsterdam_RDNew.shp");
+//    csv_file OD_Matrix_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/cars/OD_Matrix_Amsterdam_GAMA4.csv", ',', '"', string);
+//    matrix OD_Matrix <- matrix(OD_Matrix_file);
+//    list<int> OD_columns <- column_at(OD_Matrix, 0);
 
 //  loading agent population attributes
     int nb_humans <- 100;
@@ -47,16 +47,21 @@ global skills: [RSkill]{
 
     init {
         write "setting up the model";
+//        create StreetNodes from: shape_file_streetnodes with: [Node_ID :: read('Node_ID')];
 		create Homes from: shape_file_Residences with: [Neighborhood:: read('nghb_cd')];
         create Humans from: Synth_Agent_file with:[Agent_ID :: read('Agent_ID'), Neighborhood :: read('neighb_code'), 
 	        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
         	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI')]; // careful: column 1 is has the index 0 in GAMA
     }
-    float step <- 1 #mn;
-    date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
+    float step <- 10 #mn;
+    date starting_date <- date("2019-01-01", 'yyyy-MM-dd');
     int year;
 }
+
+//species StreetNodes {
+//	string Node_ID;
+//}
 
 species Homes{
 	string Neighborhood;
@@ -65,8 +70,6 @@ species Homes{
 
 species Humans skills:[moving, RSkill]{
 	 // definition of attributes, actions, behaviors	
-	 
-/////// declaring variables //////////
 	 /// individual characteristics
 	string Agent_ID;
 	int Agent_index;
@@ -91,17 +94,8 @@ species Humans skills:[moving, RSkill]{
 	
 	/// saved routes (for efficiency)
 	path homeTOwork;
-	string homeTOwork_mode;
-	geometry homeTOwork_geometry;
-	float homeTOwork_duration;
 	path homeTOuni;
-	string homeTOuni_mode;
-	geometry homeTOuni_geometry;
-	float homeTOuni_duration;
 	path homeTOschool;
-	string homeTOschool_mode;
-	geometry homeTOschool_geometry;
-	float homeTOschool_duration;	
 	
 	/// activity variables
 	string activity;
@@ -112,32 +106,28 @@ species Humans skills:[moving, RSkill]{
 	geometry destination_activity;
 	
 	/// travel variables
-	float track_duration;
 	path track_path;
-	geometry track_geometry;
 	string modalchoice;
 	float travelspeed;
 	int path_memory;
-	int return_dum <- 0;
 
-	/// exposure variables
-	float inhalation_rate_walking <- 25.0;	 //25 breaths per minute
-	float inhalation_rate_biking <- 40.0;	 //40 breaths per minute
-	float inhalation_rate_normal <- 15.0 ; //15 breaths per minute
+//	int Home_Node;
+//	int Home_OD_position;
+//	int Destination_Node;
+//	int Destination_OD_position;
+//	string route_str;
+//	list route;
+//	int trip_int <- 0;
+	
 	float bike_exposure;
+	float car_exposure;
 	float walk_exposure;
-	float activity_PM10;
-	float hourly_PM10;	
-	float daily_PM10;
+	float daiy_PM10;
 	float yearly_PM10;
-	float hourly_PM2_5;
 	float daily_PM2_5;
 	float yearly_PM2_5;
-	float hourly_Noise;
 	float daily_Noise;
 	float yearly_Noise;
-	
-/////// setting up the initial parameters and relations //////////
 	init{
 		  schedule <- list(schedules_file);
 
@@ -160,46 +150,67 @@ species Humans skills:[moving, RSkill]{
        	  }       	     	
        	  activity <- "perform_activity";
        	  
+       	  /// routing through OSRM via R interface
        	  do startR;
+//       	  destination_activity <- workplace;		
+//		  write R_eval("origin = " + to_R_data(container(residence.location CRS_transform("EPSG:4326"))));
+//		  write R_eval("destination = " + to_R_data(container(destination_activity.location CRS_transform("EPSG:4326"))));	
+//		  loop s over: Rcode_bike_routing.contents{
+//				unknown a <- R_eval(s);
+//			}
+//		  list<point> track <- list(R_eval("track_points"));
+//		  geometry track_geometry <- (to_GAMA_CRS(line(track),  "EPSG:4326")) add_point(destination_activity.location);
+//		  track_path <-  path(track_geometry);     	  
+//		  float track_duration <- float(list(R_eval("route$duration"))[0]);
+//		  float track_length <- float(list(R_eval("route$distance"))[0]);	
+//		  travelspeed <- 3.33; /// meters per seconds 40km/h 			
+		  
+//       	  /// routing through OD Matrix
+//       	  Home_Node <- int(Node_ID of (StreetNodes closest_to(self.location)));
+//       	  Destination_Node <- int(Node_ID of one_of(StreetNodes where (each.location != self.location)));
+//       	  Home_OD_position <- OD_columns index_of int(self.Home_Node);
+//       	  Destination_OD_position <- OD_columns index_of int(self.Destination_Node);
+//       	  write 'Home_Node: '+ Home_Node + ' postion ' + Home_OD_position + '; and Destination_Node: '+ Destination_Node+ ' postion ' + Destination_OD_position ;
+//       	  route_str <- OD_Matrix[(Home_OD_position + 1),Destination_OD_position];
+//       	  loop while: (route_str = ""){
+//       	  	 Destination_Node <- int(Node_ID of one_of(StreetNodes where (each.location != self.location)));
+//       	  	 Destination_OD_position <- OD_columns index_of int(self.Destination_Node);
+//       	  	 route_str <- OD_Matrix[Home_OD_position,Destination_OD_position];
+//       	  }
+//       	  route <- list(route_str);
+//       	  write route;
+
+//       	  modalchoice <- "bike";
+//       	  current_activity <- schedule[0];
+       	  
 	}
-	
-/////// defining the Human transition functions (behaviour and exposure) //////////
 	reflex schedule_manager when: ((current_date.minute mod 10) = 0) {
 		 current_activity <- schedule[int((current_date.minute/10) + (current_date.hour * 6))];
 		 if(int((current_date.minute/10)) != 0){
 		 	former_activity <- schedule[int(((current_date.minute/10) + (current_date.hour * 6))-1)];
 		 }
 		 else{
-		 	former_activity <- last(schedule) ;
+		 	former_activity <- "sleeping";
 		 }
 		 if(current_activity != former_activity){
 		 	if(current_activity = "work"){
 				destination_activity <- workplace;
 				if(homeTOwork != nil and self.location = residence.location){
 					track_path <- homeTOwork;
-					track_geometry <- homeTOwork_geometry;
-					modalchoice <- homeTOwork_mode;
-					track_duration <- homeTOwork_duration;
 					path_memory <- 1;
 				}		 		
 		 	}
 		 	else if(current_activity = "school"){
 		 		destination_activity <- school;
 		 		if(homeTOschool != nil and self.location = residence.location){
-					track_path <- homeTOschool;
-					track_geometry <- homeTOschool_geometry;
-					modalchoice <- homeTOschool_mode;
-					track_duration <- homeTOschool_duration;
+					track_path <- homeTOwork;
 					path_memory <- 1;
 				}		
 		 	}
 		 	else if(current_activity = "university"){
 		 		destination_activity <- university;
 		 		if(homeTOuni != nil and self.location = residence.location){
-					track_path <- homeTOuni;
-					track_geometry <- homeTOuni_geometry;
-					track_duration <- homeTOuni_duration;
-					modalchoice <- homeTOuni_mode;
+					track_path <- homeTOwork;
 					path_memory <- 1;
 				}		
 		 	}
@@ -211,21 +222,6 @@ species Humans skills:[moving, RSkill]{
 		 	}
 		 	else if(current_activity = "sleeping" or current_activity = "at_Home"){
 		 		destination_activity <- self.residence;
-//		 		if(homeTOwork != nil and self.location = workplace.location){
-////		 			container reverse <- reverse(container(geometry_collection(homeTOwork_geometry)));
-////		 			track_geometry <- line(reverse) add_point self.residence.location;
-////		 			track_path <- path(track_geometry);
-////		 			write "HometoWork: "   + homeTOwork_geometry;
-////		 			write "reverse: " +   reverse;
-////		 			write "Trackpath: "  + track_path;
-//					track_path <- homeTOwork;
-//					track_geometry <- homeTOwork_geometry;
-//					modalchoice <- homeTOwork_mode;
-//					track_duration <- homeTOwork_duration;
-//					path_memory <- 1;
-//					return_dum <- 1;
-//		 		}
-		 		
 		 	}
 		 	else if(current_activity = "entertainment" ){
 		 		destination_activity <- one_of(shape_file_Entertainment);
@@ -233,7 +229,6 @@ species Humans skills:[moving, RSkill]{
 		 	if(destination_activity.location != self.location){
 		 		activity <- "commuting";
 		 		if(path_memory != 1){
-		 			/// routing through OSRM via R interface
 		 			write R_eval("origin = " + to_R_data(container(self.location CRS_transform("EPSG:4326"))));
 		 			write R_eval("destination = " + to_R_data(container(destination_activity.location CRS_transform("EPSG:4326"))));	
 		 			if((self.location distance_to destination_activity) < 1000){
@@ -258,27 +253,18 @@ species Humans skills:[moving, RSkill]{
 						travelspeed <- 11.11; /// meters per seconds 40km/h 			
 		 			}
 		 			list<point> track <- list(R_eval("track_points"));
-		 			track_geometry <- (to_GAMA_CRS(line(track),  "EPSG:4326")) add_point(destination_activity.location);
+		 			geometry track_geometry <- (to_GAMA_CRS(line(track),  "EPSG:4326")) add_point(destination_activity.location);
 					track_path <-  path(track_geometry);     	  
-					track_duration <- float(list(R_eval("route$duration"))[0]);  ///minutes
-					float track_length <- float(list(R_eval("route$distance"))[0]);	/// meters
+					float track_duration <- float(list(R_eval("route$duration"))[0]);
+					float track_length <- float(list(R_eval("route$distance"))[0]);	
 					if(current_activity = "work" and self.location = residence.location){
 						homeTOwork <- track_path;
-						homeTOwork_mode <- modalchoice;
-						homeTOwork_geometry <- track_geometry ;
-						homeTOwork_duration <- track_duration;
 					}
 					else if(current_activity = "school" and self.location = residence.location){
 						homeTOschool <- track_path;
-						homeTOschool_mode <- modalchoice;
-						homeTOschool_geometry <- track_geometry ;
-						homeTOschool_duration <- track_duration;
 					}
 					else if(current_activity = "university" and self.location = residence.location){
 						homeTOuni <- track_path;
-						homeTOuni_mode <- modalchoice;
-						homeTOuni_geometry <- track_geometry ;
-						homeTOuni_duration <- track_duration;
 					}
 		 		}
 		 		path_memory <- 0;
@@ -292,35 +278,25 @@ species Humans skills:[moving, RSkill]{
 		
 	}
 	reflex sleeping when: activity = "perform_activity" and current_activity = "sleeping"{
+		write "sleeping";
 	}
     reflex commuting when: activity = "commuting"{
-//		if(self.return_dum = 1){
-//				do follow path: self.track_path speed: travelspeed return_path: true;	
-//		}
-//		else{
-			do follow path: self.track_path speed: travelspeed;
-//		}
+//    	location <- StreetNodes where (each.Node_ID = self.route[(self.trip_int + 1)]);
+////    	track <- line_of_travel
+////		traveltime <- time of travel
+//    	self.trip_int <- self.trip_int + 1;
+//    	if((self.trip_int + 1) >= length(self.route)){
+
+		do follow path: self.track_path speed: travelspeed;
 		if(self.location = destination_activity.location){
     		activity <- "perform_activity";
     		if(modalchoice = "bike"){
-    			bike_exposure <- bike_exposure + track_duration;
-//				activity_PM10 <- (sum(each.AirPoll_PM10 of (Environment_stressors overlapping self.track_geometry) )/ length(Environment_stressors overlapping self.track_geometry)) * inhalation_rate_biking * track_duration;
-				hourly_PM10 <- hourly_PM10 + activity_PM10;
+    			bike_exposure <- bike_exposure + 0;
     		}
     		 else if(modalchoice = "walk"){
-    			walk_exposure <- walk_exposure + track_duration;
-    		}
-    		else{
-    			
-    		}
-    		if(self.return_dum = 1){
-    			return_dum <- 0;
+    			walk_exposure <- walk_exposure + 0;
     		}
     	}
-    }
-    reflex update_exposure when: current_date.minute = 0{
-    	daily_PM10 <- daily_PM10 + hourly_PM10;
-    	hourly_PM10 <- 0;
     }
     reflex acute_exposure_impacts when: current_date.hour = 0{
 //    	daily_PM10
@@ -354,24 +330,14 @@ species Humans skills:[moving, RSkill]{
 }
 
 
-grid Environment_stressors cell_width: 100 cell_height: 100 {
-	float AirPoll_PM2_5 <- 20.0;
-	float AirPoll_PM10 <- 10.0;///0.0 min: 0.0 max: 100.0;
-	float AirPoll_NO2;
-	float AirPoll_O3;
-	float Noise_Decibel_night;
-	float Noise_Decibel_day;
-//	rgb color <- #green update: rgb(255 *(AirPoll_PM10/30.0) , 255 * (1 - (AirPoll_PM10/30.0)), 0.0);
-//	reflex stressor_adjustment{
-//		AirPoll_PM10 <- AirPoll_PM10 * 0.7;
-//		diffuse var: AirPoll_PM10 on: Environment_stressors proportion: 0.9 ;
-//	}
-	
-}
+//grid Environment_stressors cell_width: 3 cell_height: 2 {
+//	float AirPoll_PM2_5;
+//	float AirPoll_PM10;
+//	float AirPoll_NO2;
+//	float AirPoll_O3;
+//	float Noise_Decibel;
 
-//grid Perceivable_Environment cell_width: 50 cell_height: 50 {
-//	float bikability <- 20.0;
-//	float walkability <- 10.0;
+
 //}
 
 
@@ -380,9 +346,8 @@ experiment TransportAirPollutionExposureModel type: gui {
 	parameter "Number of human agents" var: nb_humans min: 10 max: 10000 category: "Human attributes" ;
 	
 	output {
-//		layout horizontal([vertical([0::10000])::7000,vertical([1::8000,2::2000])::3000]) tabs: false;
-//		layout #split;
-		display map type:opengl {
+	layout #split;
+    display map type:opengl {
     	graphics background{
     		draw shape color: #black;
     	}
@@ -398,19 +363,7 @@ experiment TransportAirPollutionExposureModel type: gui {
     		draw shape_file_greenspace color: #green;
 		}
         species Humans aspect: base ;
-//        grid Environment_stressors elevation: AirPoll_PM10 * 3.0 triangulation: true transparency: 0.7;
-		graphics Noise transparency: 0.85{
-			if(current_date.hour < 4 or current_date.hour > 22){
-				draw shape_file_NoiseContour_night color: #purple ;
-			}
-			else{
-				draw shape_file_NoiseContour_day color: #purple ;				
-			}
-		}
-//		graphics AirPollution{
-//				draw Tiff_file_PM2_5 color:#forestgreen ;
-//		}        
-//        
+        
         overlay position: { 5, 5 } size: { 180 #px, 100 #px } background: # black transparency: 0.5 border: #black rounded: true
             {
             	//for each possible type, we draw a square with the corresponding color and we write the name of the type
@@ -418,34 +371,32 @@ experiment TransportAirPollutionExposureModel type: gui {
                 loop type over: color_per_type.keys
                 {
                     draw square(10#px) at: { 20#px, y } color: color_per_type[type] border: #white;
-                    draw type at: { 50#px, y + 5#px } color: # white font: font("SansSerif", 16, #bold);
+                    draw type at: { 40#px, y + 4#px } color: # white font: font("SansSerif", 18, #bold);
                     y <- y + 25#px;
                 }
 
             }
         
     }
-    display stats type: java2D synchronized: true{
+    display stats type: opengl{
 //		chart " my_chart " type: histogram {
 //			datalist ( distribution_of ( Humans collect each.age , 20 ,0 ,100) at " legend ") 
 //				value: ( distribution_of ( Humans collect each.age, 20 ,0 ,100) at " values ");
 //		}
-//		chart "Age Distribution" type: histogram background: #white size: {0.5,0.5} position: {0, 0.5}{
-//				data "age" value: Humans collect each.age;
-//		}
-		chart "Exposure" type: scatter x_label: "PM2.5 exposure" background: #white size: {1,0.5} position: {0, 0}{
-				data "Bike exposure" value: Humans collect each.bike_exposure color: #blue marker: false style: line;
+		chart "Age Distribution" type: histogram background: #white size: {0.5,0.5} position: {0, 0}{
+				datalist legend: Humans collect each.age  value: Humans collect each.age;
 		}
+		
 		chart "Agent Age Distribution" type: histogram background: #white size: {0.5,0.5} position: {0, 0.5} {
-				data "0-10" value: Humans count (each.age <= 10) color:#blue;
-				data "11-20" value: Humans count ((each.age > 10) and (each.age <= 20)) color:#blue;
-				data "21-30" value: Humans count ((each.age > 20) and (each.age <= 30)) color:#blue;
-				data "31-40" value: Humans count ((each.age > 30) and (each.age <= 40)) color:#blue;
-				data "41-50" value: Humans count ((each.age > 40) and (each.age <= 50)) color:#blue;
-				data "51-60" value: Humans count ((each.age > 50) and (each.age <= 60)) color:#blue;
-				data "61-70" value: Humans count ((each.age > 60) and (each.age <= 70)) color:#blue;
-				data "71-80" value: Humans count ((each.age > 70) and (each.age <= 80)) color:#blue;
-				data "81 or" value: Humans count (each.age > 81) color:#blue;
+				data "0-10 years old" value: Humans count (each.age <= 10) color:#blue;
+				data "11-20 years old" value: Humans count ((each.age > 10) and (each.age <= 20)) color:#blue;
+				data "21-30 years old" value: Humans count ((each.age > 20) and (each.age <= 30)) color:#blue;
+				data "31-40 years old" value: Humans count ((each.age > 30) and (each.age <= 40)) color:#blue;
+				data "41-50 years old" value: Humans count ((each.age > 40) and (each.age <= 50)) color:#blue;
+				data "51-60 years old" value: Humans count ((each.age > 50) and (each.age <= 60)) color:#blue;
+				data "61-70 years old" value: Humans count ((each.age > 60) and (each.age <= 70)) color:#blue;
+				data "71-80 years old" value: Humans count ((each.age > 70) and (each.age <= 80)) color:#blue;
+				data "81 or older" value: Humans count (each.age > 81) color:#blue;
 			}
 		chart "Agent Sex Distribution" type: histogram background: #white size: {0.5,0.5} position: {0.5, 0.5} {
 				data "male" value: Humans count (each.sex = "male") color:#red;
