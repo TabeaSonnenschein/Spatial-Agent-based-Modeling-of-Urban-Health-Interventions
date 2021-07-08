@@ -129,8 +129,8 @@ species Humans skills:[moving, RSkill]{
 	float inhalation_rate_walking <- 25.0;	 //25 breaths per minute
 	float inhalation_rate_biking <- 40.0;	 //40 breaths per minute
 	float inhalation_rate_normal <- 15.0 ; //15 breaths per minute
-	float indoor_Noise_filter <- 0.20;
-	float indoor_AirPollutionFilter <- 0.60;
+	float indoor_Noise_filter <- 0.20; //80% of Noise filtered
+	float indoor_AirPollutionFilter <- 0.60; /// 40% of Air POllution filtered
 	float bike_exposure;
 	float walk_exposure;
 	float activity_PM10;
@@ -458,10 +458,10 @@ experiment TransportAirPollutionExposureModel type: gui {
 //		chart "Age Distribution" type: histogram background: #white size: {0.5,0.5} position: {0, 0.5}{
 //				data "age" value: Humans collect each.age;
 //		}
-		chart "Noise Exposure" type: scatter x_label: "Noise exposure" background: #white size: {0.5,0.5} position: {0, 0}{
+		chart "Mean Noise Exposure" type: scatter x_label: "Minutes" y_label: "Decibel" background: #white size: {0.5,0.5} position: {0, 0}{
 				data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #blue marker: false style: line;
 		}
-		chart "PM10 Exposure" type: scatter x_label: "PM10 exposure" background: #white size: {0.5,0.5} position: {0.5, 0}{
+		chart "Mean PM10 Exposure" type: scatter x_label: "Minutes" y_label: "µg" background: #white size: {0.5,0.5} position: {0.5, 0}{
 				data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #blue marker: false style: line;
 		}
 		chart "Agent Age Distribution" type: histogram background: #white size: {0.5,0.5} position: {0, 0.5} {
