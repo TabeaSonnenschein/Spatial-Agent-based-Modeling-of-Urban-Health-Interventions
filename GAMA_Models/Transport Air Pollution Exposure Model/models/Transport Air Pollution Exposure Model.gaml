@@ -54,7 +54,7 @@ global skills: [RSkill]{
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
         	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI')]; // careful: column 1 is has the index 0 in GAMA
     }
-    float step <- 1 #mn;
+    float step <- 5 #mn;
     date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
     int year;
 }
@@ -68,7 +68,7 @@ species Noise_day{
 	float Decibel;
 }
 
-species Humans skills:[moving, RSkill]{
+species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	 // definition of attributes, actions, behaviors	
 	 
 /////// declaring variables //////////
@@ -115,6 +115,7 @@ species Humans skills:[moving, RSkill]{
 	string current_activity;
 	string former_activity;
 	geometry destination_activity;
+	int traveldecision;
 	
 	/// travel variables
 	float track_duration;
@@ -124,6 +125,7 @@ species Humans skills:[moving, RSkill]{
 	float travelspeed;
 	int path_memory;
 	int return_dum <- 0;
+	geometry route_eucl_line;
 
 	/// exposure variables
 	float inhalation_rate_walking <- 25.0;	 //25 breaths per minute
@@ -144,6 +146,26 @@ species Humans skills:[moving, RSkill]{
 	float hourly_Noise;
 	float daily_Noise;
 	float yearly_Noise;
+	
+	//////// TRANSPORT BEHAVIOUR: BDI ///////////////
+	/// Transport Behaviour: Desires///
+	float convenience;
+	float affordability;
+	int safety;
+	int norm_abidence;
+	
+	/// Transport Behaviour: Beliefs///
+	float assumed_traveltime;
+//	float assumed_bikability;
+//	float assumed_walkability; 
+	predicate assumed_accessibility <- new_predicate("assumed_accessibility");
+	predicate assumed_cost <- new_predicate("assumed_cost"); 
+	predicate assumed_safety <- new_predicate("assumed_safety");
+	predicate own_budget <- new_predicate("own_budget"); 
+	predicate social_norms <- new_predicate("social_norms");
+	
+	/// Transport Behaviour: Emotions ///
+	
 	
 /////// setting up the initial parameters and relations //////////
 	init{
@@ -239,8 +261,11 @@ species Humans skills:[moving, RSkill]{
 		 		destination_activity <- one_of(shape_file_Entertainment);
 		 	}
 		 	if(destination_activity.location != self.location){
-		 		activity <- "commuting";
+//		 		activity <- "commuting";
+		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
+		 		write "Route Line:" + route_eucl_line;
 		 		if(path_memory != 1){
+		 			traveldecision <- 1;
 		 			/// routing through OSRM via R interface
 		 			write R_eval("origin = " + to_R_data(container(self.location CRS_transform("EPSG:4326"))));
 		 			write R_eval("destination = " + to_R_data(container(destination_activity.location CRS_transform("EPSG:4326"))));	
@@ -248,6 +273,7 @@ species Humans skills:[moving, RSkill]{
 		 				modalchoice <- "walk";
 		 				loop s over: Rcode_foot_routing.contents{
 							unknown a <- R_eval(s);
+//							write "R>" + a;
 						}
 						travelspeed <- 1.4; /// meters per seconds 5km/h
 		 			}
@@ -293,6 +319,7 @@ species Humans skills:[moving, RSkill]{
 		 	}
 		 	else{
 		 		activity <-"perform_activity";
+		 		traveldecision <- 0;
 		 	}
 		 }
 	}
@@ -305,7 +332,7 @@ species Humans skills:[moving, RSkill]{
 		hourly_PM10 <- hourly_PM10 + activity_PM10;
 		hourly_Noise <- hourly_Noise + activity_Noise;
 	}
-
+	
     reflex commuting when: activity = "commuting"{
 //		if(self.return_dum = 1){
 //				do follow path: self.track_path speed: travelspeed return_path: true;	
@@ -343,6 +370,22 @@ species Humans skills:[moving, RSkill]{
     		
     	}
     }
+    perceive Env_Activity_Affordance_Travel target:(Perceivable_Environment where (each intersects route_eucl_line))  when: traveldecision = 1 {
+    	myself.activity <- "commuting";
+    	myself.traveldecision <- 0;	
+    	ask myself{
+//    		assumed_bikability <- mean(myself.bikability);
+//    		assumed_walkability <- mean(myself.walkability);    		
+    		do add_belief(new_predicate("assumed_bikability", ["route_bikability"::mean(myself.bikability)]));
+    		do add_belief(new_predicate("assumed_walkability", ["route_walkability"::mean(myself.walkability)])); 
+    		write "route_walkability" + get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"];  		
+//    		assumed_accessibility <- with_values(assumed_accessibility , ["distance":: 10.0]); 
+//    		write "assumed_accessibility" + get_predicate(get_belief_with_name("assumed_accessibility")).values["distance"];  		
+    		
+    	}
+    	write walkability;
+    }
+    
     reflex update_exposure when: current_date.minute = 0{
     	daily_PM10 <- daily_PM10 + hourly_PM10;
     	hourly_PM10 <- 0.0;
@@ -379,11 +422,10 @@ species Humans skills:[moving, RSkill]{
 }
 
 
-grid Environment_stressors cell_width: 100 cell_height: 100 {
-	float AirPoll_PM2_5 <- 20.0;
-	float AirPoll_PM10 <- 10.0; ///0.0 min: 0.0 max: 100.0;
-	float AirPoll_NO2;
-	float AirPoll_O3;
+grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
+	float AirPoll_PM2_5 <- gauss({20,2.6});
+	float AirPoll_PM10 <- gauss({10,2.6}); /// min: 0.0 max: 100.0;
+	float AirPoll_NO2 <- gauss({10,2.6});
 	float Noise_Decibel_night;
 	float Noise_Decibel_day;
 //	rgb color <- #green update: rgb(255 *(AirPoll_PM10/30.0) , 255 * (1 - (AirPoll_PM10/30.0)), 0.0);
@@ -394,10 +436,10 @@ grid Environment_stressors cell_width: 100 cell_height: 100 {
 	
 }
 
-//grid Perceivable_Environment cell_width: 50 cell_height: 50 {
-//	float bikability <- 20.0;
-//	float walkability <- 10.0;
-//}
+grid Perceivable_Environment cell_width: 50 cell_height: 50 parallel: true{
+	float bikability <- gauss({20,2.6});
+	float walkability <- gauss({10,3.6});
+}
 
 
 experiment TransportAirPollutionExposureModel type: gui {

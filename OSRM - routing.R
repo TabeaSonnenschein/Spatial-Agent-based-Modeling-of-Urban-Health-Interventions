@@ -36,3 +36,6 @@ route <- osrmRoute(src = origin[1:2], dst = destination[1:2], overview = "full",
 # route = st_transform(route, crs = st_crs(crs))
 track = as.data.frame(cbind(unlist(route$geometry)[1:(length(unlist(route$geometry))/2)], unlist(route$geometry)[((length(unlist(route$geometry))/2)+1):length(unlist(route$geometry))]))
 track_points = paste("{", track[,1], ",", track[,2], ",0}", sep = "")
+
+
+x <- c(5.2, 53.26, 0)
