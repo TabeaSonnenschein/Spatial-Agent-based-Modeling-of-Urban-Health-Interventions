@@ -54,7 +54,7 @@ global skills: [RSkill]{
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
         	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI')]; // careful: column 1 is has the index 0 in GAMA
     }
-    float step <- 5 #mn;
+    float step <- 1 #mn;
     date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
     int year;
 }
