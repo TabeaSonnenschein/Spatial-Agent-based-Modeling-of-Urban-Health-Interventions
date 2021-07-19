@@ -76,8 +76,8 @@ osrm-routed --threads=1 --port=5001 noord-holland-latest_bike.osrm
 osrm-routed --threads=1 --port=5002 noord-holland-latest_foot.osrm
 
 STARTING MULTIPLE SERVERS AFTER HAVING PREPARED DATASETS (needed every time when using OSRM)
-Paste these in three different Command Prompts. 
-Handy software for managing multiple CMP’s: https://conemu.github.io/index.html
+There are multiple ways to do this. 
+(1) One can paste these commands in three different Command Prompts.  Handy software for managing multiple CMP’s: https://conemu.github.io/index.html
 
 1.	
 cd C:\Users\Tabea\Documents\GitHub\osrm-backend
@@ -90,6 +90,9 @@ osrm-routed --algorithm=MLD --threads=1 --port=5001 noord-holland-latest_bike.os
 3.	
 cd C:\Users\Tabea\Documents\GitHub\osrm-backend
 osrm-routed --algorithm=MLD --threads=1 --port=5002 noord-holland-latest_foot.osrm
+
+or (2) one can create a batch file which starts the three servers on different command prompts. One example batch file can be found on GitHub (filename: start_OSRM_Servers.bat). It is the most elegant way to do it. You need to change the directory of your OSRM backend  folder and potentially the name of the prepared osrm files.
+
 
 
 Example server name to be used in R: http://127.0.0.1:5000/
