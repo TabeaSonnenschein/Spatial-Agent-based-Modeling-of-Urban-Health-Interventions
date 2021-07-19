@@ -68,7 +68,7 @@ global skills: [RSkill]{
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
         	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI'), scheduletype:: read('scheduletype')]; // careful: column 1 is has the index 0 in GAMA      //
     }
-    float step <- 1 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
+    float step <- 5 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
     date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
     int year;
 }
@@ -221,10 +221,10 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	}
 	
 /////// defining the Human transition functions (behaviour and exposure) //////////
-	reflex schedule_manager when: ((current_date.minute mod 10) = 0) {
-		 current_activity <- schedule[int((current_date.minute/10) + (current_date.hour * 6))];
-		 if(int((current_date.minute/10)) != 0){
-		 	former_activity <- schedule[int(((current_date.minute/10) + (current_date.hour * 6))-1)];
+	reflex schedule_manager when: (((current_date.minute mod 10) = 0) or current_date.minute = 0){
+		 current_activity <- schedule[(int((current_date.minute/10) + (current_date.hour * 6))-1)];
+		 if(int(current_date.minute) != 0 and int(current_date.hour) != 0){
+		 	former_activity <- schedule[int(((current_date.minute/10) + (current_date.hour * 6))-2)];
 		 }
 		 else{
 		 	former_activity <- last(schedule) ;
@@ -285,21 +285,25 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 		
 		 	}
 		 	else if(current_activity = "entertainment" ){
+		 		write one_of(shape_file_Entertainment);
 		 		destination_activity <- one_of(shape_file_Entertainment);
+		 		write destination_activity;
 		 	}
 		 	else if(current_activity = "eat" ){
-		 		if (one_of(shape_file_Restaurants inside circle(500, self.location)) != nil){
-		 			destination_activity <- one_of(shape_file_Restaurants inside circle(500, self.location));
-		 		}
-		 		else{
+//		 		if (one_of(container(shape_file_Restaurants inside circle(500, self.location))) != nil){
+//		 			write one_of(container(shape_file_Restaurants inside circle(500, self.location)));
+//		 			destination_activity <- one_of(container(shape_file_Restaurants inside circle(500, self.location)));
+//		 			write destination_activity;
+//		 		}
+//		 		else{
 		 			destination_activity <- closest_to(shape_file_Restaurants, self.location);
-		 		}
+//		 		}
 		 	}
 		 	else if(current_activity = "social_life" ){
 		 		destination_activity <- one_of(shape_file_Residences);
 		 	}
 		 	write current_activity;
-		 	if(destination_activity.location != self.location){
+		 	if(point(destination_activity) != point(self.location)){
 //		 		activity <- "commuting";
 		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
 		 		write "Route Line:" + route_eucl_line;

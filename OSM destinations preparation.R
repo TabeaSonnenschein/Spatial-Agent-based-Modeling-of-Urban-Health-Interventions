@@ -1,8 +1,11 @@
-pkgs <- c("sf", "sp", "rgdal", "spatialEco", "maptools")
-install.packages("spatialEco")
+pkgs <- c("sf", "sp", "rgdal", "spatialEco", "maptools" )
+#sapply(pkgs, remove.packages) #uncomment when installation needed
 #sapply(pkgs, install.packages, character.only = T) #uncomment when installation needed
 sapply(pkgs, require, character.only = T) #load packages
 rm(pkgs)
+
+"C:\Users\Tabea\AppData\Local\Temp\Rtmpu07w77\downloaded_packages"
+
 
 city = "Amsterdam"
 dsn_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
