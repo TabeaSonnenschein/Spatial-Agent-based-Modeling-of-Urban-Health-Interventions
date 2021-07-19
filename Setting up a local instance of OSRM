@@ -96,7 +96,6 @@ or (2) one can create a batch file which starts the three servers on different c
 It is the most elegant way to do it. You need to change the directory of your OSRM backend  folder and potentially the name of the prepared osrm files.
 
 
-
 Example server name to be used in R: http://127.0.0.1:5000/
 Further links and documentation:
 https://github.com/Project-OSRM/osrm-backend/wiki/Running-OSRM
@@ -104,3 +103,31 @@ https://www.r-bloggers.com/2017/09/building-a-local-osrm-instance/
 https://github.com/Project-OSRM/osrm-backend/wiki
 https://github.com/fossgis-routing-server/cbf-routing-profiles
 
+AUTOMATICALLY RUNNING THE BATCH FILE WHEN STARTING GAMA
+Having the batch file for starting the OSRM servers, it is now possible to start this batch file automatically every time when GAMA is started
+1.	Run secpol.msc and navigate to Advanced Audit... => System Audit... => Detailed Tracking. Enable "Audit Process Creation" for "Success". This will add a Process Creation event (ID 4688) to the Security log whenever a new process is created. Close secpol.msc.
+2.	Open Task Scheduler: Open Start and Search for Task Scheduler and click the top result to open the app.
+3.	Right-click the "Task Scheduler Library" branch and select the New Folder option.
+4.	Confirm a name for the folder — for example, MyScripts.
+5.	Expand the "Task Scheduler Library" branch and Right-click the MyScripts folder.
+6.	Click on “Create a New Task”
+7.	Give the script a name (e.g.): StartOSRMServerBatchfileWhenOpeningGAMA
+8.	Click on Triggers and New…
+9.	Click on the drop down menu for Begin the task: and click on “On and event”
+10.	In the Settings click on Costum and then New Event Filter
+11.	In the XML tab paste 
+<QueryList>
+  <Query Id="0" Path="Security">
+    <Select Path="Security">*[System[Provider[@Name='Microsoft-Windows-Security-Auditing'] and EventID=4688] and EventData[Data[@Name='NewProcessName']='C:\Users\Tabea\Documents\GAMA\Gama.exe']]</Select>
+  </Query>
+</QueryList>
+Modify this with the actual path of the executable of your GAMA.
+12.	Click on OK and OK to close the Trigger Window
+13.	Then click on the Actions Tab > New…
+14.	With the new window, click on Action: Start a Program
+15.	Then browse the script of your batch file.
+16.	Click on OK and OK to close the new Task that was scheduled.
+17.	Try opening GAMA and see if it works.
+
+https://www.windowscentral.com/how-create-and-run-batch-file-windows-10
+https://forums.tomsguide.com/threads/open-batch-file-when-a-specific-program-starts.180965/
