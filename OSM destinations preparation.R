@@ -1,4 +1,4 @@
-pkgs <- c("sf", "sp", "rgdal", "spatialEco", "maptools")
+pkgs <- c("sf", "sp", "rgdal", "spatialEco", "maptools", "geofabrik")
 
 #sapply(pkgs, install.packages, character.only = T) #uncomment when installation needed
 sapply(pkgs, require, character.only = T) #load packages
