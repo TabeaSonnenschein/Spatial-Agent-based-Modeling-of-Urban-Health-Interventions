@@ -10,9 +10,19 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>external/Agent_pop.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop.csv</location>
+		</link>
+		<link>
 			<name>external/Agent_pop_100.csv</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_100.csv</location>
+		</link>
+		<link>
+			<name>external/Agent_pop_GAMA.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_GAMA.csv</location>
 		</link>
 		<link>
 			<name>external/Amsterdam Diemen Oude Amstel Extent.shp</name>
@@ -120,6 +130,21 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/cars/Street_Nodes_Amsterdam_RDNew.shp</location>
 		</link>
 		<link>
+			<name>external/adult_schedule.txt</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/adult_schedule.txt</location>
+		</link>
+		<link>
+			<name>external/elderly_schedule.txt</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt</location>
+		</link>
+		<link>
+			<name>external/kids_schedule.txt</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/kids_schedule.txt</location>
+		</link>
+		<link>
 			<name>external/mock_schedule.csv</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/mock_schedule.csv</location>
@@ -128,6 +153,11 @@
 			<name>external/mock_schedule.txt</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/mock_schedule.txt</location>
+		</link>
+		<link>
+			<name>external/youngadult_schedule.txt</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/youngadult_schedule.txt</location>
 		</link>
 	</linkedResources>
 </projectDescription>

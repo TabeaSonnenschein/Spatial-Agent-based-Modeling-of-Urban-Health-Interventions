@@ -4,11 +4,11 @@
 #install.packages("jsonlite") #uncomment when not yet installed
 library(jsonlite)
   
-setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam//Foursquare") ##seting the working directory to folder with json dataset
+setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare") ##seting the working directory to folder with json dataset
 city = "Amsterdam"
 
 ### uncomment the venuetype from which you want to convert the json
-#venuetype = "Food"
+venuetype = "Food"
 #venuetype = "ArtsEntertainment"
 #venuetype = "Nightlife"
 #venuetype = "College_Uni"
@@ -141,3 +141,5 @@ Dataframe_final <- Dataframe_final[!is.na(Dataframe_final@data$gemeenteco),]
 plot(Dataframe_final) # map after clipping
 
 writeOGR(Dataframe_final, dsn=getwd() ,layer= paste(city, "_Foursquarevenues_", venuetype, "_", crs_name, sep = ""),driver="ESRI Shapefile")
+Dataframe_final = readOGR(dsn=getwd() ,layer= paste(city, "_Foursquarevenues_", venuetype, "_", crs_name, sep = ""))
+readO

@@ -40,21 +40,35 @@ global skills: [RSkill]{
     file Rcode_bike_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_bike.R");
 
 //  loading agent population attributes
-    int nb_humans <- 100;
-//    csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop.csv", ",", string, true, {12, 100});
-    csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_100.csv", ",", string, true);
-	text_file schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/mock_schedule.txt");
+    int nb_humans <- 150;
+//    csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop.csv", ";", string, true);
+    file Rcode_agent_subsetting <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Subsetting_Synthetic_AgentPop_for_GAMA.R");
+    csv_file Synth_Agent_file;
+    
+    
+//    csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_100.csv", ";", string, true);
+//	text_file schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/mock_schedule.txt");
+	text_file kids_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/kids_schedule.txt");
+	text_file youngadult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/youngadult_schedule.txt");
+	text_file adult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/adult_schedule.txt");
+	text_file elderly_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt");
 
-    init {
+    init  {
         write "setting up the model";
+        do startR;
+        write R_eval("nb_humans = " + to_R_data(nb_humans));
+        loop s over: Rcode_agent_subsetting.contents{
+							unknown a <- R_eval(s);
+						}
+		Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_GAMA.csv", ";", string, true);
 		create Homes from: shape_file_Residences with: [Neighborhood:: read('nghb_cd')];
 		create Noise_day from: shape_file_NoiseContour_day with: [Decibel :: float(read('bovengrens'))] ;
         create Humans from: Synth_Agent_file with:[Agent_ID :: read('Agent_ID'), Neighborhood :: read('neighb_code'), 
 	        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
-        	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI')]; // careful: column 1 is has the index 0 in GAMA
+        	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI'), scheduletype:: read('scheduletype')]; // careful: column 1 is has the index 0 in GAMA      //
     }
-    float step <- 1 #mn;
+    float step <- 1 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
     date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
     int year;
 }
@@ -85,6 +99,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string current_edu;
 	string absolved_edu;
 	string BMI;
+	string scheduletype;
 	
 	/// destination locations
 	geometry residence;
@@ -169,8 +184,20 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	
 /////// setting up the initial parameters and relations //////////
 	init{
-		  schedule <- list(schedules_file);
-
+		  if(scheduletype = "youngadult"){
+		  	schedule <- list(youngadult_schedules_file);
+		  }
+		  else if (scheduletype = "adult"){
+		  	schedule <- list(adult_schedules_file);
+		  }
+		  else if (scheduletype = "kids"){
+		  	schedule <- list(kids_schedules_file);
+		  }
+		  else if (scheduletype = "elderly"){
+		  	schedule <- list(elderly_schedules_file);
+		  }
+//		  schedule <- list(schedules_file);
+		  
 		  residence <- one_of(Homes where (each.Neighborhood = self.Neighborhood)) ;
        	  location <- residence.location;
        	  if(schedule contains "work"){
@@ -260,6 +287,18 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 	else if(current_activity = "entertainment" ){
 		 		destination_activity <- one_of(shape_file_Entertainment);
 		 	}
+		 	else if(current_activity = "eat" ){
+		 		if (one_of(shape_file_Restaurants inside circle(500, self.location)) != nil){
+		 			destination_activity <- one_of(shape_file_Restaurants inside circle(500, self.location));
+		 		}
+		 		else{
+		 			destination_activity <- closest_to(shape_file_Restaurants, self.location);
+		 		}
+		 	}
+		 	else if(current_activity = "social_life" ){
+		 		destination_activity <- one_of(shape_file_Residences);
+		 	}
+		 	write current_activity;
 		 	if(destination_activity.location != self.location){
 //		 		activity <- "commuting";
 		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
@@ -378,12 +417,12 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 //    		assumed_walkability <- mean(myself.walkability);    		
     		do add_belief(new_predicate("assumed_bikability", ["route_bikability"::mean(myself.bikability)]));
     		do add_belief(new_predicate("assumed_walkability", ["route_walkability"::mean(myself.walkability)])); 
-    		write "route_walkability" + get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"];  		
+//    		write "route_walkability" + get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"];  		
 //    		assumed_accessibility <- with_values(assumed_accessibility , ["distance":: 10.0]); 
 //    		write "assumed_accessibility" + get_predicate(get_belief_with_name("assumed_accessibility")).values["distance"];  		
     		
     	}
-    	write walkability;
+//    	write walkability;
     }
     
     reflex update_exposure when: current_date.minute = 0{
@@ -406,15 +445,15 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     	}
     	else if(activity = "commuting"){
     		if(modalchoice = "bike"){
-    			draw cube(40) color: #blue;
+    			draw cube(60) color: #blue;
     			
     		}
     		else if(modalchoice =  "walk"){
-    			draw cube(40) color: #green;
+    			draw cube(60) color: #green;
     			
     		}
     		else{
-    			draw cube(40) color: #red;
+    			draw cube(60) color: #red;
     		}
     	}
     	
@@ -524,7 +563,7 @@ experiment TransportAirPollutionExposureModel type: gui {
 			
   	 }
   	 	monitor "time" value: current_date;
-  	 	monitor "activity" value: schedules_file[int((current_date.minute/10) + (current_date.hour * 6))];
+//  	 	monitor "activity" value: schedules_file[int((current_date.minute/10) + (current_date.hour * 6))];
   	 	monitor "Number of bikers" value: Humans count (each.modalchoice = "bike" and each.activity = "commuting");
   	 	monitor "Number of pedestrians" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting");
   	 	monitor "Number of drivers" value: Humans count (each.modalchoice = "car" and each.activity = "commuting");
