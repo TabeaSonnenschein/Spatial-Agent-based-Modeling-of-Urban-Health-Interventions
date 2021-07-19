@@ -1,10 +1,20 @@
-pkgs <- c("sf", "sp", "rgdal", "spatialEco", "maptools", "geofabrik")
-
+pkgs <- c("sf", "sp", "rgdal", "spatialEco", "maptools")
+install.packages("spatialEco")
 #sapply(pkgs, install.packages, character.only = T) #uncomment when installation needed
 sapply(pkgs, require, character.only = T) #load packages
 rm(pkgs)
 
+city = "Amsterdam"
+dsn_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
+extent <- readOGR(dsn=dsn_data ,layer="Amsterdam Diemen Oude Amstel Extent")
+
+
 setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/OSM")
+
+## Reading the data after having manually downloaded it from Geofrabrik
+## For example through the following link: http://download.geofabrik.de/europe/netherlands/noord-holland.html  ; 
+## or directly here: http://download.geofabrik.de/europe/netherlands/noord-holland-latest-free.shp.zip;
+
 dsn_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/OSM"
 OSM_POIs <- readOGR(dsn=dsn_data ,layer="gis_osm_pois_free_1")
 
@@ -21,10 +31,6 @@ hospitals = spTransform(hospitals, CRSobj = crs)
 universities = spTransform(universities, CRSobj = crs)
 kindergardens = spTransform(kindergardens, CRSobj = crs)
 
-
-city = "Amsterdam"
-dsn_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
-extent <- readOGR(dsn=dsn_data ,layer="Amsterdam Diemen Oude Amstel Extent")
 
 dsn_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities"
 
