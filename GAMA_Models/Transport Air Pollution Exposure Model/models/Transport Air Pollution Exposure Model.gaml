@@ -196,8 +196,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		  else if (scheduletype = "elderly"){
 		  	schedule <- list(elderly_schedules_file);
 		  }
-//		  schedule <- list(schedules_file);
-		  
+		 write length(schedule);		  
 		  residence <- one_of(Homes where (each.Neighborhood = self.Neighborhood)) ;
        	  location <- residence.location;
        	  if(schedule contains "work"){
@@ -221,10 +220,10 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	}
 	
 /////// defining the Human transition functions (behaviour and exposure) //////////
-	reflex schedule_manager when: (((current_date.minute mod 10) = 0) or current_date.minute = 0){
-		 current_activity <- schedule[(int((current_date.minute/10) + (current_date.hour * 6))-1)];
+	reflex schedule_manager when: (((current_date.minute mod 10) = 0) or (current_date.minute = 0)){
+		 current_activity <- schedule[(int((current_date.minute/10) + (current_date.hour * 6)))];
 		 if(int(current_date.minute) != 0 and int(current_date.hour) != 0){
-		 	former_activity <- schedule[int(((current_date.minute/10) + (current_date.hour * 6))-2)];
+		 	former_activity <- schedule[int(((current_date.minute/10) + (current_date.hour * 6))-1)];
 		 }
 		 else{
 		 	former_activity <- last(schedule) ;
@@ -285,25 +284,24 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 		
 		 	}
 		 	else if(current_activity = "entertainment" ){
-		 		write one_of(shape_file_Entertainment);
-		 		destination_activity <- one_of(shape_file_Entertainment);
+		 		destination_activity <- one_of(shape_file_Entertainment where (each.location != nil));
 		 		write destination_activity;
 		 	}
 		 	else if(current_activity = "eat" ){
-//		 		if (one_of(container(shape_file_Restaurants inside circle(500, self.location))) != nil){
-//		 			write one_of(container(shape_file_Restaurants inside circle(500, self.location)));
-//		 			destination_activity <- one_of(container(shape_file_Restaurants inside circle(500, self.location)));
-//		 			write destination_activity;
-//		 		}
-//		 		else{
+		 		if (one_of(container((shape_file_Restaurants where (each.location != nil)) inside circle(500, self.location))) != nil){
+		 			destination_activity <- one_of(container((shape_file_Restaurants where (each.location != nil)) inside circle(500, self.location)));
+		 			write destination_activity;
+		 		}
+		 		else{
 		 			destination_activity <- closest_to(shape_file_Restaurants, self.location);
-//		 		}
+		 		}
 		 	}
 		 	else if(current_activity = "social_life" ){
 		 		destination_activity <- one_of(shape_file_Residences);
 		 	}
 		 	write current_activity;
-		 	if(point(destination_activity) != point(self.location)){
+		 	write destination_activity;
+		 	if(point(destination_activity.location) != point(self.location)){
 //		 		activity <- "commuting";
 		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
 		 		write "Route Line:" + route_eucl_line;
