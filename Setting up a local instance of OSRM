@@ -1,6 +1,13 @@
-Setting up a local instance of OSRM
+THE INSTRUCTIONS COVER:
+(1)SETTING UP A LOCAL INSTANCE OF OSRM
+(2)STARTING MULTIPLE OSRM SERVERS AFTER HAVING PREPARED DATASETS (MANUALLY OR WITH A BATCH FILE)
+(3)AUTOMATICALLY LETTING THE BATCH FILE TO START THE SERVERS RUN WHEN STARTING GAMA (WITH TASK SCHEDULER)
+
+=======================================
+SETTING UP A LOCAL INSTANCE OF OSRM
+=======================================
 03-07-2021
-Instructions
+Instructions for Windows OS:
 1.	Clone the repository https://github.com/Project-OSRM/osrm-backend.git to a local folder
 
 2.	Download the OSM data for the region/city for which the routing system should be generated via Geofabrik (e.g. for Amsterdam  Nord-Holland-latest.osm.pbf)
@@ -39,12 +46,12 @@ We want to give each mode of transport a different port. Thus, you can give port
 3.	osrm-routed --threads=1 --port=5000 “name of the .osrm file” (this file is the result of step 1.)
 
 8.	Use the R scripts OSRM_car.R; OSRM_bike., ect. Of the GitHub repository to access the local OSRM instance and link it to GAMA, for example.
-
+Example server name to be used in R: http://127.0.0.1:5000/
 
 
 Scripts (to be adjusted and copied):
 CREATING LOCAL INSTANCE BY PREPARING DATASETS AND OSRM FILES (only one time needed)
-Multi-Level Dijkstra (MLD) which best fits use-cases where query performance still needs to be very good; and live-updates to the data need to be made e.g. for regular Traffic updates
+## Multi-Level Dijkstra (MLD) which best fits use-cases where query performance still needs to be very good; and live-updates to the data need to be made e.g. for regular Traffic updates
 cd C:\Users\Tabea\Documents\GitHub\osrm-backend
 osrm-extract  noord-holland-latest_car.osm.pbf -p profiles/car.lua
 osrm-extract  noord-holland-latest_bike.osm.pbf -p profiles/bicycle.lua
@@ -62,7 +69,7 @@ osrm-routed --algorithm=MLD --threads=1 --port=5000 noord-holland-latest_car.osr
 osrm-routed --algorithm=MLD --threads=1 --port=5001 noord-holland-latest_bike.osrm
 osrm-routed --algorithm=MLD --threads=1 --port=5002 noord-holland-latest_foot.osrm
 
-Contraction Hierarchies (CH) which best fits use-cases where query performance is key, especially for large distance matrices
+## Contraction Hierarchies (CH) which best fits use-cases where query performance is key, especially for large distance matrices
 cd C:\Users\Tabea\Documents\GitHub\osrm-backend
 osrm-extract  noord-holland-latest_car.osm.pbf -p profiles/car.lua
 osrm-extract  noord-holland-latest_bike.osm.pbf -p profiles/bicycle.lua
@@ -76,7 +83,9 @@ osrm-routed --threads=1 --port=5000 noord-holland-latest_car.osrm
 osrm-routed --threads=1 --port=5001 noord-holland-latest_bike.osrm
 osrm-routed --threads=1 --port=5002 noord-holland-latest_foot.osrm
 
+==============================================================================================
 STARTING MULTIPLE SERVERS AFTER HAVING PREPARED DATASETS (needed every time when using OSRM)
+==============================================================================================
 There are multiple ways to do this. 
 (1) One can paste these commands in three different Command Prompts.  Handy software for managing multiple CMP’s: https://conemu.github.io/index.html
 
@@ -94,16 +103,16 @@ osrm-routed --algorithm=MLD --threads=1 --port=5002 noord-holland-latest_foot.os
 
 or (2) one can create a batch file which starts the three servers on different command prompts. One example batch file can be found on GitHub (filename: start_OSRM_Servers.bat). 
 It is the most elegant way to do it. You need to change the directory of your OSRM backend  folder and potentially the name of the prepared osrm files.
+The script looks as follows:
+
+start cmd /c "cd C:\Users\Tabea\Documents\GitHub\osrm-backend & osrm-routed --algorithm=MLD --threads=1 --port=5000 noord-holland-latest_car.osrm  & pause"
+start cmd /c "cd C:\Users\Tabea\Documents\GitHub\osrm-backend & osrm-routed --algorithm=MLD --threads=1 --port=5001 noord-holland-latest_bike.osrm & pause"
+start cmd /c "cd C:\Users\Tabea\Documents\GitHub\osrm-backend & osrm-routed --algorithm=MLD --threads=1 --port=5002 noord-holland-latest_foot.osrm & pause"
 
 
-Example server name to be used in R: http://127.0.0.1:5000/
-Further links and documentation:
-https://github.com/Project-OSRM/osrm-backend/wiki/Running-OSRM
-https://www.r-bloggers.com/2017/09/building-a-local-osrm-instance/
-https://github.com/Project-OSRM/osrm-backend/wiki
-https://github.com/fossgis-routing-server/cbf-routing-profiles
-
+=============================================================
 AUTOMATICALLY RUNNING THE BATCH FILE WHEN STARTING GAMA
+=============================================================
 Having the batch file for starting the OSRM servers, it is now possible to start this batch file automatically every time when GAMA is started
 1.	Run secpol.msc and navigate to Advanced Audit... => System Audit... => Detailed Tracking. Enable "Audit Process Creation" for "Success". This will add a Process Creation event (ID 4688) to the Security log whenever a new process is created. Close secpol.msc.
 2.	Open Task Scheduler: Open Start and Search for Task Scheduler and click the top result to open the app.
@@ -128,6 +137,14 @@ Modify this with the actual path of the executable of your GAMA.
 15.	Then browse the script of your batch file.
 16.	Click on OK and OK to close the new Task that was scheduled.
 17.	Try opening GAMA and see if it works.
+
+
+FURTHER DOCUMENTATION AND LINKS 
+https://github.com/Project-OSRM/osrm-backend/wiki/Running-OSRM
+https://www.r-bloggers.com/2017/09/building-a-local-osrm-instance/
+https://github.com/Project-OSRM/osrm-backend/wiki
+https://github.com/fossgis-routing-server/cbf-routing-profiles
+
 
 https://www.windowscentral.com/how-create-and-run-batch-file-windows-10
 https://forums.tomsguide.com/threads/open-batch-file-when-a-specific-program-starts.180965/
