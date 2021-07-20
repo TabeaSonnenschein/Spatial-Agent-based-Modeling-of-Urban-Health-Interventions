@@ -221,7 +221,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		  else if (scheduletype = "elderly"){
 		  	schedule <- list(elderly_schedules_file);
 		  }
-		  residence <- one_of(Homes where (each.Neighborhood = self.Neighborhood)) ;
+		  residence <- one_of(Homes where ((each.Neighborhood = self.Neighborhood) and each.location != nil)) ;
        	  location <- residence.location;
        	  if(schedule contains "work"){
        	  	    workplace <- one_of(shape_file_Profess);
@@ -246,7 +246,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 /////// defining the Human transition functions (behaviour and exposure) //////////
 	reflex schedule_manager when: (((current_date.minute mod 10) = 0) or (current_date.minute = 0)){
 		 current_activity <- schedule[(int((current_date.minute/10) + (current_date.hour * 6)))];
-		 if(int(current_date.minute) != 0 and int(current_date.hour) != 0){
+		 if((int(current_date.minute) != 0) or (int(current_date.hour) != 0)){
 		 	former_activity <- schedule[int(((current_date.minute/10) + (current_date.hour * 6))-1)];
 		 }
 		 else{
@@ -255,69 +255,76 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 if(current_activity != former_activity){
 		 	if(current_activity = "work"){
 				destination_activity <- workplace;
-				if(homeTOwork != nil and self.location = residence.location){
+				if(homeTOwork != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
 					track_path <- homeTOwork;
 					track_geometry <- homeTOwork_geometry;
 					modalchoice <- homeTOwork_mode;
 					track_duration <- homeTOwork_duration;
 					path_memory <- 1;
+					write "saved pathway";
 				}		 		
 		 	}
 		 	else if(current_activity = "school"){
 		 		destination_activity <- school;
-		 		if(homeTOschool != nil and self.location = residence.location){
+		 		if(homeTOschool != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
 					track_path <- homeTOschool;
 					track_geometry <- homeTOschool_geometry;
 					modalchoice <- homeTOschool_mode;
 					track_duration <- homeTOschool_duration;
 					path_memory <- 1;
+					write "saved pathway";
 				}		
 		 	}
 		 	else if(current_activity = "university"){
 		 		destination_activity <- university;
-		 		if(homeTOuni != nil and self.location = residence.location){
+		 		if(homeTOuni != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
 					track_path <- homeTOuni;
 					track_geometry <- homeTOuni_geometry;
 					track_duration <- homeTOuni_duration;
 					modalchoice <- homeTOuni_mode;
 					path_memory <- 1;
+					write "saved pathway";
 				}		
 		 	}
 		 	else if(current_activity = "groceries_shopping"){
 		 		destination_activity <- supermarket;
-		 		if(homeTOsuperm != nil and self.location = residence.location){
+		 		if(homeTOsuperm != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
 					track_path <- homeTOsuperm;
 					track_geometry <- homeTOsuperm_geometry;
 					track_duration <- homeTOsuperm_duration;
 					modalchoice <- homeTOsuperm_mode;
 					path_memory <- 1;
+					write "saved pathway";
 				}		
 		 	}
 		 	else if(current_activity = "kindergarden"){
 		 		destination_activity <- kindergarden;
-		 		if(homeTOkinderga != nil and self.location = residence.location){
+		 		if(homeTOkinderga != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
 					track_path <- homeTOkinderga;
 					track_geometry <- homeTOkinderga_geometry;
 					track_duration <- homeTOkinderga_duration;
 					modalchoice <- homeTOkinderga_mode;
 					path_memory <- 1;
+					write "saved pathway";
 				}		
 		 	}
 		 	else if(current_activity = "sleeping" or current_activity = "at_Home"){
 		 		destination_activity <- self.residence.location;
-		 		if(workTOhome != nil and self.location = workplace.location){
+		 		if(workTOhome != nil and former_activity = "work"){
 					track_path <- workTOhome;
 					track_geometry <- workTOhome_geometry;
 					modalchoice <- homeTOwork_mode;
 					track_duration <- homeTOwork_duration;
 					path_memory <- 1;
+					write "saved pathway_ return";
 		 		}
-		 		else if(schoolTOhome != nil and self.location = school.location){
+		 		else if(schoolTOhome != nil and former_activity = "school"){
 					track_path <- schoolTOhome;
 					track_geometry <- schoolTOhome_geometry;
 					modalchoice <- homeTOschool_mode;
 					track_duration <- homeTOschool_duration;
 					path_memory <- 1;
+					write "saved pathway_ return";
 		 		}
 		 		else if(uniTOhome != nil and self.location = university.location){
 					track_path <- uniTOhome;
@@ -325,6 +332,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 					modalchoice <- homeTOuni_mode;
 					track_duration <- homeTOuni_duration;
 					path_memory <- 1;
+					write "saved pathway_ return";
 		 		}
 		 		else if(supermTOhome != nil and self.location = supermarket.location){
 					track_path <- supermTOhome;
@@ -332,6 +340,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 					modalchoice <- homeTOsuperm_mode;
 					track_duration <- homeTOsuperm_duration;
 					path_memory <- 1;
+					write "saved pathway_ return";
 		 		}
 		 		else if(kindergaTOhome != nil and self.location = supermarket.location){
 					track_path <- kindergaTOhome;
@@ -339,6 +348,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 					modalchoice <- homeTOkinderga_mode;
 					track_duration <- homeTOkinderga_duration;
 					path_memory <- 1;
+					write "saved pathway_ return";
 		 		}
 		 	}
 		 	else if(current_activity = "entertainment" ){
@@ -389,10 +399,18 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     		do add_belief(new_predicate("assumed_bikability", ["route_bikability"::mean(myself.bikability)]));
     		do add_belief(new_predicate("assumed_walkability", ["route_walkability"::mean(myself.walkability)])); 
 	   		do add_belief(new_predicate("assumed_accessibility", ["route_accessibility"::(self.location distance_to destination_activity)])); 
-
     	}    	
     }
-//   reflex modalchoice when: make_modalchoice = 1 {
+   reflex modalchoice when: make_modalchoice = 1 {
+   	if((self.location distance_to destination_activity) < 3000 ){
+   		 modalchoice <- "bike";	
+   	}
+   	else if ((self.location distance_to destination_activity) < 1000){
+   		 modalchoice <- "walk";
+   	}
+   	else{
+   		modalchoice <- "car";
+   	}
 //   		make_modalchoice <- 0;
 ////   		(self.location distance_to destination_activity)
 ////		write get_predicate(get_belief_with_name("assumed_bikability")).values["route_bikability"]; 
@@ -405,16 +423,16 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 ////			
 ////		}
 //		do add_desire(travelTOdestination);
-//   }
-    reflex biking  when: ((self.location distance_to destination_activity) < 3000 and make_modalchoice = 1){
-		 modalchoice <- "bike";
-    }
-    reflex walking  when: ((self.location distance_to destination_activity) < 1000 and make_modalchoice = 1){
-		 modalchoice <- "walk";
-	 }
-	reflex driving  when: ((self.location distance_to destination_activity) >= 3000 and make_modalchoice = 1){
-	 	modalchoice <- "car";
-	 }
+   }
+//    reflex biking  when: ((self.location distance_to destination_activity) < 3000 and make_modalchoice = 1){
+//		 modalchoice <- "bike";
+//    }
+//    reflex walking  when: ((self.location distance_to destination_activity) < 1000 and make_modalchoice = 1){
+//		 modalchoice <- "walk";
+//	 }
+//	reflex driving  when: ((self.location distance_to destination_activity) >= 3000 and make_modalchoice = 1){
+//	 	modalchoice <- "car";
+//	 }
 	reflex routing when:  new_route = 1  {
 		  activity <- "commuting";
 		  new_route <- 0;
@@ -446,7 +464,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		track_path <-  path(track_geometry);     	  
 		track_duration <- float(list(R_eval("route$duration"))[0]);  ///minutes
 		float track_length <- float(list(R_eval("route$distance"))[0]);	/// meters
-		if(current_activity = "work" and self.location = residence.location){
+		if(current_activity = "work" and (former_activity = "at_Home" or former_activity = "sleeping")){
 				homeTOwork <- track_path;
 				homeTOwork_mode <- modalchoice;
 				homeTOwork_geometry <- track_geometry ;
@@ -454,7 +472,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				workTOhome_geometry <- line(reverse(container(geometry_collection(homeTOwork_geometry)))) add_point(residence.location);
 				workTOhome <- path(workTOhome_geometry);
 				}
-		else if(current_activity = "school" and self.location = residence.location){
+		else if(current_activity = "school" and (former_activity = "at_Home" or former_activity = "sleeping")){
 				homeTOschool <- track_path;
 				homeTOschool_mode <- modalchoice;
 				homeTOschool_geometry <- track_geometry ;
@@ -462,7 +480,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				schoolTOhome_geometry <- line(reverse(container(geometry_collection(homeTOschool_geometry)))) add_point(residence.location);
 				schoolTOhome <- path(schoolTOhome_geometry);
 			}
-		else if(current_activity = "university" and self.location = residence.location){
+		else if(current_activity = "university" and (former_activity = "at_Home" or former_activity = "sleeping")){
 				homeTOuni <- track_path;
 				homeTOuni_mode <- modalchoice;
 				homeTOuni_geometry <- track_geometry ;
@@ -470,7 +488,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				uniTOhome_geometry <- line(reverse(container(geometry_collection(homeTOuni_geometry)))) add_point(residence.location);
 				uniTOhome <- path(uniTOhome_geometry);
 			}
-		else if(current_activity = "kindergarden" and self.location = residence.location){
+		else if(current_activity = "kindergarden" and (former_activity = "at_Home" or former_activity = "sleeping")){
 				homeTOkinderga <- track_path;
 				homeTOkinderga_mode <- modalchoice;
 				homeTOkinderga_geometry <- track_geometry ;
@@ -478,7 +496,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				kindergaTOhome_geometry <- line(reverse(container(geometry_collection(homeTOkinderga_geometry)))) add_point(residence.location);
 				kindergaTOhome <- path(kindergaTOhome_geometry);
 			}
-		else if(current_activity = "groceries_shopping" and self.location = residence.location){
+		else if(current_activity = "groceries_shopping" and (former_activity = "at_Home" or former_activity = "sleeping")){
 				homeTOsuperm <- track_path;
 				homeTOsuperm_mode <- modalchoice;
 				homeTOsuperm_geometry <- track_geometry ;
