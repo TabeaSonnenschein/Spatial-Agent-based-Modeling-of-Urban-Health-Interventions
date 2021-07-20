@@ -159,10 +159,10 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	path track_path;
 	geometry track_geometry;
 	string modalchoice;
-	float travelspeed;
+	map<string, float> travelspeed <- create_map(["walk", "bike", "car"], [1.4, 3.33, 11.11]); /// meters per seconds (5km/h, 12km/h, 40km/h )
 	int path_memory;
 	int new_route;
-	int return_dum <- 0;
+	int make_modalchoice;
 	geometry route_eucl_line;
 
 	/// exposure variables
@@ -197,7 +197,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	float assumed_traveltime;
 //	float assumed_bikability;
 //	float assumed_walkability; 
-	predicate assumed_accessibility <- new_predicate("assumed_accessibility");
+//	predicate assumed_accessibility <- new_predicate("assumed_accessibility");
 	predicate assumed_cost <- new_predicate("assumed_cost"); 
 	predicate assumed_safety <- new_predicate("assumed_safety");
 	predicate own_budget <- new_predicate("own_budget"); 
@@ -381,25 +381,36 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	perceive Env_Activity_Affordance_Travel target:(Perceivable_Environment where (each intersects route_eucl_line))  when: traveldecision = 1 {
     	myself.traveldecision <- 0;	
     	myself.new_route <- 1;
+    	myself.make_modalchoice <- 1;
     	ask myself{
 //    		assumed_bikability <- mean(myself.bikability);
 //    		assumed_walkability <- mean(myself.walkability);    		
     		do add_belief(new_predicate("assumed_bikability", ["route_bikability"::mean(myself.bikability)]));
     		do add_belief(new_predicate("assumed_walkability", ["route_walkability"::mean(myself.walkability)])); 
-//    		write "route_walkability" + get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"];  		
-//    		assumed_accessibility <- with_values(assumed_accessibility , ["distance":: 10.0]); 
-//    		write "assumed_accessibility" + get_predicate(get_belief_with_name("assumed_accessibility")).values["distance"];  		
-    		
-    	}
+	   		do add_belief(new_predicate("assumed_accessibility", ["route_accessibility"::(self.location distance_to destination_activity)])); 
+
+    	}    	
     }
-    plan biking {
+   reflex modalchoice when: make_modalchoice = 1 {
+   		make_modalchoice <- 0;
+//   		(self.location distance_to destination_activity)
+		write get_predicate(get_belief_with_name("assumed_bikability")).values["route_bikability"]; 
+		write get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"]; 
+		write get_predicate(get_belief_with_name("assumed_accessibility")).values["distance"];  	
+		if (BMI = "overweight" or BMI = "obese"){
+			
+		}
+		if (age > 0){
+			
+		}
+   }
+    plan biking when: (self.location distance_to destination_activity) < 3000{
 		 modalchoice <- "bike";
     }
-    plan walking {
+    plan walking when: (self.location distance_to destination_activity) < 1000{
 		 modalchoice <- "walk";
-		write (self.location distance_to destination_activity) < 1000;
 	 }
-	plan driving{
+	plan driving when: (self.location distance_to destination_activity) >= 3000{
 	 	modalchoice <- "car";
 	 }
 	reflex routing when:  new_route = 1  {
@@ -413,19 +424,19 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				unknown a <- R_eval(s);
 //							write "R>" + a;
 			}
-			travelspeed <- 1.4; /// meters per seconds 5km/h
+//			travelspeed <- 1.4; /// meters per seconds 5km/h
 		 	}
 		else if(modalchoice = "bike"){
 		 	loop s over: Rcode_bike_routing.contents{
 				unknown a <- R_eval(s);
 			}
-			travelspeed <- 3.33; /// meters per seconds 12km/h
+//			travelspeed <- 3.33; /// meters per seconds 12km/h
 		 	}
 		else if(modalchoice = "car") {
 		 	loop s over: Rcode_car_routing.contents{
 				unknown a <- R_eval(s);
 			}
-			travelspeed <- 11.11; /// meters per seconds 40km/h 			
+//			travelspeed <- 11.11; /// meters per seconds 40km/h 			
 		 }
 		list<point> track <- list(R_eval("track_points"));
 		track_geometry <- (to_GAMA_CRS(line(track),  "EPSG:4326")) add_point(point(destination_activity.location));
@@ -484,7 +495,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	}
 	
     reflex commuting when: activity = "commuting"{
-		do follow path: self.track_path speed: travelspeed;
+		do follow path: self.track_path speed: travelspeed[modalchoice];
 		if(self.location = destination_activity){
     		activity <- "perform_activity";
     		if(modalchoice = "bike"){
@@ -512,7 +523,6 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     	}
     }
 
-    
     reflex update_exposure when: current_date.minute = 0{
     	daily_PM10 <- daily_PM10 + hourly_PM10;
     	hourly_PM10 <- 0.0;
