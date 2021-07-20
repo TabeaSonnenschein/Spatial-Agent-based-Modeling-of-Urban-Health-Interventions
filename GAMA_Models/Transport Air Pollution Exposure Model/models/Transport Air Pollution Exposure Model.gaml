@@ -192,6 +192,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	float affordability;
 	int safety;
 	int norm_abidence;
+	predicate travelTOdestination <- new_predicate("travelTOdestination");
 	
 	/// Transport Behaviour: Beliefs///
 	float assumed_traveltime;
@@ -391,31 +392,33 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 
     	}    	
     }
-   reflex modalchoice when: make_modalchoice = 1 {
-   		make_modalchoice <- 0;
-//   		(self.location distance_to destination_activity)
-		write get_predicate(get_belief_with_name("assumed_bikability")).values["route_bikability"]; 
-		write get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"]; 
-		write get_predicate(get_belief_with_name("assumed_accessibility")).values["distance"];  	
-		if (BMI = "overweight" or BMI = "obese"){
-			
-		}
-		if (age > 0){
-			
-		}
-   }
-    plan biking when: (self.location distance_to destination_activity) < 3000{
+//   reflex modalchoice when: make_modalchoice = 1 {
+//   		make_modalchoice <- 0;
+////   		(self.location distance_to destination_activity)
+////		write get_predicate(get_belief_with_name("assumed_bikability")).values["route_bikability"]; 
+////		write get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"]; 
+////		write get_predicate(get_belief_with_name("assumed_accessibility")).values["distance"];  	
+////		if (BMI = "overweight" or BMI = "obese"){
+////			
+////		}
+////		if (age > 0){
+////			
+////		}
+//		do add_desire(travelTOdestination);
+//   }
+    reflex biking  when: ((self.location distance_to destination_activity) < 3000 and make_modalchoice = 1){
 		 modalchoice <- "bike";
     }
-    plan walking when: (self.location distance_to destination_activity) < 1000{
+    reflex walking  when: ((self.location distance_to destination_activity) < 1000 and make_modalchoice = 1){
 		 modalchoice <- "walk";
 	 }
-	plan driving when: (self.location distance_to destination_activity) >= 3000{
+	reflex driving  when: ((self.location distance_to destination_activity) >= 3000 and make_modalchoice = 1){
 	 	modalchoice <- "car";
 	 }
 	reflex routing when:  new_route = 1  {
 		  activity <- "commuting";
 		  new_route <- 0;
+		  make_modalchoice <- 0;
 		/// routing through OSRM via R interface
 		 write R_eval("origin = " + to_R_data(container(self.location CRS_transform("EPSG:4326"))));
 		 write R_eval("destination = " + to_R_data(container(point(destination_activity.location) CRS_transform("EPSG:4326"))));	
