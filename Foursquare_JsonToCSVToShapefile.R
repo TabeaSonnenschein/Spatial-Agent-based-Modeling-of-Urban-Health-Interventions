@@ -142,4 +142,3 @@ plot(Dataframe_final) # map after clipping
 
 writeOGR(Dataframe_final, dsn=getwd() ,layer= paste(city, "_Foursquarevenues_", venuetype, "_", crs_name, sep = ""),driver="ESRI Shapefile")
 Dataframe_final = readOGR(dsn=getwd() ,layer= paste(city, "_Foursquarevenues_", venuetype, "_", crs_name, sep = ""))
-readO

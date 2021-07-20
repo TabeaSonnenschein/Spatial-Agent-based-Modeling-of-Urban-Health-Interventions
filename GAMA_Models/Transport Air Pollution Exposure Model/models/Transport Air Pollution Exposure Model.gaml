@@ -28,6 +28,8 @@ global skills: [RSkill]{
     file spatial_extent <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Amsterdam Diemen Oude Amstel Extent.shp");  
    	geometry shape <- envelope(spatial_extent); 
    	map<string,rgb> color_per_type <- ["streets"::#aqua, "vegetation":: #green, "buildings":: #red];
+   	list<geometry> Restaurants;
+   	list<geometry> Entertainment;
     
 //  loading Environmental Stressor Maps
 	file shape_file_NoiseContour_night <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
@@ -61,6 +63,8 @@ global skills: [RSkill]{
 							unknown a <- R_eval(s);
 						}
 		Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_GAMA.csv", ";", string, true);
+		Restaurants <- shape_file_Restaurants where (each.location != nil);
+		Entertainment <- shape_file_Entertainment where (each.location != nil);		
 		create Homes from: shape_file_Residences with: [Neighborhood:: read('nghb_cd')];
 		create Noise_day from: shape_file_NoiseContour_day with: [Decibel :: float(read('bovengrens'))] ;
         create Humans from: Synth_Agent_file with:[Agent_ID :: read('Agent_ID'), Neighborhood :: read('neighb_code'), 
@@ -114,15 +118,33 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string homeTOwork_mode;
 	geometry homeTOwork_geometry;
 	float homeTOwork_duration;
+	path workTOhome;
+	geometry workTOhome_geometry;
 	path homeTOuni;
 	string homeTOuni_mode;
 	geometry homeTOuni_geometry;
 	float homeTOuni_duration;
+	path uniTOhome;
+	geometry uniTOhome_geometry;
 	path homeTOschool;
 	string homeTOschool_mode;
 	geometry homeTOschool_geometry;
 	float homeTOschool_duration;	
-	
+	path schoolTOhome;
+	geometry schoolTOhome_geometry;
+	path homeTOsuperm;
+	string homeTOsuperm_mode;
+	geometry homeTOsuperm_geometry;
+	float homeTOsuperm_duration;	
+	path supermTOhome;
+	geometry supermTOhome_geometry;
+	path homeTOkinderga;
+	string homeTOkinderga_mode;
+	geometry homeTOkinderga_geometry;
+	float homeTOkinderga_duration;	
+	path kindergaTOhome;
+	geometry kindergaTOhome_geometry;
+			
 	/// activity variables
 	string activity;
 	list<string> schedule;
@@ -139,6 +161,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string modalchoice;
 	float travelspeed;
 	int path_memory;
+	int new_route;
 	int return_dum <- 0;
 	geometry route_eucl_line;
 
@@ -163,6 +186,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	float yearly_Noise;
 	
 	//////// TRANSPORT BEHAVIOUR: BDI ///////////////
+	bool probabilistic_choice <- true;
 	/// Transport Behaviour: Desires///
 	float convenience;
 	float affordability;
@@ -196,7 +220,6 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		  else if (scheduletype = "elderly"){
 		  	schedule <- list(elderly_schedules_file);
 		  }
-		 write length(schedule);		  
 		  residence <- one_of(Homes where (each.Neighborhood = self.Neighborhood)) ;
        	  location <- residence.location;
        	  if(schedule contains "work"){
@@ -211,7 +234,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
        	  if(schedule contains "kindergarden"){
 				kindergarden <- closest_to(shape_file_Kindergardens, self.location);
        	  }
-       	  if(schedule contains "kindergarden"){
+       	  if(schedule contains "groceries_shopping"){
 				supermarket <-  closest_to(shape_file_Supermarkets, self.location) ;
        	  }       	     	
        	  activity <- "perform_activity";
@@ -261,108 +284,194 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 	}
 		 	else if(current_activity = "groceries_shopping"){
 		 		destination_activity <- supermarket;
+		 		if(homeTOsuperm != nil and self.location = residence.location){
+					track_path <- homeTOsuperm;
+					track_geometry <- homeTOsuperm_geometry;
+					track_duration <- homeTOsuperm_duration;
+					modalchoice <- homeTOsuperm_mode;
+					path_memory <- 1;
+				}		
 		 	}
 		 	else if(current_activity = "kindergarden"){
 		 		destination_activity <- kindergarden;
+		 		if(homeTOkinderga != nil and self.location = residence.location){
+					track_path <- homeTOkinderga;
+					track_geometry <- homeTOkinderga_geometry;
+					track_duration <- homeTOkinderga_duration;
+					modalchoice <- homeTOkinderga_mode;
+					path_memory <- 1;
+				}		
 		 	}
 		 	else if(current_activity = "sleeping" or current_activity = "at_Home"){
-		 		destination_activity <- self.residence;
-//		 		if(homeTOwork != nil and self.location = workplace.location){
-////		 			container reverse <- reverse(container(geometry_collection(homeTOwork_geometry)));
-////		 			track_geometry <- line(reverse) add_point self.residence.location;
-////		 			track_path <- path(track_geometry);
-////		 			write "HometoWork: "   + homeTOwork_geometry;
-////		 			write "reverse: " +   reverse;
-////		 			write "Trackpath: "  + track_path;
-//					track_path <- homeTOwork;
-//					track_geometry <- homeTOwork_geometry;
-//					modalchoice <- homeTOwork_mode;
-//					track_duration <- homeTOwork_duration;
-//					path_memory <- 1;
-//					return_dum <- 1;
-//		 		}
-		 		
+		 		destination_activity <- self.residence.location;
+		 		if(workTOhome != nil and self.location = workplace.location){
+					track_path <- workTOhome;
+					track_geometry <- workTOhome_geometry;
+					modalchoice <- homeTOwork_mode;
+					track_duration <- homeTOwork_duration;
+					path_memory <- 1;
+		 		}
+		 		else if(schoolTOhome != nil and self.location = school.location){
+					track_path <- schoolTOhome;
+					track_geometry <- schoolTOhome_geometry;
+					modalchoice <- homeTOschool_mode;
+					track_duration <- homeTOschool_duration;
+					path_memory <- 1;
+		 		}
+		 		else if(uniTOhome != nil and self.location = university.location){
+					track_path <- uniTOhome;
+					track_geometry <- uniTOhome_geometry;
+					modalchoice <- homeTOuni_mode;
+					track_duration <- homeTOuni_duration;
+					path_memory <- 1;
+		 		}
+		 		else if(supermTOhome != nil and self.location = supermarket.location){
+					track_path <- supermTOhome;
+					track_geometry <- supermTOhome_geometry;
+					modalchoice <- homeTOsuperm_mode;
+					track_duration <- homeTOsuperm_duration;
+					path_memory <- 1;
+		 		}
+		 		else if(kindergaTOhome != nil and self.location = supermarket.location){
+					track_path <- kindergaTOhome;
+					track_geometry <- kindergaTOhome_geometry;
+					modalchoice <- homeTOkinderga_mode;
+					track_duration <- homeTOkinderga_duration;
+					path_memory <- 1;
+		 		}
 		 	}
 		 	else if(current_activity = "entertainment" ){
-		 		destination_activity <- one_of(shape_file_Entertainment where (each.location != nil));
-		 		write destination_activity;
+		 		destination_activity <- one_of(Entertainment);
+		 		loop while: destination_activity = nil {
+		 			destination_activity <- one_of(Entertainment);
+		 		}
 		 	}
 		 	else if(current_activity = "eat" ){
-		 		if (one_of(container((shape_file_Restaurants where (each.location != nil)) inside circle(500, self.location))) != nil){
-		 			destination_activity <- one_of(container((shape_file_Restaurants where (each.location != nil)) inside circle(500, self.location)));
-		 			write destination_activity;
+		 		if (one_of(Restaurants inside circle(500, self.location)) != nil){
+		 			destination_activity <- one_of(Restaurants inside circle(500, self.location));
 		 		}
 		 		else{
-		 			destination_activity <- closest_to(shape_file_Restaurants, self.location);
+		 			destination_activity <- closest_to(Restaurants, self.location);
+		 		}
+		 		loop while: destination_activity = nil {
+		 			destination_activity <- one_of(Restaurants);
 		 		}
 		 	}
 		 	else if(current_activity = "social_life" ){
 		 		destination_activity <- one_of(shape_file_Residences);
 		 	}
-		 	write current_activity;
-		 	write destination_activity;
+		 	write "Current Activity: " + current_activity + "; Former Activity: " + former_activity;
 		 	if(point(destination_activity.location) != point(self.location)){
-//		 		activity <- "commuting";
 		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
 		 		write "Route Line:" + route_eucl_line;
 		 		if(path_memory != 1){
 		 			traveldecision <- 1;
-		 			/// routing through OSRM via R interface
-		 			write R_eval("origin = " + to_R_data(container(self.location CRS_transform("EPSG:4326"))));
-		 			write R_eval("destination = " + to_R_data(container(destination_activity.location CRS_transform("EPSG:4326"))));	
-		 			if((self.location distance_to destination_activity) < 1000){
-		 				modalchoice <- "walk";
-		 				loop s over: Rcode_foot_routing.contents{
-							unknown a <- R_eval(s);
-//							write "R>" + a;
-						}
-						travelspeed <- 1.4; /// meters per seconds 5km/h
-		 			}
-		 			else if((self.location distance_to destination_activity) < 3000){
-		 		 		modalchoice <- "bike";
-		 		 		loop s over: Rcode_bike_routing.contents{
-							unknown a <- R_eval(s);
-						}
-						travelspeed <- 3.33; /// meters per seconds 12km/h
-		 			}
-		 			else{
-		 			 	modalchoice <- "car";		
-		 			 	loop s over: Rcode_car_routing.contents{
-							unknown a <- R_eval(s);
-						}
-						travelspeed <- 11.11; /// meters per seconds 40km/h 			
-		 			}
-		 			list<point> track <- list(R_eval("track_points"));
-		 			track_geometry <- (to_GAMA_CRS(line(track),  "EPSG:4326")) add_point(destination_activity.location);
-					track_path <-  path(track_geometry);     	  
-					track_duration <- float(list(R_eval("route$duration"))[0]);  ///minutes
-					float track_length <- float(list(R_eval("route$distance"))[0]);	/// meters
-					if(current_activity = "work" and self.location = residence.location){
-						homeTOwork <- track_path;
-						homeTOwork_mode <- modalchoice;
-						homeTOwork_geometry <- track_geometry ;
-						homeTOwork_duration <- track_duration;
-					}
-					else if(current_activity = "school" and self.location = residence.location){
-						homeTOschool <- track_path;
-						homeTOschool_mode <- modalchoice;
-						homeTOschool_geometry <- track_geometry ;
-						homeTOschool_duration <- track_duration;
-					}
-					else if(current_activity = "university" and self.location = residence.location){
-						homeTOuni <- track_path;
-						homeTOuni_mode <- modalchoice;
-						homeTOuni_geometry <- track_geometry ;
-						homeTOuni_duration <- track_duration;
-					}
+		 		}
+		 		else if(path_memory = 1){
+		 			 activity <- "commuting";
 		 		}
 		 		path_memory <- 0;
-		 	}
+		 	}		 
 		 	else{
 		 		activity <-"perform_activity";
 		 		traveldecision <- 0;
 		 	}
 		 }
+	}
+	perceive Env_Activity_Affordance_Travel target:(Perceivable_Environment where (each intersects route_eucl_line))  when: traveldecision = 1 {
+    	myself.traveldecision <- 0;	
+    	myself.new_route <- 1;
+    	ask myself{
+//    		assumed_bikability <- mean(myself.bikability);
+//    		assumed_walkability <- mean(myself.walkability);    		
+    		do add_belief(new_predicate("assumed_bikability", ["route_bikability"::mean(myself.bikability)]));
+    		do add_belief(new_predicate("assumed_walkability", ["route_walkability"::mean(myself.walkability)])); 
+//    		write "route_walkability" + get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"];  		
+//    		assumed_accessibility <- with_values(assumed_accessibility , ["distance":: 10.0]); 
+//    		write "assumed_accessibility" + get_predicate(get_belief_with_name("assumed_accessibility")).values["distance"];  		
+    		
+    	}
+    }
+    plan biking {
+		 modalchoice <- "bike";
+    }
+    plan walking {
+		 modalchoice <- "walk";
+		write (self.location distance_to destination_activity) < 1000;
+	 }
+	plan driving{
+	 	modalchoice <- "car";
+	 }
+	reflex routing when:  new_route = 1  {
+		  activity <- "commuting";
+		  new_route <- 0;
+		/// routing through OSRM via R interface
+		 write R_eval("origin = " + to_R_data(container(self.location CRS_transform("EPSG:4326"))));
+		 write R_eval("destination = " + to_R_data(container(point(destination_activity.location) CRS_transform("EPSG:4326"))));	
+		if(modalchoice = "walk"){
+		 	loop s over: Rcode_foot_routing.contents{
+				unknown a <- R_eval(s);
+//							write "R>" + a;
+			}
+			travelspeed <- 1.4; /// meters per seconds 5km/h
+		 	}
+		else if(modalchoice = "bike"){
+		 	loop s over: Rcode_bike_routing.contents{
+				unknown a <- R_eval(s);
+			}
+			travelspeed <- 3.33; /// meters per seconds 12km/h
+		 	}
+		else if(modalchoice = "car") {
+		 	loop s over: Rcode_car_routing.contents{
+				unknown a <- R_eval(s);
+			}
+			travelspeed <- 11.11; /// meters per seconds 40km/h 			
+		 }
+		list<point> track <- list(R_eval("track_points"));
+		track_geometry <- (to_GAMA_CRS(line(track),  "EPSG:4326")) add_point(point(destination_activity.location));
+		track_path <-  path(track_geometry);     	  
+		track_duration <- float(list(R_eval("route$duration"))[0]);  ///minutes
+		float track_length <- float(list(R_eval("route$distance"))[0]);	/// meters
+		if(current_activity = "work" and self.location = residence.location){
+				homeTOwork <- track_path;
+				homeTOwork_mode <- modalchoice;
+				homeTOwork_geometry <- track_geometry ;
+				homeTOwork_duration <- track_duration;
+				workTOhome_geometry <- line(reverse(container(geometry_collection(homeTOwork_geometry)))) add_point(residence.location);
+				workTOhome <- path(workTOhome_geometry);
+				}
+		else if(current_activity = "school" and self.location = residence.location){
+				homeTOschool <- track_path;
+				homeTOschool_mode <- modalchoice;
+				homeTOschool_geometry <- track_geometry ;
+				homeTOschool_duration <- track_duration;
+				schoolTOhome_geometry <- line(reverse(container(geometry_collection(homeTOschool_geometry)))) add_point(residence.location);
+				schoolTOhome <- path(schoolTOhome_geometry);
+			}
+		else if(current_activity = "university" and self.location = residence.location){
+				homeTOuni <- track_path;
+				homeTOuni_mode <- modalchoice;
+				homeTOuni_geometry <- track_geometry ;
+				homeTOuni_duration <- track_duration;
+				uniTOhome_geometry <- line(reverse(container(geometry_collection(homeTOuni_geometry)))) add_point(residence.location);
+				uniTOhome <- path(uniTOhome_geometry);
+			}
+		else if(current_activity = "kindergarden" and self.location = residence.location){
+				homeTOkinderga <- track_path;
+				homeTOkinderga_mode <- modalchoice;
+				homeTOkinderga_geometry <- track_geometry ;
+				homeTOkinderga_duration <- track_duration;
+				kindergaTOhome_geometry <- line(reverse(container(geometry_collection(homeTOkinderga_geometry)))) add_point(residence.location);
+				kindergaTOhome <- path(kindergaTOhome_geometry);
+			}
+		else if(current_activity = "groceries_shopping" and self.location = residence.location){
+				homeTOsuperm <- track_path;
+				homeTOsuperm_mode <- modalchoice;
+				homeTOsuperm_geometry <- track_geometry ;
+				homeTOsuperm_duration <- track_duration;
+				supermTOhome_geometry <- line(reverse(container(geometry_collection(homeTOsuperm_geometry)))) add_point(residence.location);
+				supermTOhome <- path(supermTOhome_geometry);
+		}			
 	}
 //	reflex any_activity when: activity = "perform_activity" and current_activity = "name of activity"{
 //		e.g. the activity could have an impact on health (sports...)
@@ -375,13 +484,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	}
 	
     reflex commuting when: activity = "commuting"{
-//		if(self.return_dum = 1){
-//				do follow path: self.track_path speed: travelspeed return_path: true;	
-//		}
-//		else{
-			do follow path: self.track_path speed: travelspeed;
-//		}
-		if(self.location = destination_activity.location){
+		do follow path: self.track_path speed: travelspeed;
+		if(self.location = destination_activity){
     		activity <- "perform_activity";
     		if(modalchoice = "bike"){
     			bike_exposure <- bike_exposure + track_duration;
@@ -405,27 +509,9 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				hourly_Noise <- hourly_Noise + activity_Noise;
 				
     		}
-//    		if(self.return_dum = 1){
-//    			return_dum <- 0;
-//    		}
-    		
     	}
     }
-    perceive Env_Activity_Affordance_Travel target:(Perceivable_Environment where (each intersects route_eucl_line))  when: traveldecision = 1 {
-    	myself.activity <- "commuting";
-    	myself.traveldecision <- 0;	
-    	ask myself{
-//    		assumed_bikability <- mean(myself.bikability);
-//    		assumed_walkability <- mean(myself.walkability);    		
-    		do add_belief(new_predicate("assumed_bikability", ["route_bikability"::mean(myself.bikability)]));
-    		do add_belief(new_predicate("assumed_walkability", ["route_walkability"::mean(myself.walkability)])); 
-//    		write "route_walkability" + get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"];  		
-//    		assumed_accessibility <- with_values(assumed_accessibility , ["distance":: 10.0]); 
-//    		write "assumed_accessibility" + get_predicate(get_belief_with_name("assumed_accessibility")).values["distance"];  		
-    		
-    	}
-//    	write walkability;
-    }
+
     
     reflex update_exposure when: current_date.minute = 0{
     	daily_PM10 <- daily_PM10 + hourly_PM10;
@@ -477,7 +563,7 @@ grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
 	
 }
 
-grid Perceivable_Environment cell_width: 50 cell_height: 50 parallel: true{
+grid Perceivable_Environment cell_width: 100 cell_height: 100 parallel: true{
 	float bikability <- gauss({20,2.6});
 	float walkability <- gauss({10,3.6});
 }
