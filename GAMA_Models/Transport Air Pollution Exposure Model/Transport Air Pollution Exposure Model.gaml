@@ -34,7 +34,7 @@ global skills: [RSkill]{
 //  loading Environmental Stressor Maps
 	file shape_file_NoiseContour_night <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
 	file shape_file_NoiseContour_day <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp");
-    file Tiff_file_PM2_5 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PM2_5_RDNew_clipped.tif");
+//    file Tiff_file_PM2_5 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PM2_5_RDNew_clipped.tif");
     bool display_air_poll <- true;
     
     
@@ -49,9 +49,7 @@ global skills: [RSkill]{
     file Rcode_agent_subsetting <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Subsetting_Synthetic_AgentPop_for_GAMA.R");
     csv_file Synth_Agent_file;
     
-    
-//    csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_100.csv", ";", string, true);
-//	text_file schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/mock_schedule.txt");
+//  loading agent schedules   /// need more robust method for schedules based on HETUS data
 	text_file kids_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/kids_schedule.txt");
 	text_file youngadult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/youngadult_schedule.txt");
 	text_file adult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/adult_schedule.txt");
@@ -73,10 +71,10 @@ global skills: [RSkill]{
         write "setting up the model";
         do startR;
         write R_eval("nb_humans = " + to_R_data(nb_humans));
-        loop s over: Rcode_agent_subsetting.contents{
+        loop s over: Rcode_agent_subsetting.contents{ 			/// the R code creates a csv file of a random subset of the synthetic agent population of specified size "nb_humans"
 							unknown a <- R_eval(s);
 						}
-		Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_GAMA.csv", ";", string, true);
+		Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_GAMA.csv", ";", string, true); // this is the file that was created by the R code
 		Restaurants <- shape_file_Restaurants where (each.location != nil);
 		Entertainment <- shape_file_Entertainment where (each.location != nil);		
 		create Homes from: shape_file_Residences with: [Neighborhood:: read('nghb_cd')];
@@ -129,7 +127,27 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	geometry university;
 	geometry kindergarden;
 	geometry supermarket;
+			
+	/// activity variables
+	string activity;
+	list<string> schedule;
+	/// weekday and weekend schedule
+	string current_activity;
+	string former_activity;
+	geometry destination_activity;
+	int traveldecision;
 	
+	/// travel variables
+	float track_duration;
+	path track_path;
+	geometry track_geometry;
+	string modalchoice;
+	int path_memory;
+	int new_route;
+	int make_modalchoice;
+	geometry route_eucl_line;
+	float trip_distance ;
+
 	/// saved routes (for efficiency)
 	path homeTOwork;
 	string homeTOwork_mode;
@@ -161,27 +179,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	float homeTOkinderga_duration;	
 	path kindergaTOhome;
 	geometry kindergaTOhome_geometry;
-			
-	/// activity variables
-	string activity;
-	list<string> schedule;
-	/// weekday and weekend schedule
-	string current_activity;
-	string former_activity;
-	geometry destination_activity;
-	int traveldecision;
 	
-	/// travel variables
-	float track_duration;
-	path track_path;
-	geometry track_geometry;
-	string modalchoice;
-	int path_memory;
-	int new_route;
-	int make_modalchoice;
-	geometry route_eucl_line;
-	float trip_distance ;
-
 	/// exposure variables
 	float bike_exposure;
 	float walk_exposure;
@@ -728,7 +726,7 @@ experiment TransportAirPollutionExposureModel type: gui {
     			draw shape_file_greenspace color: #green;
 			}
        		species Humans aspect: base ;
-     	  	grid Environment_stressors elevation: (AirPoll_PM2_5 * 20.0) grayscale: true triangulation: true transparency: 0.7;
+//     	  	grid Environment_stressors elevation: (AirPoll_PM2_5 * 20.0) grayscale: true triangulation: true transparency: 0.7;
 			graphics Noise transparency: 0.7{
 			if(current_date.hour < 4 or current_date.hour > 22){
 				draw shape_file_NoiseContour_night color: #purple ;
@@ -746,8 +744,8 @@ experiment TransportAirPollutionExposureModel type: gui {
                 	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
                 	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
                 	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
-                	draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
-                    draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
+                	draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);		// this might look confusing. Unfortunately overlay transparency is automatically set at 0.75 (highly transparent) and that cannot be changed.
+                    draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);		// this makes a legend hardly readable. Therefore I draw it multiple times above each other for stronger colors).
                     draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
                     draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
                     y <- y + 25#px;
