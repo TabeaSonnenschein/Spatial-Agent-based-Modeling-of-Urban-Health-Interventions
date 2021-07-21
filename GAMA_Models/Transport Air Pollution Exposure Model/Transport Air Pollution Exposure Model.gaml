@@ -55,6 +55,17 @@ global skills: [RSkill]{
 	text_file adult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/adult_schedule.txt");
 	text_file elderly_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt");
 
+// Global variables transport
+	map<string, float> travelspeed <- create_map(["walk", "bike", "car"], [1.4, 3.33, 11.11]); /// meters per seconds (5km/h, 12km/h, 40km/h )
+	map<string, float> transport_costs<- create_map(["walk", "bike", "car"], [0, 0.01, 0.2 ]);  // Euros per 1km     												// needs robust methodology
+	map<string, float> transport_safety <- create_map(["walk", "bike", "car"], [0.05, 0.66, 0.1 ]);  //Percent of serious traffic accidents (SWOV)    				// needs robust methodology
+
+// Global variables exposure
+	map<string, float> inhalation_rate <- create_map(["walk", "bike", "normal"], [25.0, 40.0, 15.0]); /// breaths per minute  										// needs robust methodology
+	map<string, float> Noise_Filter <- create_map(["indoor", "car"], [0.20, 0.40]); /// percentage of Noise that remains (is not filtered)							// needs robust methodology
+	map<string, float> AirPollution_Filter <- create_map(["indoor", "car"], [0.60, 0.80]); /// percentage of Air Pollution that remains (is not filtered)			// needs robust methodology
+	
+
     init  {
         write "setting up the model";
         do startR;
@@ -94,16 +105,19 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string Agent_ID;
 	int Agent_index;
 	string Neighborhood;
-	int age;
-	string sex;
-	string migrationbackground;
-	int hh_single;
-	int is_child;
-	int has_child;
-	string current_edu;
-	string absolved_edu;
-	string BMI;
+	int age;					// integer age 0- 100
+	string sex;  				// female, male
+	string migrationbackground; // Dutch, Western, Non-Western
+	int hh_single; 				// 1 = yes, 0 = no
+	int is_child;				// 1 = yes, 0 = no
+	int has_child;				// 1 = yes, 0 = no
+	string current_edu;			// "high", "medium", "low", "no_current_edu"
+	string absolved_edu;		// "high", "medium", "low", 0
+	string BMI; 				//"underweight", "normal_weight", "moderate_overweight", "obese"
 	string scheduletype;
+	float budget <- rnd (800.0 , 5000.0); // Euros per month   								// needs robust methodology
+	int car_owner <- 0;																	// needs robust methodology
+	map<string,int> distance_willing_travel  ;														// needs robust methodology
 	
 	/// destination locations
 	geometry residence;
@@ -159,18 +173,13 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	path track_path;
 	geometry track_geometry;
 	string modalchoice;
-	map<string, float> travelspeed <- create_map(["walk", "bike", "car"], [1.4, 3.33, 11.11]); /// meters per seconds (5km/h, 12km/h, 40km/h )
 	int path_memory;
 	int new_route;
 	int make_modalchoice;
 	geometry route_eucl_line;
+	float trip_distance ;
 
 	/// exposure variables
-	float inhalation_rate_walking <- 25.0;	 //25 breaths per minute
-	float inhalation_rate_biking <- 40.0;	 //40 breaths per minute
-	float inhalation_rate_normal <- 15.0 ; //15 breaths per minute
-	float indoor_Noise_filter <- 0.20; //80% of Noise filtered
-	float indoor_AirPollutionFilter <- 0.60; /// 40% of Air POllution filtered
 	float bike_exposure;
 	float walk_exposure;
 	float activity_PM10;
@@ -188,21 +197,18 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	//////// TRANSPORT BEHAVIOUR: BDI ///////////////
 	bool probabilistic_choice <- true;
 	/// Transport Behaviour: Desires///
-	float convenience;
-	float affordability;
 	int safety;
 	int norm_abidence;
 	predicate travelTOdestination <- new_predicate("travelTOdestination");
 	
 	/// Transport Behaviour: Beliefs///
 	float assumed_traveltime;
-//	float assumed_bikability;
-//	float assumed_walkability; 
-//	predicate assumed_accessibility <- new_predicate("assumed_accessibility");
-	predicate assumed_cost <- new_predicate("assumed_cost"); 
-	predicate assumed_safety <- new_predicate("assumed_safety");
-	predicate own_budget <- new_predicate("own_budget"); 
-	predicate social_norms <- new_predicate("social_norms");
+	float assumed_bikability;
+	float assumed_walkability; 
+//	predicate assumed_cost <- new_predicate("assumed_cost"); 
+//	predicate assumed_safety <- new_predicate("assumed_safety");
+//	predicate own_budget <- new_predicate("own_budget"); 
+//	predicate social_norms <- new_predicate("social_norms");
 	
 	/// Transport Behaviour: Emotions ///
 	
@@ -239,7 +245,31 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				supermarket <-  closest_to(shape_file_Supermarkets, self.location) ;
        	  }       	     	
        	  activity <- "perform_activity";
-       	  
+       	  if(age > 20){
+       	  	if(flip(0.7)){
+       	  		car_owner <- 1;
+       	  	}
+       	  }
+       	  if(BMI != "moderate_overweight" and BMI != "obese"){
+       	  	if(age <= 8){
+       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [600, 0, 0 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
+       	  	}
+       	  	 if(age > 8 and age<= 17){
+       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 0 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
+       	  	}
+       	  	if(age < 50 and age > 18){
+       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1500, 6000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
+       	  	}
+       	  	else if(age >= 50 and age < 70){
+       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1500, 3000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
+       	  	}
+       	  	else if(age >= 70){
+       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
+       	  	}
+       	  }
+       	  else{
+       	  	distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
+       	  }
        	  do startR;
 	}
 	
@@ -375,6 +405,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 	if(point(destination_activity.location) != point(self.location)){
 		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
 		 		write "Route Line:" + route_eucl_line;
+		 		trip_distance <- (self.location distance_to destination_activity);
 		 		if(path_memory != 1){
 		 			traveldecision <- 1;
 		 		}
@@ -391,17 +422,16 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	}
 	perceive Env_Activity_Affordance_Travel target:(Perceivable_Environment where (each intersects route_eucl_line))  when: traveldecision = 1 {
     	myself.traveldecision <- 0;	
-    	myself.new_route <- 1;
     	myself.make_modalchoice <- 1;
     	ask myself{
 //    		assumed_bikability <- mean(myself.bikability);
-//    		assumed_walkability <- mean(myself.walkability);    		
-    		do add_belief(new_predicate("assumed_bikability", ["route_bikability"::mean(myself.bikability)]));
-    		do add_belief(new_predicate("assumed_walkability", ["route_walkability"::mean(myself.walkability)])); 
-	   		do add_belief(new_predicate("assumed_accessibility", ["route_accessibility"::(self.location distance_to destination_activity)])); 
+//    		assumed_walkability <- mean(myself.walkability);
+	   		do add_belief(new_predicate("assumed_quality_infrastructure", ["bikability"::mean(myself.bikability), "walkability"::mean(myself.walkability), "drivability"::mean(myself.drivability)])); 
+	   		do add_belief(new_predicate("assumed_traveltime", ["traveltime_bike"::(trip_distance *travelspeed["bike"]), "traveltime_walk"::(trip_distance *travelspeed["walk"]), "traveltime_car"::(trip_distance*travelspeed["car"])])); 
     	}    	
     }
    reflex modalchoice when: make_modalchoice = 1 {
+   	new_route <- 1;
    	if((self.location distance_to destination_activity) < 3000 ){
    		 modalchoice <- "bike";	
    	}
@@ -411,28 +441,59 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
    	else{
    		modalchoice <- "car";
    	}
-//   		make_modalchoice <- 0;
-////   		(self.location distance_to destination_activity)
-////		write get_predicate(get_belief_with_name("assumed_bikability")).values["route_bikability"]; 
-////		write get_predicate(get_belief_with_name("assumed_walkability")).values["route_walkability"]; 
-////		write get_predicate(get_belief_with_name("assumed_accessibility")).values["distance"];  	
-////		if (BMI = "overweight" or BMI = "obese"){
-////			
-////		}
-////		if (age > 0){
-////			
-////		}
+ 		make_modalchoice <- 0;
+	   		do add_belief(new_predicate("convenience", [ 	// construct of quality of infrastructure (walkability, bikability) and time needed for travel
+	   		"convenience_bike"::((float(get_predicate(get_belief_with_name("assumed_quality_infrastructure")).values["bikability"]) + float(get_predicate(get_belief_with_name("assumed_traveltime")).values["traveltime_bike"]))/2), 
+	   		"convenience_walk"::((float(get_predicate(get_belief_with_name("assumed_quality_infrastructure")).values["walkability"]) + float(get_predicate(get_belief_with_name("assumed_traveltime")).values["traveltime_walk"]))/2),
+	   		"convenience_car"::((float(get_predicate(get_belief_with_name("assumed_quality_infrastructure")).values["drivability"]) + float(get_predicate(get_belief_with_name("assumed_traveltime")).values["traveltime_drive"]))/2)])); 
+	   		do add_belief(new_predicate("affordability", [
+	   		"perc_budget_bike":: ((transport_costs["bike"] * (trip_distance/1000) )/((budget/31)-20)), 
+	   		"perc_budget_walk"::((transport_costs["walk"] * (trip_distance/1000) )/((budget/31)-20)),
+	   		"perc_budget_car":: ((transport_costs["car"] * (trip_distance/1000) )/((budget/31)-20))])); 
+//			write transport_safety["bike"];
+			if(trip_distance <= distance_willing_travel["walk"]){
+				if(car_owner = 1){
+					if(float(get_predicate(get_belief_with_name("affordability")).values["perc_budget_car"]) < 0.05){
+						
+					}
+					else{
+						if(float(get_predicate(get_belief_with_name("convenience")).values["convenience_bike"]) > float(get_predicate(get_belief_with_name("convenience")).values["convenience_walk"])){
+							modalchoice <- "bike";	
+						}
+						else{
+							modalchoice <- "walk";	
+						}
+					}
+				}
+				else{
+						if(float(get_predicate(get_belief_with_name("convenience")).values["convenience_bike"]) > float(get_predicate(get_belief_with_name("convenience")).values["convenience_walk"])){
+							modalchoice <- "bike";	
+						}
+						else{
+							modalchoice <- "walk";	
+						}					
+				}
+			}
+			else if(trip_distance <= distance_willing_travel["bike"]){
+				if(car_owner = 1){
+					
+				}
+				else{
+					
+				}				
+			}
+			else{
+				if(car_owner = 1){
+				   	modalchoice <- "car";
+				}
+				else{
+					modalchoice <- "bike";	
+				}
+			}
+
+			
 //		do add_desire(travelTOdestination);
    }
-//    reflex biking  when: ((self.location distance_to destination_activity) < 3000 and make_modalchoice = 1){
-//		 modalchoice <- "bike";
-//    }
-//    reflex walking  when: ((self.location distance_to destination_activity) < 1000 and make_modalchoice = 1){
-//		 modalchoice <- "walk";
-//	 }
-//	reflex driving  when: ((self.location distance_to destination_activity) >= 3000 and make_modalchoice = 1){
-//	 	modalchoice <- "car";
-//	 }
 	reflex routing when:  new_route = 1  {
 		  activity <- "commuting";
 		  new_route <- 0;
@@ -509,8 +570,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 //		e.g. the activity could have an impact on health (sports...)
 //	}
 	reflex at_Place_exposure when: activity = "perform_activity"{
-		activity_PM10 <- (sum((Environment_stressors overlapping self) collect each.AirPoll_PM10)) * inhalation_rate_normal * indoor_AirPollutionFilter;
-		activity_Noise <- (sum((Noise_day overlapping self) collect each.Decibel)) * indoor_Noise_filter;
+		activity_PM10 <- (sum((Environment_stressors overlapping self) collect each.AirPoll_PM10)) * inhalation_rate["normal"] * AirPollution_Filter["indoor"];
+		activity_Noise <- (sum((Noise_day overlapping self) collect each.Decibel)) * Noise_Filter["indoor"];
 		hourly_PM10 <- hourly_PM10 + activity_PM10;
 		hourly_Noise <- hourly_Noise + activity_Noise;
 	}
@@ -521,22 +582,22 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     		activity <- "perform_activity";
     		if(modalchoice = "bike"){
     			bike_exposure <- bike_exposure + track_duration;
-				activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/( length(Environment_stressors overlapping self.track_geometry) + 1)) * inhalation_rate_biking * track_duration;
+				activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/( length(Environment_stressors overlapping self.track_geometry) + 1)) * inhalation_rate["bike"] * track_duration;
 				activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) +1) )  * track_duration;
 				hourly_PM10 <- hourly_PM10 + activity_PM10;
 				hourly_Noise <- hourly_Noise + activity_Noise;
     		}
     		 else if(modalchoice = "walk"){
     			walk_exposure <- walk_exposure + track_duration;
-    			activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/ (length(Environment_stressors overlapping self.track_geometry)+ 1)) * inhalation_rate_walking * track_duration;
+    			activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/ (length(Environment_stressors overlapping self.track_geometry)+ 1)) * inhalation_rate["walk"] * track_duration;
 				activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) + 1))  * track_duration;
 				hourly_PM10 <- hourly_PM10 + activity_PM10;
 				hourly_Noise <- hourly_Noise + activity_Noise;
 				
     		}
     		else{
-    			activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/ (length(Environment_stressors overlapping self.track_geometry) +1 )) * inhalation_rate_normal * track_duration * 0.2;
-				activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) + 1))  * track_duration * 0.3;
+    			activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/ (length(Environment_stressors overlapping self.track_geometry) +1 )) * inhalation_rate["normal"] * track_duration * AirPollution_Filter["car"];
+				activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) + 1))  * track_duration * Noise_Filter["car"];
 				hourly_PM10 <- hourly_PM10 + activity_PM10;
 				hourly_Noise <- hourly_Noise + activity_Noise;
 				
@@ -597,6 +658,7 @@ grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
 grid Perceivable_Environment cell_width: 100 cell_height: 100 parallel: true{
 	float bikability <- gauss({20,2.6});
 	float walkability <- gauss({10,3.6});
+	float drivability <- gauss({10,3.6});
 }
 
 
