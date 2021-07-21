@@ -27,7 +27,7 @@ global skills: [RSkill]{
     file shape_file_Profess <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp");
     file spatial_extent <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Amsterdam Diemen Oude Amstel Extent.shp");  
    	geometry shape <- envelope(spatial_extent); 
-   	map<string,rgb> color_per_type <- ["streets"::#aqua, "vegetation":: #green, "buildings":: #red];
+   	map<string,rgb> color_per_type <- ["streets"::#aqua, "vegetation":: #green, "buildings":: #red, "noise":: #purple];
    	list<geometry> Restaurants;
    	list<geometry> Entertainment;
     
@@ -666,9 +666,46 @@ experiment TransportAirPollutionExposureModel type: gui {
 	parameter "Share of adult car owners" var: per_car_owners min: 0.0 max: 1.0 category: "Human attributes" ;	
 	
 	output {
-		layout horizontal([0::7000,1::3000]) tabs: false;
+//		layout horizontal([0::7000,vertical([1::2000, 2::8000])::3000]) tabs: false;
+		layout horizontal([1::6000,0::4000]) tabs: false;
+//		 monitor "time" value: current_date;
+		
 //		layout #split;
-	display map type:opengl toolbar: true {
+	
+    display stats type: java2D synchronized: true {
+        overlay position: {0, 0} size: {1, 0.05} background: #black  border: #black {
+        		draw "Model Time: " + current_date color: #white font: font("SansSerif", 17) at: {40#px, 30#px};
+			}
+        chart "Transport Mode distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.5} position: {0.5, 0.5} label_font: font("SansSerif", 12){
+        	data "walk" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting") color:#green;
+        	data "bike" value: Humans count (each.modalchoice = "bike" and each.activity = "commuting") color:#blue;
+        	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "commuting") color:#fuchsia;
+        	data "not travelling" value: Humans count (each.activity = "perform_activity") color:#yellow;
+        }
+		chart "Mean Noise Exposure" type: scatter x_label: "Minutes" y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.45} position: {0, 0.05} label_font: font("SansSerif", 12){
+				data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #red marker: false style: line;
+		}
+		chart "Mean PM10 Exposure" type: scatter x_label: "Minutes" y_label: "µg" background: #black color: #white axes: #white size: {0.5,0.45} position: {0.5, 0.05} label_font: font("SansSerif", 12){
+				data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #red marker: false style: line;
+		}
+		chart "Agent Age Distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.25} position: {0, 0.5} {
+				data "0-10" value: Humans count (each.age <= 10) color:#teal;
+				data "11-20" value: Humans count ((each.age > 10) and (each.age <= 20)) color:#teal;
+				data "21-30" value: Humans count ((each.age > 20) and (each.age <= 30)) color:#teal;
+				data "31-40" value: Humans count ((each.age > 30) and (each.age <= 40)) color:#teal;
+				data "41-50" value: Humans count ((each.age > 40) and (each.age <= 50)) color:#teal;
+				data "51-60" value: Humans count ((each.age > 50) and (each.age <= 60)) color:#teal;
+				data "61-70" value: Humans count ((each.age > 60) and (each.age <= 70)) color:#teal;
+				data "71-80" value: Humans count ((each.age > 70) and (each.age <= 80)) color:#teal;
+				data "81 or" value: Humans count (each.age > 81) color:#teal;
+			}
+		chart "Agent Sex Distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.25} position: {0, 0.75} label_font: font("SansSerif", 12){
+				data "male" value: Humans count (each.sex = "male") color:#teal;
+				data "female" value: Humans count (each.sex = "female") color:#teal ;
+			}
+			
+  	 }
+  	 display map type:opengl {
     	graphics background refresh: false{
     		draw shape color: #black;
     	}
@@ -696,63 +733,16 @@ experiment TransportAirPollutionExposureModel type: gui {
 //		graphics AirPollution{
 //				draw Tiff_file_PM2_5 color:#forestgreen ;
 //		}        
-//        
-        overlay position: { 5, 5 } size: { 180 #px, 100 #px } background: # black transparency: 0.3 border: #black rounded: true
-            {
-            	//for each possible type, we draw a square with the corresponding color and we write the name of the type
+         overlay position: {0, 0, 0} size: {180 #px, 130#px} background: #black rounded: true transparency: 0.0 {
+                draw  rectangle(180 #px, 130#px) at: {0, 0, 0}  color: #black border: #black;
                 float y <- 30#px;
-                loop type over: color_per_type.keys
-                {
-                    draw square(10#px) at: { 20#px, y } color: color_per_type[type] border: #white;
-                    draw type at: { 50#px, y + 5#px } color: #white font: font("SansSerif", 16, #bold);
+                loop type over: color_per_type.keys  {   
+                	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
+                    draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
                     y <- y + 25#px;
                 }
-
-            }
-        
+            }    
     }
-    display stats type: java2D synchronized: true {
-//		chart " my_chart " type: histogram {
-//			datalist ( distribution_of ( Humans collect each.age , 20 ,0 ,100) at " legend ") 
-//				value: ( distribution_of ( Humans collect each.age, 20 ,0 ,100) at " values ");
-//		}
-//		chart "Age Distribution" type: histogram background: #white size: {0.5,0.5} position: {0, 0.5}{
-//				data "age" value: Humans collect each.age;
-//		}
-        chart "Transport Mode distribution" type: histogram background: #white size: {0.5,0.5} position: {0.5, 0.5}{
-        	data "walk" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting") color:#green;
-        	data "bike" value: Humans count (each.modalchoice = "bike" and each.activity = "commuting") color:#blue;
-        	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "commuting") color:#fuchsia;
-        	data "not travelling" value: Humans count (each.activity = "perform_activity") color:#yellow;
-        }
-		chart "Mean Noise Exposure" type: scatter x_label: "Minutes" y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.5} position: {0, 0}{
-				data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #red marker: false style: line;
-		}
-		chart "Mean PM10 Exposure" type: scatter x_label: "Minutes" y_label: "µg" background: #black color: #white axes: #white size: {0.5,0.5} position: {0.5, 0}{
-				data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #red marker: false style: line;
-		}
-		chart "Agent Age Distribution" type: histogram background: #black color: #white axes: #white size: {0.25,0.5} position: {0, 0.5} {
-				data "0-10" value: Humans count (each.age <= 10) color:#teal;
-				data "11-20" value: Humans count ((each.age > 10) and (each.age <= 20)) color:#teal;
-				data "21-30" value: Humans count ((each.age > 20) and (each.age <= 30)) color:#teal;
-				data "31-40" value: Humans count ((each.age > 30) and (each.age <= 40)) color:#teal;
-				data "41-50" value: Humans count ((each.age > 40) and (each.age <= 50)) color:#teal;
-				data "51-60" value: Humans count ((each.age > 50) and (each.age <= 60)) color:#teal;
-				data "61-70" value: Humans count ((each.age > 60) and (each.age <= 70)) color:#teal;
-				data "71-80" value: Humans count ((each.age > 70) and (each.age <= 80)) color:#teal;
-				data "81 or" value: Humans count (each.age > 81) color:#teal;
-			}
-		chart "Agent Sex Distribution" type: histogram background: #black color: #white axes: #white size: {0.25,0.5} position: {0.25, 0.5} {
-				data "male" value: Humans count (each.sex = "male") color:#teal;
-				data "female" value: Humans count (each.sex = "female") color:#teal;
-			}
-			
-  	 }
-  	 	monitor "time" value: current_date;
-//  	 	monitor "Number of bikers" value: Humans count (each.modalchoice = "bike" and each.activity = "commuting");
-//  	 	monitor "Number of pedestrians" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting");
-//  	 	monitor "Number of drivers" value: Humans count (each.modalchoice = "car" and each.activity = "commuting");
-  	 	
     }
 }
 
