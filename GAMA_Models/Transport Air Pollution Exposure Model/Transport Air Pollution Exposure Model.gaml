@@ -666,9 +666,9 @@ experiment TransportAirPollutionExposureModel type: gui {
 	parameter "Share of adult car owners" var: per_car_owners min: 0.0 max: 1.0 category: "Human attributes" ;	
 	
 	output {
-//		layout horizontal([vertical([0::10000])::7000,vertical([1::8000,2::2000])::3000]) tabs: false;
+		layout horizontal([0::7000,1::3000]) tabs: false;
 //		layout #split;
-	display map type:opengl keystone: [{0,0}, {0.6,0}, {0,1}, {0.6,1}] toolbar: true {
+	display map type:opengl toolbar: true {
     	graphics background refresh: false{
     		draw shape color: #black;
     	}
@@ -711,7 +711,7 @@ experiment TransportAirPollutionExposureModel type: gui {
             }
         
     }
-    display stats type: java2D synchronized: true  keystone: [{0.6,0}, {1,0}, {0.6,1}, {1,1}]{
+    display stats type: java2D synchronized: true {
 //		chart " my_chart " type: histogram {
 //			datalist ( distribution_of ( Humans collect each.age , 20 ,0 ,100) at " legend ") 
 //				value: ( distribution_of ( Humans collect each.age, 20 ,0 ,100) at " values ");
@@ -725,27 +725,27 @@ experiment TransportAirPollutionExposureModel type: gui {
         	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "commuting") color:#fuchsia;
         	data "not travelling" value: Humans count (each.activity = "perform_activity") color:#yellow;
         }
-		chart "Mean Noise Exposure" type: scatter x_label: "Minutes" y_label: "Decibel" background: #white size: {0.5,0.5} position: {0, 0}{
-				data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #blue marker: false style: line;
+		chart "Mean Noise Exposure" type: scatter x_label: "Minutes" y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.5} position: {0, 0}{
+				data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #red marker: false style: line;
 		}
-		chart "Mean PM10 Exposure" type: scatter x_label: "Minutes" y_label: "µg" background: #white size: {0.5,0.5} position: {0.5, 0}{
-				data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #blue marker: false style: line;
+		chart "Mean PM10 Exposure" type: scatter x_label: "Minutes" y_label: "µg" background: #black color: #white axes: #white size: {0.5,0.5} position: {0.5, 0}{
+				data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #red marker: false style: line;
 		}
-		chart "Agent Age Distribution" type: histogram background: #white size: {0.5,0.5} position: {0, 0.5} {
-				data "0-10" value: Humans count (each.age <= 10) color:#blue;
-				data "11-20" value: Humans count ((each.age > 10) and (each.age <= 20)) color:#blue;
-				data "21-30" value: Humans count ((each.age > 20) and (each.age <= 30)) color:#blue;
-				data "31-40" value: Humans count ((each.age > 30) and (each.age <= 40)) color:#blue;
-				data "41-50" value: Humans count ((each.age > 40) and (each.age <= 50)) color:#blue;
-				data "51-60" value: Humans count ((each.age > 50) and (each.age <= 60)) color:#blue;
-				data "61-70" value: Humans count ((each.age > 60) and (each.age <= 70)) color:#blue;
-				data "71-80" value: Humans count ((each.age > 70) and (each.age <= 80)) color:#blue;
-				data "81 or" value: Humans count (each.age > 81) color:#blue;
+		chart "Agent Age Distribution" type: histogram background: #black color: #white axes: #white size: {0.25,0.5} position: {0, 0.5} {
+				data "0-10" value: Humans count (each.age <= 10) color:#teal;
+				data "11-20" value: Humans count ((each.age > 10) and (each.age <= 20)) color:#teal;
+				data "21-30" value: Humans count ((each.age > 20) and (each.age <= 30)) color:#teal;
+				data "31-40" value: Humans count ((each.age > 30) and (each.age <= 40)) color:#teal;
+				data "41-50" value: Humans count ((each.age > 40) and (each.age <= 50)) color:#teal;
+				data "51-60" value: Humans count ((each.age > 50) and (each.age <= 60)) color:#teal;
+				data "61-70" value: Humans count ((each.age > 60) and (each.age <= 70)) color:#teal;
+				data "71-80" value: Humans count ((each.age > 70) and (each.age <= 80)) color:#teal;
+				data "81 or" value: Humans count (each.age > 81) color:#teal;
 			}
-//		chart "Agent Sex Distribution" type: histogram background: #white size: {0.5,0.5} position: {0.5, 0.5} {
-//				data "male" value: Humans count (each.sex = "male") color:#red;
-//				data "female" value: Humans count (each.sex = "female") color:#red;
-//			}
+		chart "Agent Sex Distribution" type: histogram background: #black color: #white axes: #white size: {0.25,0.5} position: {0.25, 0.5} {
+				data "male" value: Humans count (each.sex = "male") color:#teal;
+				data "female" value: Humans count (each.sex = "female") color:#teal;
+			}
 			
   	 }
   	 	monitor "time" value: current_date;
