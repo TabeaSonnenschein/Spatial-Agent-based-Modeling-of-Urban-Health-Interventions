@@ -34,7 +34,9 @@ global skills: [RSkill]{
 //  loading Environmental Stressor Maps
 	file shape_file_NoiseContour_night <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
 	file shape_file_NoiseContour_day <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp");
-//    file Tiff_file_PM2_5 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PM2_5_RDNew_clipped.tif");
+    file Tiff_file_PM2_5 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PM2_5_RDNew_clipped.tif");
+    bool display_air_poll <- true;
+    
     
 //  loading routing code
     file Rcode_foot_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_foot.R");
@@ -640,11 +642,19 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 
 
 grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
-	float AirPoll_PM2_5 <- gauss({20,2.6});
-	float AirPoll_PM10 <- gauss({10,2.6}); /// min: 0.0 max: 100.0;
-	float AirPoll_NO2 <- gauss({10,2.6});
+	float AirPoll_PM2_5 <- 0.0;
+	float AirPoll_PM10 <- 0.0;
+	float AirPoll_NO2 <- 0.0;
 	float Noise_Decibel_night;
 	float Noise_Decibel_day;
+	init{
+		if(flip(0.5)){
+				AirPoll_PM2_5 <- gauss({20,6.6});
+				AirPoll_PM10 <- gauss({20,5.6}); 
+				AirPoll_NO2 <- gauss({10,2.6});
+		}
+	}
+	
 //	rgb color <- #green update: rgb(255 *(AirPoll_PM10/30.0) , 255 * (1 - (AirPoll_PM10/30.0)), 0.0);
 //	reflex stressor_adjustment{
 //		AirPoll_PM10 <- AirPoll_PM10 * 0.7;
@@ -662,33 +672,30 @@ grid Perceivable_Environment cell_width: 100 cell_height: 100 parallel: true{
 
 experiment TransportAirPollutionExposureModel type: gui {
 	/** Insert here the definition of the input and output of the model */
-	parameter "Number of human agents" var: nb_humans min: 10 max: 10000 category: "Human attributes" ;
-	parameter "Share of adult car owners" var: per_car_owners min: 0.0 max: 1.0 category: "Human attributes" ;	
+	parameter "Number of human agents" var: nb_humans min: 10 max: 10000  ;
+	parameter "Share of adult car owners" var: per_car_owners min: 0.0 max: 1.0 ;	
+	parameter "Visualize Air Pollution Field" var:display_air_poll among: [true, false] type:bool;
 	
 	output {
-//		layout horizontal([0::7000,vertical([1::2000, 2::8000])::3000]) tabs: false;
 		layout horizontal([1::6000,0::4000]) tabs: false;
-//		 monitor "time" value: current_date;
-		
-//		layout #split;
 	
-    display stats type: java2D synchronized: true {
-        overlay position: {0, 0} size: {1, 0.05} background: #black  border: #black {
-        		draw "Model Time: " + current_date color: #white font: font("SansSerif", 17) at: {40#px, 30#px};
+    	display stats type: java2D synchronized: true {
+        	overlay position: {0, 0} size: {1, 0.05} background: #black  border: #black {
+    	  	  		draw "Model Time: " + current_date color: #white font: font("SansSerif", 17) at: {40#px, 30#px};
+				}
+  	      chart "Transport Mode distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.5} position: {0.5, 0.5} label_font: font("SansSerif", 12){
+ 		       	data "walk" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting") color:#green;
+	        	data "bike" value: Humans count (each.modalchoice = "bike" and each.activity = "commuting") color:#blue;
+   		     	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "commuting") color:#fuchsia;
+   		     	data "not travelling" value: Humans count (each.activity = "perform_activity") color:#yellow;
+     	   }
+			chart "Mean Noise Exposure" type: scatter x_label: string(step) + " Minute Steps"  y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.45} position: {0, 0.05} label_font: font("SansSerif", 12){
+					data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #red marker: false style: line;
 			}
-        chart "Transport Mode distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.5} position: {0.5, 0.5} label_font: font("SansSerif", 12){
-        	data "walk" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting") color:#green;
-        	data "bike" value: Humans count (each.modalchoice = "bike" and each.activity = "commuting") color:#blue;
-        	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "commuting") color:#fuchsia;
-        	data "not travelling" value: Humans count (each.activity = "perform_activity") color:#yellow;
-        }
-		chart "Mean Noise Exposure" type: scatter x_label: "Minutes" y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.45} position: {0, 0.05} label_font: font("SansSerif", 12){
-				data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #red marker: false style: line;
-		}
-		chart "Mean PM10 Exposure" type: scatter x_label: "Minutes" y_label: "µg" background: #black color: #white axes: #white size: {0.5,0.45} position: {0.5, 0.05} label_font: font("SansSerif", 12){
-				data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #red marker: false style: line;
-		}
-		chart "Agent Age Distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.25} position: {0, 0.5} {
+			chart "Mean PM10 Exposure" type: scatter x_label: string(step) + " Minute Steps" y_label: "µg" background: #black color: #white axes: #white size: {0.5,0.45} position: {0.5, 0.05} label_font: font("SansSerif", 12){
+					data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #red marker: false style: line;
+			}
+			chart "Agent Age Distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.25} position: {0, 0.5} {
 				data "0-10" value: Humans count (each.age <= 10) color:#teal;
 				data "11-20" value: Humans count ((each.age > 10) and (each.age <= 20)) color:#teal;
 				data "21-30" value: Humans count ((each.age > 20) and (each.age <= 30)) color:#teal;
@@ -699,50 +706,54 @@ experiment TransportAirPollutionExposureModel type: gui {
 				data "71-80" value: Humans count ((each.age > 70) and (each.age <= 80)) color:#teal;
 				data "81 or" value: Humans count (each.age > 81) color:#teal;
 			}
-		chart "Agent Sex Distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.25} position: {0, 0.75} label_font: font("SansSerif", 12){
+			chart "Agent Sex Distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.25} position: {0, 0.75} label_font: font("SansSerif", 12){
 				data "male" value: Humans count (each.sex = "male") color:#teal;
 				data "female" value: Humans count (each.sex = "female") color:#teal ;
 			}
 			
-  	 }
-  	 display map type:opengl {
-    	graphics background refresh: false{
-    		draw shape color: #black;
-    	}
-        graphics Buildings refresh: false{
-    		draw shape_file_buildings color: #red;
-    		draw shape_file_buildings2 color: #red;
-    		draw shape_file_buildings3 color: #red;
-		}
-		graphics Streets refresh: false{
-    		draw shape_file_streets color: #aqua;
-		}
-		graphics GreenSpace refresh: false{
-    		draw shape_file_greenspace color: #green;
-		}
-        species Humans aspect: base ;
-//        grid Environment_stressors elevation: AirPoll_PM10 * 3.0 triangulation: true transparency: 0.7;
-		graphics Noise transparency: 0.7{
+  		 }
+  		 display map type:opengl {
+   		 	graphics background refresh: false{
+    			draw shape color: #black;
+    		}
+       		graphics Buildings refresh: false{
+    			draw shape_file_buildings color: #red;
+    			draw shape_file_buildings2 color: #red;
+    			draw shape_file_buildings3 color: #red;
+			}
+			graphics Streets refresh: false{
+    			draw shape_file_streets color: #aqua;
+			}
+			graphics GreenSpace refresh: false{
+    			draw shape_file_greenspace color: #green;
+			}
+       		species Humans aspect: base ;
+     	  	grid Environment_stressors elevation: (AirPoll_PM2_5 * 20.0) grayscale: true triangulation: true transparency: 0.7;
+			graphics Noise transparency: 0.7{
 			if(current_date.hour < 4 or current_date.hour > 22){
 				draw shape_file_NoiseContour_night color: #purple ;
 			}
 			else{
 				draw shape_file_NoiseContour_day color: #purple ;				
 			}
-		}
+			}
 //		graphics AirPollution{
 //				draw Tiff_file_PM2_5 color:#forestgreen ;
 //		}        
-         overlay position: {0, 0, 0} size: {180 #px, 130#px} background: #black rounded: true transparency: 0.0 {
-                draw  rectangle(180 #px, 130#px) at: {0, 0, 0}  color: #black border: #black;
+        	 overlay position: {0, 0, 0} size: {180 #px, 130#px} background: #black rounded: false transparency: 0.0 {
                 float y <- 30#px;
                 loop type over: color_per_type.keys  {   
                 	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
+                	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
+                	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
+                	draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
+                    draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
+                    draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
                     draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
                     y <- y + 25#px;
                 }
             }    
-    }
+   		 }
     }
 }
 
