@@ -406,7 +406,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 	write "Current Activity: " + current_activity + "; Former Activity: " + former_activity;
 		 	if(point(destination_activity.location) != point(self.location)){
 		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
-		 		write "Route Line:" + route_eucl_line;
+//		 		write "Route Line:" + route_eucl_line;
 		 		trip_distance <- (self.location distance_to destination_activity);
 		 		if(path_memory != 1){
 		 			traveldecision <- 1;
@@ -504,6 +504,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				}
 			}			
 //		do add_desire(travelTOdestination);
+		write string(trip_distance) + " " + modalchoice ;
    }
 	reflex routing when:  new_route = 1  {
 		  activity <- "commuting";
@@ -516,25 +517,23 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				unknown a <- R_eval(s);
 //							write "R>" + a;
 			}
-//			travelspeed <- 1.4; /// meters per seconds 5km/h
 		 	}
 		else if(modalchoice = "bike"){
 		 	loop s over: Rcode_bike_routing.contents{
 				unknown a <- R_eval(s);
 			}
-//			travelspeed <- 3.33; /// meters per seconds 12km/h
 		 	}
 		else if(modalchoice = "car") {
 		 	loop s over: Rcode_car_routing.contents{
 				unknown a <- R_eval(s);
 			}
-//			travelspeed <- 11.11; /// meters per seconds 40km/h 			
 		 }
 		list<point> track <- list(R_eval("track_points"));
-		track_geometry <- (to_GAMA_CRS(line(track),  "EPSG:4326")) add_point(point(destination_activity.location));
+		track_geometry <- (to_GAMA_CRS(line(track),  "EPSG:4326")) add_point(point(destination_activity));
 		track_path <-  path(track_geometry);     	  
 		track_duration <- float(list(R_eval("route$duration"))[0]);  ///minutes
 		float track_length <- float(list(R_eval("route$distance"))[0]);	/// meters
+		write last((track_geometry));
 		if(current_activity = "work" and (former_activity = "at_Home" or former_activity = "sleeping")){
 				homeTOwork <- track_path;
 				homeTOwork_mode <- modalchoice;
@@ -589,6 +588,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     reflex commuting when: activity = "commuting"{
 		do follow path: self.track_path speed: travelspeed[modalchoice];
 		if(self.location = destination_activity){
+			write "arrived";
     		activity <- "perform_activity";
     		activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/( length(Environment_stressors overlapping self.track_geometry) + 1)) * inhalation_rate[modalchoice] * track_duration * AirPollution_Filter[modalchoice];
 			activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) +1) )  * track_duration * Noise_Filter[modalchoice];
