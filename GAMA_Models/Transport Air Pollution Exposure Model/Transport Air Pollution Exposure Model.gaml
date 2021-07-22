@@ -670,9 +670,9 @@ grid Perceivable_Environment cell_width: 100 cell_height: 100 parallel: true{
 
 experiment TransportAirPollutionExposureModel type: gui {
 	/** Insert here the definition of the input and output of the model */
-	parameter "Number of human agents" var: nb_humans min: 10 max: 10000  ;
-	parameter "Share of adult car owners" var: per_car_owners min: 0.0 max: 1.0 ;	
-	parameter "Visualize Air Pollution Field" var:display_air_poll among: [true, false] type:bool;
+	parameter "Number of human agents" var: nb_humans min: 10 max: 10000  category: "Human attributes";
+	parameter "Share of adult car owners" var: per_car_owners min: 0.0 max: 1.0 category: "Human attributes";	
+//	parameter "Visualize Air Pollution Field" var:display_air_poll among: [true, false] type:bool;
 	
 	output {
 		layout horizontal([1::6000,0::4000]) tabs: false;
@@ -687,10 +687,10 @@ experiment TransportAirPollutionExposureModel type: gui {
    		     	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "commuting") color:#fuchsia;
    		     	data "not travelling" value: Humans count (each.activity = "perform_activity") color:#yellow;
      	   }
-			chart "Mean Noise Exposure" type: scatter x_label: string(step) + " Minute Steps"  y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.45} position: {0, 0.05} label_font: font("SansSerif", 12){
+			chart "Mean Noise Exposure" type: scatter x_label: (string(int(step/60))) + " Minute Steps"  y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.45} position: {0, 0.05} label_font: font("SansSerif", 12){
 					data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #red marker: false style: line;
 			}
-			chart "Mean PM10 Exposure" type: scatter x_label: string(step) + " Minute Steps" y_label: "µg" background: #black color: #white axes: #white size: {0.5,0.45} position: {0.5, 0.05} label_font: font("SansSerif", 12){
+			chart "Mean PM10 Exposure" type: scatter x_label: (string(int(step/60))) + " Minute Steps" y_label: "µg" background: #black color: #white axes: #white size: {0.5,0.45} position: {0.5, 0.05} label_font: font("SansSerif", 12){
 					data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #red marker: false style: line;
 			}
 			chart "Agent Age Distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.25} position: {0, 0.5} {
