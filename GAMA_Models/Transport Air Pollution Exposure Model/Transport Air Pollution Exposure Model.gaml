@@ -1,7 +1,8 @@
 /**
 * Name: TransportAirPollutionExposureModel
 * Author: Tabea Sonnenschein
-* Tags: 
+* Description:
+* Tags: Urban Health; 
 */
 
 model TransportAirPollutionExposureModel
@@ -13,7 +14,8 @@ global skills: [RSkill]{
 	file shape_file_buildings <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Buildings_RDNew.shp");
 	file shape_file_buildings2 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Diemen_Buildings.shp");
 	file shape_file_buildings3 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Oude Amstel_buildings.shp");
-    file shape_file_streets <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/cars/Car Traffic_RDNew.shp");
+//    file shape_file_streets <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/cars/Car Traffic_RDNew.shp");
+    file shape_file_streets <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/Amsterdam_roads_RDNew.shp");
     file shape_file_greenspace <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew.shp");
     file shape_file_Residences <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Residences_neighcode_RDNew.shp");    
     file shape_file_Schools <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_schools_RDNew.shp");
@@ -27,7 +29,7 @@ global skills: [RSkill]{
     file shape_file_Profess <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Foursquare/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp");
     file spatial_extent <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Amsterdam Diemen Oude Amstel Extent.shp");  
    	geometry shape <- envelope(spatial_extent); 
-   	map<string,rgb> color_per_type <- ["streets"::#aqua, "vegetation":: #green, "buildings":: #red, "noise":: #purple];
+   	map<string,rgb> color_per_type <- ["streets"::#aqua, "vegetation":: #green, "buildings":: #firebrick, "noise":: #purple];
    	list<geometry> Restaurants;
    	list<geometry> Entertainment;
     
@@ -84,7 +86,7 @@ global skills: [RSkill]{
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
         	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI'), scheduletype:: read('scheduletype')]; // careful: column 1 is has the index 0 in GAMA      //
     }
-    float step <- 5 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
+    float step <- 1 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
     date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
     int year;
 }
@@ -406,13 +408,13 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 	write "Current Activity: " + current_activity + "; Former Activity: " + former_activity;
 		 	if(point(destination_activity.location) != point(self.location)){
 		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
-//		 		write "Route Line:" + route_eucl_line;
 		 		trip_distance <- (self.location distance_to destination_activity);
 		 		if(path_memory != 1){
 		 			traveldecision <- 1;
 		 		}
 		 		else if(path_memory = 1){
 		 			 activity <- "commuting";
+		 			 track_path <-  path((track_geometry add_point(point(destination_activity))));  
 		 		}
 		 		path_memory <- 0;
 		 	}		 
@@ -433,7 +435,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
    reflex modalchoice when: make_modalchoice = 1 {
    	new_route <- 1;
    	make_modalchoice <- 0;
-	   		do add_belief(new_predicate("convenience", [ 	// construct of quality of infrastructure (walkability, bikability) and time needed for travel
+	   		do add_belief(new_predicate("convenience", [ 	// construct of quality of infrastructure (walkability, bikability)  and potentially more (e.g. time needed for travel)
 	   		"convenience_bike"::(float(get_predicate(get_belief_with_name("assumed_quality_infrastructure")).values["bikability"]) ), 
 	   		"convenience_walk"::(float(get_predicate(get_belief_with_name("assumed_quality_infrastructure")).values["walkability"]) ),
 	   		"convenience_car"::(float(get_predicate(get_belief_with_name("assumed_quality_infrastructure")).values["drivability"]))])); 
@@ -510,8 +512,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		  activity <- "commuting";
 		  new_route <- 0;
 		/// routing through OSRM via R interface
-		 write R_eval("origin = " + to_R_data(container(self.location CRS_transform("EPSG:4326"))));
-		 write R_eval("destination = " + to_R_data(container(point(destination_activity.location) CRS_transform("EPSG:4326"))));	
+		 unknown a <-  R_eval("origin = " + to_R_data(container(self.location CRS_transform("EPSG:4326"))));
+		 unknown a <-  R_eval("destination = " + to_R_data(container(point(destination_activity.location) CRS_transform("EPSG:4326"))));	
 		if(modalchoice = "walk"){
 		 	loop s over: Rcode_foot_routing.contents{
 				unknown a <- R_eval(s);
@@ -529,11 +531,11 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 			}
 		 }
 		list<point> track <- list(R_eval("track_points"));
-		track_geometry <- (to_GAMA_CRS(line(track),  "EPSG:4326")) add_point(point(destination_activity));
+		track_geometry <- to_GAMA_CRS(line(track),  "EPSG:4326") add_point(point(destination_activity));
 		track_path <-  path(track_geometry);     	  
+//		write "trackgeom:"+ track_geometry + "destination: " + destination_activity;
 		track_duration <- float(list(R_eval("route$duration"))[0]);  ///minutes
 		float track_length <- float(list(R_eval("route$distance"))[0]);	/// meters
-		write last((track_geometry));
 		if(current_activity = "work" and (former_activity = "at_Home" or former_activity = "sleeping")){
 				homeTOwork <- track_path;
 				homeTOwork_mode <- modalchoice;
@@ -571,7 +573,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				homeTOsuperm_mode <- modalchoice;
 				homeTOsuperm_geometry <- track_geometry ;
 				homeTOsuperm_duration <- track_duration;
-				supermTOhome_geometry <- line(reverse(container(geometry_collection(homeTOsuperm_geometry)))) add_point(residence.location);
+				supermTOhome_geometry <- line(reverse(container(geometry_collection(homeTOsuperm_geometry)))) add_point(self.residence.location);
 				supermTOhome <- path(supermTOhome_geometry);
 		}			
 	}
@@ -587,9 +589,10 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	
     reflex commuting when: activity = "commuting"{
 		do follow path: self.track_path speed: travelspeed[modalchoice];
-		if(self.location = destination_activity){
-			write "arrived";
-    		activity <- "perform_activity";
+		if((self.location = self.destination_activity.location)){
+			self.location <- destination_activity.location;
+//			write "arrived";
+			activity <- "perform_activity";
     		activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/( length(Environment_stressors overlapping self.track_geometry) + 1)) * inhalation_rate[modalchoice] * track_duration * AirPollution_Filter[modalchoice];
 			activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) +1) )  * track_duration * Noise_Filter[modalchoice];
     		hourly_PM10 <- hourly_PM10 + activity_PM10;
@@ -599,6 +602,11 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     		}
     		 else if(modalchoice = "walk"){
     			walk_exposure <- walk_exposure + track_duration;
+    		}
+    		if(modalchoice = "car"){
+    			ask (Environment_stressors overlapping track_geometry) {
+					AirPoll_PM2_5 <- AirPoll_PM2_5 + 10.0;
+				}
     		}
     	}
     }
@@ -654,9 +662,11 @@ grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
 	}
 	
 //	rgb color <- #green update: rgb(255 *(AirPoll_PM10/30.0) , 255 * (1 - (AirPoll_PM10/30.0)), 0.0);
-//	reflex stressor_adjustment{
-//		AirPoll_PM10 <- AirPoll_PM10 * 0.7;
-//		diffuse var: AirPoll_PM10 on: Environment_stressors proportion: 0.9 ;
+//	reflex stressor_adjustment when: (((current_date.minute mod 10) = 0) or (current_date.minute = 0)){
+//		if(AirPoll_PM2_5 != 0){
+//			diffuse var: AirPoll_PM2_5 on: Environment_stressors proportion: 0.3 radius: 1;
+//			AirPoll_PM2_5 <- AirPoll_PM2_5 * 0.3;
+//		}
 //	}
 	
 }
@@ -715,9 +725,9 @@ experiment TransportAirPollutionExposureModel type: gui {
     			draw shape color: #black;
     		}
        		graphics Buildings refresh: false{
-    			draw shape_file_buildings color: #red;
-    			draw shape_file_buildings2 color: #red;
-    			draw shape_file_buildings3 color: #red;
+    			draw shape_file_buildings color: #firebrick;
+    			draw shape_file_buildings2 color: #firebrick;
+    			draw shape_file_buildings3 color: #firebrick;
 			}
 			graphics Streets refresh: false{
     			draw shape_file_streets color: #aqua;
