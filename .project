@@ -115,6 +115,36 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/adult_schedule.txt</location>
 		</link>
 		<link>
+			<name>external/copy of Amsterdam Diemen Oude Amstel Extent.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Amsterdam_Foursquarevenues_Food_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Food_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Amsterdam_Foursquarevenues_Nightlife_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Nightlife_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Amsterdam_Foursquarevenues_Profess_other_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp</location>
+		</link>
+		<link>
 			<name>external/elderly_schedule.txt</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt</location>
