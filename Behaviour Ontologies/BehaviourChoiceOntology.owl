@@ -14,6 +14,7 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#HasA
 :HasA rdf:type owl:ObjectProperty ;
+      rdfs:subPropertyOf :hasAttribute ;
       rdfs:domain :Agent ;
       rdfs:range :Agent_States .
 
@@ -28,6 +29,37 @@
             rdfs:subPropertyOf :participatesIn ;
             rdfs:domain :Behavioural_Choice_Options ;
             rdfs:range :Choices .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#hasAge
+:hasAge rdf:type owl:ObjectProperty ;
+        rdfs:subPropertyOf :hasAttribute ;
+        rdfs:domain :Agent ;
+        rdfs:range [ rdf:type owl:Restriction ;
+                     owl:onProperty owl:topDataProperty ;
+                     owl:someValuesFrom xsd:nonNegativeInteger
+                   ] .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#hasAttribute
+:hasAttribute rdf:type owl:ObjectProperty .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#hasChoice
+:hasChoice rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf owl:topObjectProperty ;
+           rdfs:domain :Agent ;
+           rdfs:range :Behavioural_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#hasIncome
+:hasIncome rdf:type owl:ObjectProperty ;
+           rdfs:subPropertyOf :hasAttribute ;
+           rdfs:domain :Agent ;
+           rdfs:range [ rdf:type owl:Restriction ;
+                        owl:onProperty owl:topDataProperty ;
+                        owl:someValuesFrom xsd:nonNegativeInteger
+                      ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#involvedIn
@@ -46,6 +78,16 @@
 #################################################################
 #    Classes
 #################################################################
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Accessibility
+:Accessibility rdf:type owl:Class ;
+               rdfs:subClassOf :Environmental_Choice_Option_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Accidents
+:Accidents rdf:type owl:Class ;
+           rdfs:subClassOf :Environmental_Choice_Option_Attributes .
+
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Action
 :Action rdf:type owl:Class .
@@ -73,13 +115,23 @@
 :Agent_States rdf:type owl:Class .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_preferences
+:Agent_preferences rdf:type owl:Class ;
+                   rdfs:subClassOf :Agent_States .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#BMI
+:BMI rdf:type owl:Class ;
+     rdfs:subClassOf :Physiological_Attributes .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Behavioural_Choice_Options
 :Behavioural_Choice_Options rdf:type owl:Class ;
                             rdfs:subClassOf :ActionType .
 
 
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Choice_Determinants
-:Choice_Determinants rdf:type owl:Class .
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Choice_Option_Attributes
+:Choice_Option_Attributes rdf:type owl:Class .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Choices
@@ -87,19 +139,39 @@
          rdfs:subClassOf :Action .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Convenience
+:Convenience rdf:type owl:Class ;
+             rdfs:subClassOf :Agent_preferences .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Costs
+:Costs rdf:type owl:Class ;
+       rdfs:subClassOf :Environmental_Choice_Option_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Crime
+:Crime rdf:type owl:Class ;
+       rdfs:subClassOf :Environmental_Choice_Option_Attributes .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Demographic_Attributes
 :Demographic_Attributes rdf:type owl:Class ;
                         rdfs:subClassOf :Agent_Attributes .
 
 
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Environmental_Choice_Determinants
-:Environmental_Choice_Determinants rdf:type owl:Class ;
-                                   rdfs:subClassOf :Choice_Determinants .
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Environmental_Choice_Option_Attributes
+:Environmental_Choice_Option_Attributes rdf:type owl:Class ;
+                                        rdfs:subClassOf :Choice_Option_Attributes .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Modal_Choice_Options
 :Modal_Choice_Options rdf:type owl:Class ;
                       rdfs:subClassOf :Behavioural_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Norm_Abidence
+:Norm_Abidence rdf:type owl:Class ;
+               rdfs:subClassOf :Agent_preferences .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Obligatory_Choices
@@ -127,9 +199,24 @@
                           rdfs:subClassOf :Agent_Attributes .
 
 
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Social_Choice_Determinants
-:Social_Choice_Determinants rdf:type owl:Class ;
-                            rdfs:subClassOf :Choice_Determinants .
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Popularity
+:Popularity rdf:type owl:Class ;
+            rdfs:subClassOf :Social_Choice_Option_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Quality
+:Quality rdf:type owl:Class ;
+         rdfs:subClassOf :Environmental_Choice_Option_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Safety
+:Safety rdf:type owl:Class ;
+        rdfs:subClassOf :Agent_preferences .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Social_Choice_Option_Attributes
+:Social_Choice_Option_Attributes rdf:type owl:Class ;
+                                 rdfs:subClassOf :Choice_Option_Attributes .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Socioeconomic_Attributes
@@ -142,14 +229,154 @@
         rdfs:subClassOf :Agent_States .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Sustainability
+:Sustainability rdf:type owl:Class ;
+                rdfs:subClassOf :Social_Choice_Option_Attributes .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Voluntary_Choices
 :Voluntary_Choices rdf:type owl:Class ;
                    rdfs:subClassOf :Choices .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#affordability
+:affordability rdf:type owl:Class ;
+               rdfs:subClassOf :Agent_preferences .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#child
+:child rdf:type owl:Class ;
+       rdfs:subClassOf :household_position .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#employed
+:employed rdf:type owl:Class ;
+          rdfs:subClassOf :employment_Status .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#employment_Status
+:employment_Status rdf:type owl:Class ;
+                   rdfs:subClassOf :Socioeconomic_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#father
+:father rdf:type owl:Class ;
+        rdfs:subClassOf :household_position .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#female
+:female rdf:type owl:Class ;
+        rdfs:subClassOf :gender .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#gender
+:gender rdf:type owl:Class ;
+        rdfs:subClassOf :Demographic_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#grandfather
+:grandfather rdf:type owl:Class ;
+             rdfs:subClassOf :household_position .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#grandmother
+:grandmother rdf:type owl:Class ;
+             rdfs:subClassOf :household_position .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#household_composition
+:household_composition rdf:type owl:Class ;
+                       rdfs:subClassOf :Demographic_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#household_position
+:household_position rdf:type owl:Class ;
+                    rdfs:subClassOf :Demographic_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#income
+:income rdf:type owl:Class ;
+        rdfs:subClassOf :Socioeconomic_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#independent
+:independent rdf:type owl:Class ;
+             rdfs:subClassOf :household_position .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#male
+:male rdf:type owl:Class ;
+      rdfs:subClassOf :gender .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#mother
+:mother rdf:type owl:Class ;
+        rdfs:subClassOf :household_position .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#multiple_hh
+:multiple_hh rdf:type owl:Class ;
+             rdfs:subClassOf :household_composition .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#normal_weight
+:normal_weight rdf:type owl:Class ;
+               rdfs:subClassOf :BMI .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#obese
+:obese rdf:type owl:Class ;
+       rdfs:subClassOf :BMI .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#other
+:other rdf:type owl:Class ;
+       rdfs:subClassOf :gender .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#overweight
+:overweight rdf:type owl:Class ;
+            rdfs:subClassOf :BMI .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#physical_mobility
+:physical_mobility rdf:type owl:Class ;
+                   rdfs:subClassOf :Physiological_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#physically_immobile
+:physically_immobile rdf:type owl:Class ;
+                     rdfs:subClassOf :physical_mobility .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#physically_mobile
+:physically_mobile rdf:type owl:Class ;
+                   rdfs:subClassOf :physical_mobility .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#single_hh
+:single_hh rdf:type owl:Class ;
+           rdfs:subClassOf :household_composition .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#socialization
+:socialization rdf:type owl:Class ;
+               rdfs:subClassOf :Agent_preferences .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#unconscious_Behaviour
 :unconscious_Behaviour rdf:type owl:Class ;
                        rdfs:subClassOf :Performance .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#underweight
+:underweight rdf:type owl:Class ;
+             rdfs:subClassOf :BMI .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#unemployed
+:unemployed rdf:type owl:Class ;
+            rdfs:subClassOf :employment_Status .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#rational_Behaviour_(based_on_choice)
@@ -174,12 +401,23 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Walking
 :Walking rdf:type owl:NamedIndividual ,
-                  :Modal_Choice_Options .
+                  :Modal_Choice_Options ,
+                  :Physically_active .
 
 
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#physically_immobile
-:physically_immobile rdf:type owl:NamedIndividual ,
-                              :Physiological_Attributes .
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#physical_exercise
+:physical_exercise rdf:type owl:NamedIndividual ,
+                            :Activity_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#sleep
+:sleep rdf:type owl:NamedIndividual ,
+                :Activity_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#work
+:work rdf:type owl:NamedIndividual ,
+               :Activity_Choice_Options .
 
 
 ###  Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi

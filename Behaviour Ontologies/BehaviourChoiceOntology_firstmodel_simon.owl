@@ -1,0 +1,185 @@
+@prefix : <http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2> .
+
+<http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2> rdf:type owl:Ontology .
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#HasA
+:HasA rdf:type owl:ObjectProperty ;
+      rdfs:domain :Agent ;
+      rdfs:range :Agent_States .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#conditionOf
+:conditionOf rdf:type owl:ObjectProperty ;
+             rdfs:range :Action .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#eligibleIn
+:eligibleIn rdf:type owl:ObjectProperty ;
+            rdfs:subPropertyOf :participatesIn ;
+            rdfs:domain :Behavioural_Choice_Options ;
+            rdfs:range :Choices .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#involvedIn
+:involvedIn rdf:type owl:ObjectProperty ;
+            rdfs:subPropertyOf :participatesIn ;
+            rdfs:domain :Agent ;
+            rdfs:range :Action .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#participatesIn
+:participatesIn rdf:type owl:ObjectProperty ;
+                rdfs:subPropertyOf owl:topObjectProperty ;
+                rdfs:range :Action .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Action
+:Action rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#ActionType
+:ActionType rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Activity_Choice_Options
+:Activity_Choice_Options rdf:type owl:Class ;
+                         rdfs:subClassOf :Behavioural_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent
+:Agent rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_Attributes
+:Agent_Attributes rdf:type owl:Class ;
+                  rdfs:subClassOf :Agent_States .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_States
+:Agent_States rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Behavioural_Choice_Options
+:Behavioural_Choice_Options rdf:type owl:Class ;
+                            rdfs:subClassOf :ActionType .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Choice_Determinants
+:Choice_Determinants rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Choices
+:Choices rdf:type owl:Class ;
+         rdfs:subClassOf :Action .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Demographic_Attributes
+:Demographic_Attributes rdf:type owl:Class ;
+                        rdfs:subClassOf :Agent_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Environmental_Choice_Determinants
+:Environmental_Choice_Determinants rdf:type owl:Class ;
+                                   rdfs:subClassOf :Choice_Determinants .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Modal_Choice_Options
+:Modal_Choice_Options rdf:type owl:Class ;
+                      rdfs:subClassOf :Behavioural_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Obligatory_Choices
+:Obligatory_Choices rdf:type owl:Class ;
+                    rdfs:subClassOf :Choices .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Performance
+:Performance rdf:type owl:Class ;
+             rdfs:subClassOf :Action .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Physically_active
+:Physically_active rdf:type owl:Class ;
+                   rdfs:subClassOf :Behavioural_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Physically_passive
+:Physically_passive rdf:type owl:Class ;
+                    rdfs:subClassOf :Behavioural_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Physiological_Attributes
+:Physiological_Attributes rdf:type owl:Class ;
+                          rdfs:subClassOf :Agent_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Social_Choice_Determinants
+:Social_Choice_Determinants rdf:type owl:Class ;
+                            rdfs:subClassOf :Choice_Determinants .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Socioeconomic_Attributes
+:Socioeconomic_Attributes rdf:type owl:Class ;
+                          rdfs:subClassOf :Agent_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#States
+:States rdf:type owl:Class ;
+        rdfs:subClassOf :Agent_States .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Voluntary_Choices
+:Voluntary_Choices rdf:type owl:Class ;
+                   rdfs:subClassOf :Choices .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#unconscious_Behaviour
+:unconscious_Behaviour rdf:type owl:Class ;
+                       rdfs:subClassOf :Performance .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#rational_Behaviour_(based_on_choice)
+<http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#rational_Behaviour_(based_on_choice)> rdf:type owl:Class ;
+                                                                                                              rdfs:subClassOf :Performance .
+
+
+#################################################################
+#    Individuals
+#################################################################
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Biking
+:Biking rdf:type owl:NamedIndividual ,
+                 :Modal_Choice_Options ,
+                 :Physically_active .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Driving
+:Driving rdf:type owl:NamedIndividual ,
+                  :Modal_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Walking
+:Walking rdf:type owl:NamedIndividual ,
+                  :Modal_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#physically_immobile
+:physically_immobile rdf:type owl:NamedIndividual ,
+                              :Physiological_Attributes .
+
+
+###  Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi
