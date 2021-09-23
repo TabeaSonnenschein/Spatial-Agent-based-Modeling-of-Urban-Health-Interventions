@@ -120,6 +120,35 @@
                    rdfs:subClassOf :Agent_States .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_with_driving_choice
+:Agent_with_driving_choice rdf:type owl:Class ;
+                           owl:equivalentClass [ owl:intersectionOf ( :Agent
+                                                                      [ rdf:type owl:Restriction ;
+                                                                        owl:onProperty :hasChoice ;
+                                                                        owl:hasValue :Driving
+                                                                      ]
+                                                                    ) ;
+                                                 rdf:type owl:Class
+                                               ] ;
+                           rdfs:subClassOf :Agent ,
+                                           [ owl:intersectionOf ( :Agent
+                                                                  [ rdf:type owl:Restriction ;
+                                                                    owl:onProperty :HasA ;
+                                                                    owl:someValuesFrom :car_ownership
+                                                                  ]
+                                                                ) ;
+                                             rdf:type owl:Class
+                                           ] .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_without_driving_choice
+:Agent_without_driving_choice rdf:type owl:Class ;
+                              owl:equivalentClass [ rdf:type owl:Class ;
+                                                    owl:complementOf :Agent_with_driving_choice
+                                                  ] ;
+                              rdfs:subClassOf :Agent .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#BMI
 :BMI rdf:type owl:Class ;
      rdfs:subClassOf :Physiological_Attributes .
@@ -157,6 +186,11 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Demographic_Attributes
 :Demographic_Attributes rdf:type owl:Class ;
                         rdfs:subClassOf :Agent_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Device_dependent_choice_option
+:Device_dependent_choice_option rdf:type owl:Class ;
+                                rdfs:subClassOf :Behavioural_Choice_Options .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Environmental_Choice_Option_Attributes
@@ -224,6 +258,16 @@
                           rdfs:subClassOf :Agent_Attributes .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Spatially_fixed_Choice_Option
+:Spatially_fixed_Choice_Option rdf:type owl:Class ;
+                               rdfs:subClassOf :Behavioural_Choice_Options .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Spatially_flexible_Choice_Option
+:Spatially_flexible_Choice_Option rdf:type owl:Class ;
+                                  rdfs:subClassOf :Behavioural_Choice_Options .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#States
 :States rdf:type owl:Class ;
         rdfs:subClassOf :Agent_States .
@@ -242,6 +286,11 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#affordability
 :affordability rdf:type owl:Class ;
                rdfs:subClassOf :Agent_preferences .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#car_ownership
+:car_ownership rdf:type owl:Class ;
+               rdfs:subClassOf :privileges .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#child
@@ -354,6 +403,11 @@
                    rdfs:subClassOf :physical_mobility .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#privileges
+:privileges rdf:type owl:Class ;
+            rdfs:subClassOf :States .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#single_hh
 :single_hh rdf:type owl:Class ;
            rdfs:subClassOf :household_composition .
@@ -362,6 +416,16 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#socialization
 :socialization rdf:type owl:Class ;
                rdfs:subClassOf :Agent_preferences .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#sports_club_membership
+:sports_club_membership rdf:type owl:Class ;
+                        rdfs:subClassOf :privileges .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#student
+:student rdf:type owl:Class ;
+         rdfs:subClassOf :employment_Status .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#unconscious_Behaviour
@@ -390,34 +454,42 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Biking
 :Biking rdf:type owl:NamedIndividual ,
+                 :Device_dependent_choice_option ,
                  :Modal_Choice_Options ,
-                 :Physically_active .
+                 :Physically_active ,
+                 :Spatially_flexible_Choice_Option .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Driving
 :Driving rdf:type owl:NamedIndividual ,
-                  :Modal_Choice_Options .
+                  :Device_dependent_choice_option ,
+                  :Modal_Choice_Options ,
+                  :Spatially_flexible_Choice_Option .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Walking
 :Walking rdf:type owl:NamedIndividual ,
                   :Modal_Choice_Options ,
-                  :Physically_active .
+                  :Physically_active ,
+                  :Spatially_flexible_Choice_Option .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#physical_exercise
 :physical_exercise rdf:type owl:NamedIndividual ,
-                            :Activity_Choice_Options .
+                            :Activity_Choice_Options ,
+                            :Spatially_flexible_Choice_Option .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#sleep
 :sleep rdf:type owl:NamedIndividual ,
-                :Activity_Choice_Options .
+                :Activity_Choice_Options ,
+                :Spatially_fixed_Choice_Option .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#work
 :work rdf:type owl:NamedIndividual ,
-               :Activity_Choice_Options .
+               :Activity_Choice_Options ,
+               :Spatially_fixed_Choice_Option .
 
 
 ###  Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi
