@@ -23,7 +23,7 @@
 :considers rdf:type owl:ObjectProperty ;
            rdfs:domain :Agent_preferences ;
            rdfs:range :Agent_Attributes ,
-                      :Choice_Option_Attributes .
+                      :Perceived_Choice_Option_Attributes .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#eligibleIn
@@ -93,7 +93,7 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#ofA
 :ofA rdf:type owl:ObjectProperty ;
      rdfs:subPropertyOf owl:topObjectProperty ;
-     rdfs:domain :Choice_Option_Attributes ;
+     rdfs:domain :Perceived_Choice_Option_Attributes ;
      rdfs:range :Environment .
 
 
@@ -134,17 +134,14 @@
                rdfs:subClassOf :Convenience .
 
 
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Accidents
-:Accidents rdf:type owl:Class ;
-           rdfs:subClassOf :Choice_Option_Attributes .
-
-
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Action
-:Action rdf:type owl:Class .
+:Action rdf:type owl:Class ;
+        rdfs:subClassOf owl:Thing .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#ActionType
-:ActionType rdf:type owl:Class .
+:ActionType rdf:type owl:Class ;
+            rdfs:subClassOf owl:Thing .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Activity_Choice
@@ -162,7 +159,8 @@
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent
-:Agent rdf:type owl:Class .
+:Agent rdf:type owl:Class ;
+       rdfs:subClassOf owl:Thing .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_Abilities
@@ -181,12 +179,14 @@
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_States
-:Agent_States rdf:type owl:Class .
+:Agent_States rdf:type owl:Class ;
+              rdfs:subClassOf owl:Thing .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_preferences
 :Agent_preferences rdf:type owl:Class ;
-                   rdfs:subClassOf :Agent_States .
+                   rdfs:subClassOf :Agent_States ,
+                                   :Desire .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_with_biking_choice
@@ -257,7 +257,7 @@
                                                                               ) ;
                                                            rdf:type owl:Class
                                                          ] ;
-                                     rdfs:subClassOf :Agent ,
+                                     rdfs:subClassOf :Agent_without_biking_choice ,
                                                      [ owl:intersectionOf ( :Agent
                                                                             [ rdf:type owl:Restriction ;
                                                                               owl:onProperty :isA ;
@@ -292,6 +292,11 @@
                                         rdfs:subClassOf :Agent .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#BDI_concepts
+:BDI_concepts rdf:type owl:Class ;
+              rdfs:subClassOf owl:Thing .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#BMI
 :BMI rdf:type owl:Class ;
      rdfs:subClassOf :Physiological_Attributes .
@@ -302,9 +307,14 @@
                             rdfs:subClassOf :ActionType .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Belief
+:Belief rdf:type owl:Class ;
+        rdfs:subClassOf :BDI_concepts .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Bikability
 :Bikability rdf:type owl:Class ;
-            owl:equivalentClass [ owl:intersectionOf ( :Quality
+            owl:equivalentClass [ owl:intersectionOf ( :perceived_Quality
                                                        [ rdf:type owl:Restriction ;
                                                          owl:onProperty :ofA ;
                                                          owl:someValuesFrom :Bike_Network
@@ -312,7 +322,7 @@
                                                      ) ;
                                   rdf:type owl:Class
                                 ] ;
-            rdfs:subClassOf :Quality .
+            rdfs:subClassOf :perceived_Quality .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Bike_Network
@@ -351,10 +361,6 @@
              rdfs:subClassOf :Transport_Network .
 
 
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Choice_Option_Attributes
-:Choice_Option_Attributes rdf:type owl:Class .
-
-
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Choices
 :Choices rdf:type owl:Class ;
          rdfs:subClassOf :Action .
@@ -364,7 +370,7 @@
 :Comfort rdf:type owl:Class ;
          owl:equivalentClass [ rdf:type owl:Restriction ;
                                owl:onProperty :considers ;
-                               owl:someValuesFrom :Quality
+                               owl:someValuesFrom :perceived_Quality
                              ] ;
          rdfs:subClassOf :Convenience .
 
@@ -374,19 +380,14 @@
              rdfs:subClassOf :Agent_preferences .
 
 
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Costs
-:Costs rdf:type owl:Class ;
-       rdfs:subClassOf :Choice_Option_Attributes .
-
-
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Crime
-:Crime rdf:type owl:Class ;
-       rdfs:subClassOf :Choice_Option_Attributes .
-
-
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Demographic_Attributes
 :Demographic_Attributes rdf:type owl:Class ;
                         rdfs:subClassOf :Agent_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Desire
+:Desire rdf:type owl:Class ;
+        rdfs:subClassOf :BDI_concepts .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Destinations
@@ -401,7 +402,7 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Drivability
 :Drivability rdf:type owl:Class ;
-             owl:equivalentClass [ owl:intersectionOf ( :Quality
+             owl:equivalentClass [ owl:intersectionOf ( :perceived_Quality
                                                         [ rdf:type owl:Restriction ;
                                                           owl:onProperty :ofA ;
                                                           owl:someValuesFrom :Car_Network
@@ -409,7 +410,7 @@
                                                       ) ;
                                    rdf:type owl:Class
                                  ] ;
-             rdfs:subClassOf :Quality .
+             rdfs:subClassOf :perceived_Quality .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Driving
@@ -451,7 +452,8 @@
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Environment
-:Environment rdf:type owl:Class .
+:Environment rdf:type owl:Class ;
+             rdfs:subClassOf owl:Thing .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Groceries_shopping
@@ -472,12 +474,17 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Healthyness
 :Healthyness rdf:type owl:Class ;
-             rdfs:subClassOf :Norm_fulfillment .
+             rdfs:subClassOf :perceived_Norm_fulfillment .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Intension
+:Intension rdf:type owl:Class ;
+           rdfs:subClassOf :BDI_concepts .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Location_of_Choice_Option
 :Location_of_Choice_Option rdf:type owl:Class ;
-                           rdfs:subClassOf :Choice_Option_Attributes .
+                           rdfs:subClassOf :Perceived_Choice_Option_Attributes .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Modal_Choice
@@ -496,12 +503,11 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Norm_Abidence
 :Norm_Abidence rdf:type owl:Class ;
+               owl:equivalentClass [ rdf:type owl:Restriction ;
+                                     owl:onProperty :considers ;
+                                     owl:someValuesFrom :perceived_Norm_fulfillment
+                                   ] ;
                rdfs:subClassOf :Agent_preferences .
-
-
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Norm_fulfillment
-:Norm_fulfillment rdf:type owl:Class ;
-                  rdfs:subClassOf :Choice_Option_Attributes .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Obligatory_Choices
@@ -522,6 +528,12 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Pedestrian_Network
 :Pedestrian_Network rdf:type owl:Class ;
                     rdfs:subClassOf :Transport_Network .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Perceived_Choice_Option_Attributes
+:Perceived_Choice_Option_Attributes rdf:type owl:Class ;
+                                    rdfs:subClassOf :Belief ,
+                                                    owl:Thing .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Performance
@@ -562,19 +574,9 @@
                           rdfs:subClassOf :Agent_Attributes .
 
 
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Popularity
-:Popularity rdf:type owl:Class ;
-            rdfs:subClassOf :Choice_Option_Attributes .
-
-
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Public_Transport
 :Public_Transport rdf:type owl:Class ;
                   rdfs:subClassOf :Modal_Choice_Options .
-
-
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Quality
-:Quality rdf:type owl:Class ;
-         rdfs:subClassOf :Choice_Option_Attributes .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Residence
@@ -591,11 +593,11 @@
 :Safety rdf:type owl:Class ;
         owl:equivalentClass [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
                                                      owl:onProperty :considers ;
-                                                     owl:someValuesFrom :Accidents
+                                                     owl:someValuesFrom :perceived_Accidents
                                                    ]
                                                    [ rdf:type owl:Restriction ;
                                                      owl:onProperty :considers ;
-                                                     owl:someValuesFrom :Crime
+                                                     owl:someValuesFrom :perceived_Crime
                                                    ]
                                                  ) ;
                               rdf:type owl:Class
@@ -673,7 +675,7 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Sustainability
 :Sustainability rdf:type owl:Class ;
-                rdfs:subClassOf :Norm_fulfillment .
+                rdfs:subClassOf :perceived_Norm_fulfillment .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Time_Efficiency
@@ -683,7 +685,7 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Traffic_Accidents
 :Traffic_Accidents rdf:type owl:Class ;
-                   owl:equivalentClass [ owl:intersectionOf ( :Accidents
+                   owl:equivalentClass [ owl:intersectionOf ( :perceived_Accidents
                                                               [ rdf:type owl:Restriction ;
                                                                 owl:onProperty :ofA ;
                                                                 owl:someValuesFrom :Transport_Network
@@ -691,7 +693,7 @@
                                                             ) ;
                                          rdf:type owl:Class
                                        ] ;
-                   rdfs:subClassOf :Accidents .
+                   rdfs:subClassOf :perceived_Accidents .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Tram
@@ -721,7 +723,7 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Walkability
 :Walkability rdf:type owl:Class ;
-             owl:equivalentClass [ owl:intersectionOf ( :Quality
+             owl:equivalentClass [ owl:intersectionOf ( :perceived_Quality
                                                         [ rdf:type owl:Restriction ;
                                                           owl:onProperty :ofA ;
                                                           owl:someValuesFrom :Pedestrian_Network
@@ -729,7 +731,7 @@
                                                       ) ;
                                    rdf:type owl:Class
                                  ] ;
-             rdfs:subClassOf :Quality .
+             rdfs:subClassOf :perceived_Quality .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Walking
@@ -771,11 +773,11 @@
 :affordability rdf:type owl:Class ;
                owl:equivalentClass [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
                                                             owl:onProperty :considers ;
-                                                            owl:someValuesFrom :Costs
+                                                            owl:someValuesFrom :income
                                                           ]
                                                           [ rdf:type owl:Restriction ;
                                                             owl:onProperty :considers ;
-                                                            owl:someValuesFrom :income
+                                                            owl:someValuesFrom :perceived_Costs
                                                           ]
                                                         ) ;
                                      rdf:type owl:Class
@@ -1006,6 +1008,36 @@
             rdfs:subClassOf :BMI .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#perceived_Accidents
+:perceived_Accidents rdf:type owl:Class ;
+                     rdfs:subClassOf :Perceived_Choice_Option_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#perceived_Costs
+:perceived_Costs rdf:type owl:Class ;
+                 rdfs:subClassOf :Perceived_Choice_Option_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#perceived_Crime
+:perceived_Crime rdf:type owl:Class ;
+                 rdfs:subClassOf :Perceived_Choice_Option_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#perceived_Norm_fulfillment
+:perceived_Norm_fulfillment rdf:type owl:Class ;
+                            rdfs:subClassOf :Perceived_Choice_Option_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#perceived_Popularity
+:perceived_Popularity rdf:type owl:Class ;
+                      rdfs:subClassOf :Perceived_Choice_Option_Attributes .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#perceived_Quality
+:perceived_Quality rdf:type owl:Class ;
+                   rdfs:subClassOf :Perceived_Choice_Option_Attributes .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#physical_mobility
 :physical_mobility rdf:type owl:Class ;
                    rdfs:subClassOf :Physiological_Attributes .
@@ -1033,6 +1065,10 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#socialization
 :socialization rdf:type owl:Class ;
+               owl:equivalentClass [ rdf:type owl:Restriction ;
+                                     owl:onProperty :considers ;
+                                     owl:someValuesFrom :perceived_Popularity
+                                   ] ;
                rdfs:subClassOf :Agent_preferences .
 
 
