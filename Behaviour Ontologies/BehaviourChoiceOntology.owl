@@ -19,6 +19,13 @@
       rdfs:range :Agent_States .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#considers
+:considers rdf:type owl:ObjectProperty ;
+           rdfs:domain :Agent_preferences ;
+           rdfs:range :Agent_Attributes ,
+                      :Choice_Option_Attributes .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#eligibleIn
 :eligibleIn rdf:type owl:ObjectProperty ;
             rdfs:subPropertyOf :participatesIn ;
@@ -69,13 +76,6 @@
                 rdfs:range :Environment .
 
 
-###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#influenced_by
-:influenced_by rdf:type owl:ObjectProperty ;
-               rdfs:domain :Agent_preferences ;
-               rdfs:range :Agent_Attributes ,
-                          :Choice_Option_Attributes .
-
-
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#involvedIn
 :involvedIn rdf:type owl:ObjectProperty ;
             rdfs:subPropertyOf :participatesIn ;
@@ -121,11 +121,11 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Accessibility
 :Accessibility rdf:type owl:Class ;
                owl:equivalentClass [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
-                                                            owl:onProperty :influenced_by ;
+                                                            owl:onProperty :considers ;
                                                             owl:someValuesFrom :Agent_Location
                                                           ]
                                                           [ rdf:type owl:Restriction ;
-                                                            owl:onProperty :influenced_by ;
+                                                            owl:onProperty :considers ;
                                                             owl:someValuesFrom :Location_of_Choice_Option
                                                           ]
                                                         ) ;
@@ -193,21 +193,21 @@
 :Agent_with_biking_choice rdf:type owl:Class ;
                           owl:equivalentClass [ owl:intersectionOf ( :Agent
                                                                      [ rdf:type owl:Restriction ;
-                                                                       owl:onProperty :HasA ;
-                                                                       owl:someValuesFrom :Bike_access
-                                                                     ]
-                                                                   ) ;
-                                                rdf:type owl:Class
-                                              ] ,
-                                              [ owl:intersectionOf ( :Agent
-                                                                     [ rdf:type owl:Restriction ;
-                                                                       owl:onProperty :HasA ;
-                                                                       owl:someValuesFrom :biking_ability
+                                                                       owl:onProperty :hasChoice ;
+                                                                       owl:someValuesFrom :Biking
                                                                      ]
                                                                    ) ;
                                                 rdf:type owl:Class
                                               ] ;
-                          rdfs:subClassOf :Agent .
+                          rdfs:subClassOf :Agent ,
+                                          [ rdf:type owl:Restriction ;
+                                            owl:onProperty :HasA ;
+                                            owl:someValuesFrom :Bike_access
+                                          ] ,
+                                          [ rdf:type owl:Restriction ;
+                                            owl:onProperty :HasA ;
+                                            owl:someValuesFrom :biking_ability
+                                          ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent_with_driving_choice
@@ -327,21 +327,18 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Biking
 :Biking rdf:type owl:Class ;
-        owl:equivalentClass [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
-                                                     owl:onProperty :in_environment ;
-                                                     owl:someValuesFrom :Bike_Network
-                                                   ]
-                                                   [ rdf:type owl:Restriction ;
-                                                     owl:onProperty :use ;
-                                                     owl:someValuesFrom :Bike_access
-                                                   ]
-                                                 ) ;
-                              rdf:type owl:Class
-                            ] ;
         rdfs:subClassOf :Device_dependent_choice_option ,
                         :Modal_Choice_Options ,
                         :Physically_active_Choice_Options ,
-                        :Spatially_flexible_Choice_Option .
+                        :Spatially_flexible_Choice_Option ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :in_environment ;
+                          owl:someValuesFrom :Bike_Network
+                        ] ,
+                        [ rdf:type owl:Restriction ;
+                          owl:onProperty :use ;
+                          owl:someValuesFrom :Bike_access
+                        ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Bus
@@ -366,7 +363,7 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Comfort
 :Comfort rdf:type owl:Class ;
          owl:equivalentClass [ rdf:type owl:Restriction ;
-                               owl:onProperty :influenced_by ;
+                               owl:onProperty :considers ;
                                owl:someValuesFrom :Quality
                              ] ;
          rdfs:subClassOf :Convenience .
@@ -417,29 +414,55 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Driving
 :Driving rdf:type owl:Class ;
-         owl:equivalentClass [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
-                                                      owl:onProperty :in_environment ;
-                                                      owl:someValuesFrom :Car_Network
-                                                    ]
-                                                    [ rdf:type owl:Restriction ;
-                                                      owl:onProperty :use ;
-                                                      owl:someValuesFrom :car_access
-                                                    ]
-                                                  ) ;
-                               rdf:type owl:Class
-                             ] ;
-         rdfs:subClassOf :Modal_Choice_Options ,
+         rdfs:subClassOf :Device_dependent_choice_option ,
+                         :Modal_Choice_Options ,
                          :Physically_passive_Choice_Options ,
-                         :Spatially_flexible_Choice_Option .
+                         :Spatially_flexible_Choice_Option ,
+                         [ rdf:type owl:Restriction ;
+                           owl:onProperty :in_environment ;
+                           owl:someValuesFrom :Car_Network
+                         ] ,
+                         [ rdf:type owl:Restriction ;
+                           owl:onProperty :use ;
+                           owl:someValuesFrom :car_access
+                         ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Eating
 :Eating rdf:type owl:Class ;
-        rdfs:subClassOf :Activity_Choice_Options .
+        rdfs:subClassOf :Activity_Choice_Options ,
+                        :Physically_passive_Choice_Options ,
+                        :Spatially_flexible_Choice_Option ,
+                        [ rdf:type owl:Class ;
+                          owl:unionOf ( [ rdf:type owl:Restriction ;
+                                          owl:onProperty :in_environment ;
+                                          owl:someValuesFrom :Residence
+                                        ]
+                                        [ rdf:type owl:Restriction ;
+                                          owl:onProperty :in_environment ;
+                                          owl:someValuesFrom :Restaurant
+                                        ]
+                                        [ rdf:type owl:Restriction ;
+                                          owl:onProperty :in_environment ;
+                                          owl:someValuesFrom :Workplace
+                                        ]
+                                      )
+                        ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Environment
 :Environment rdf:type owl:Class .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Groceries_shopping
+:Groceries_shopping rdf:type owl:Class ;
+                    rdfs:subClassOf :Activity_Choice_Options ,
+                                    :Physically_passive_Choice_Options ,
+                                    :Spatially_flexible_Choice_Option ,
+                                    [ rdf:type owl:Restriction ;
+                                      owl:onProperty :in_environment ;
+                                      owl:someValuesFrom :Supermarket
+                                    ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Gym
@@ -508,20 +531,20 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Physical_Exercise
 :Physical_Exercise rdf:type owl:Class ;
-                   owl:equivalentClass [ rdf:type owl:Class ;
-                                         owl:unionOf ( [ rdf:type owl:Restriction ;
-                                                         owl:onProperty :in_environment ;
-                                                         owl:someValuesFrom :Gym
-                                                       ]
-                                                       [ rdf:type owl:Restriction ;
-                                                         owl:onProperty :in_environment ;
-                                                         owl:someValuesFrom :Park
-                                                       ]
-                                                     )
-                                       ] ;
                    rdfs:subClassOf :Activity_Choice_Options ,
                                    :Physically_active_Choice_Options ,
-                                   :Spatially_flexible_Choice_Option .
+                                   :Spatially_flexible_Choice_Option ,
+                                   [ rdf:type owl:Class ;
+                                     owl:unionOf ( [ rdf:type owl:Restriction ;
+                                                     owl:onProperty :in_environment ;
+                                                     owl:someValuesFrom :Gym
+                                                   ]
+                                                   [ rdf:type owl:Restriction ;
+                                                     owl:onProperty :in_environment ;
+                                                     owl:someValuesFrom :Park
+                                                   ]
+                                                 )
+                                   ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Physically_active_Choice_Options
@@ -559,14 +582,19 @@
            rdfs:subClassOf :Destinations .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Restaurant
+:Restaurant rdf:type owl:Class ;
+            rdfs:subClassOf :Destinations .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Safety
 :Safety rdf:type owl:Class ;
         owl:equivalentClass [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
-                                                     owl:onProperty :influenced_by ;
+                                                     owl:onProperty :considers ;
                                                      owl:someValuesFrom :Accidents
                                                    ]
                                                    [ rdf:type owl:Restriction ;
-                                                     owl:onProperty :influenced_by ;
+                                                     owl:onProperty :considers ;
                                                      owl:someValuesFrom :Crime
                                                    ]
                                                  ) ;
@@ -582,13 +610,13 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Sleep
 :Sleep rdf:type owl:Class ;
-       owl:equivalentClass [ rdf:type owl:Restriction ;
-                             owl:onProperty :in_environment ;
-                             owl:someValuesFrom :Residence
-                           ] ;
        rdfs:subClassOf :Activity_Choice_Options ,
                        :Physically_passive_Choice_Options ,
-                       :Spatially_fixed_Choice_Option .
+                       :Spatially_fixed_Choice_Option ,
+                       [ rdf:type owl:Restriction ;
+                         owl:onProperty :in_environment ;
+                         owl:someValuesFrom :Residence
+                       ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Socioeconomic_Attributes
@@ -613,24 +641,24 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Study_At_Uni
 :Study_At_Uni rdf:type owl:Class ;
-              owl:equivalentClass [ rdf:type owl:Restriction ;
-                                    owl:onProperty :in_environment ;
-                                    owl:someValuesFrom :University
-                                  ] ;
               rdfs:subClassOf :Activity_Choice_Options ,
                               :Physically_passive_Choice_Options ,
-                              :Spatially_fixed_Choice_Option .
+                              :Spatially_fixed_Choice_Option ,
+                              [ rdf:type owl:Restriction ;
+                                owl:onProperty :in_environment ;
+                                owl:someValuesFrom :University
+                              ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Study_at_School
 :Study_at_School rdf:type owl:Class ;
-                 owl:equivalentClass [ rdf:type owl:Restriction ;
-                                       owl:onProperty :in_environment ;
-                                       owl:someValuesFrom :School
-                                     ] ;
                  rdfs:subClassOf :Activity_Choice_Options ,
                                  :Physically_passive_Choice_Options ,
-                                 :Spatially_fixed_Choice_Option .
+                                 :Spatially_fixed_Choice_Option ,
+                                 [ rdf:type owl:Restriction ;
+                                   owl:onProperty :in_environment ;
+                                   owl:someValuesFrom :School
+                                 ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Subway
@@ -706,24 +734,23 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Walking
 :Walking rdf:type owl:Class ;
-         owl:equivalentClass [ rdf:type owl:Restriction ;
-                               owl:onProperty :in_environment ;
-                               owl:someValuesFrom :Pedestrian_Network
-                             ] ;
-         rdfs:subClassOf :Device_dependent_choice_option ,
-                         :Modal_Choice_Options ,
+         rdfs:subClassOf :Modal_Choice_Options ,
                          :Physically_active_Choice_Options ,
-                         :Spatially_flexible_Choice_Option .
+                         :Spatially_flexible_Choice_Option ,
+                         [ rdf:type owl:Restriction ;
+                           owl:onProperty :in_environment ;
+                           owl:someValuesFrom :Pedestrian_Network
+                         ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Work
 :Work rdf:type owl:Class ;
-      owl:equivalentClass [ rdf:type owl:Restriction ;
-                            owl:onProperty :in_environment ;
-                            owl:someValuesFrom :Workplace
-                          ] ;
       rdfs:subClassOf :Activity_Choice_Options ,
-                      :Spatially_fixed_Choice_Option .
+                      :Spatially_fixed_Choice_Option ,
+                      [ rdf:type owl:Restriction ;
+                        owl:onProperty :in_environment ;
+                        owl:someValuesFrom :Workplace
+                      ] .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Workplace
@@ -743,11 +770,11 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#affordability
 :affordability rdf:type owl:Class ;
                owl:equivalentClass [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
-                                                            owl:onProperty :influenced_by ;
+                                                            owl:onProperty :considers ;
                                                             owl:someValuesFrom :Costs
                                                           ]
                                                           [ rdf:type owl:Restriction ;
-                                                            owl:onProperty :influenced_by ;
+                                                            owl:onProperty :considers ;
                                                             owl:someValuesFrom :income
                                                           ]
                                                         ) ;
@@ -803,15 +830,15 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#distances_willing_to_travel
 :distances_willing_to_travel rdf:type owl:Class ;
                              owl:equivalentClass [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
-                                                                          owl:onProperty :influenced_by ;
+                                                                          owl:onProperty :considers ;
                                                                           owl:someValuesFrom :BMI
                                                                         ]
                                                                         [ rdf:type owl:Restriction ;
-                                                                          owl:onProperty :influenced_by ;
+                                                                          owl:onProperty :considers ;
                                                                           owl:someValuesFrom :age
                                                                         ]
                                                                         [ rdf:type owl:Restriction ;
-                                                                          owl:onProperty :influenced_by ;
+                                                                          owl:onProperty :considers ;
                                                                           owl:someValuesFrom :physical_mobility
                                                                         ]
                                                                       ) ;
