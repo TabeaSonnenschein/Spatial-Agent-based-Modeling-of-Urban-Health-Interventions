@@ -155,7 +155,8 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Activity_Choice_Options
 :Activity_Choice_Options rdf:type owl:Class ;
-                         rdfs:subClassOf :Behavioural_Choice_Options .
+                         rdfs:subClassOf :Behavioural_Choice_Options ,
+                                         :Intension .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Agent
@@ -498,7 +499,8 @@
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Modal_Choice_Options
 :Modal_Choice_Options rdf:type owl:Class ;
-                      rdfs:subClassOf :Behavioural_Choice_Options .
+                      rdfs:subClassOf :Behavioural_Choice_Options ,
+                                      :Intension .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Norm_Abidence
