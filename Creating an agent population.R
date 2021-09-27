@@ -472,7 +472,8 @@ crossvalid = function(valid_df, agent_df, join_var, list_valid_var, agent_var, l
 ############################################################################################
 
 ################## loading the census datasets and if necessary subselecting relevant parts #################################
-setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics")
+allDataMetafolder = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population"
+setwd(paste(allDataMetafolder, "/CBS statistics", sep = ""))
 
 ## Neighborhood dataset
 popstats = read.csv("Neighborhood statistics 2020.csv") ## count of people per age group per neighborhood
@@ -495,7 +496,7 @@ colnames(migrat_age) = c("Leeftijd", "age")
 migrat_stats = merge(migrat_stats, migrat_age, all.x = T, all.y = F, by = "Leeftijd")
 
 # EDUCATION - AGE - SEX - MIGRATIONBACKGROUND
-setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/CBS statistics/socioeconomics")
+setwd(paste(allDataMetafolder, "/CBS statistics/socioeconomics", sep = ""))
 absolved_edu = read.csv("diplomaabsolvation conditioned by age sex and migrationbackground.csv")
 current_edu = read.csv("students conditioned by age sex and migrationbackground.csv")
 age_coding = read.csv("age_coding.csv")
