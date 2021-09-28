@@ -201,6 +201,24 @@
                                                 rdf:type owl:Class
                                               ] ;
                           rdfs:subClassOf :Agent ,
+                                          [ rdf:type owl:Class ;
+                                            owl:unionOf ( [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
+                                                                                   owl:onProperty :HasA ;
+                                                                                   owl:someValuesFrom :not_at_Home
+                                                                                 ]
+                                                                                 [ rdf:type owl:Restriction ;
+                                                                                   owl:onProperty :HasA ;
+                                                                                   owl:someValuesFrom :previousMode_biking
+                                                                                 ]
+                                                                               ) ;
+                                                            rdf:type owl:Class
+                                                          ]
+                                                          [ rdf:type owl:Restriction ;
+                                                            owl:onProperty :HasA ;
+                                                            owl:someValuesFrom :at_Home
+                                                          ]
+                                                        )
+                                          ] ,
                                           [ rdf:type owl:Restriction ;
                                             owl:onProperty :HasA ;
                                             owl:someValuesFrom :Bike_access
@@ -245,6 +263,24 @@
                                                                   ]
                                                                 ) ;
                                              rdf:type owl:Class
+                                           ] ,
+                                           [ rdf:type owl:Class ;
+                                             owl:unionOf ( [ owl:intersectionOf ( [ rdf:type owl:Restriction ;
+                                                                                    owl:onProperty :HasA ;
+                                                                                    owl:someValuesFrom :not_at_Home
+                                                                                  ]
+                                                                                  [ rdf:type owl:Restriction ;
+                                                                                    owl:onProperty :HasA ;
+                                                                                    owl:someValuesFrom :previousMode_driving
+                                                                                  ]
+                                                                                ) ;
+                                                             rdf:type owl:Class
+                                                           ]
+                                                           [ rdf:type owl:Restriction ;
+                                                             owl:onProperty :HasA ;
+                                                             owl:someValuesFrom :at_Home
+                                                           ]
+                                                         )
                                            ] .
 
 
@@ -258,7 +294,7 @@
                                                                               ) ;
                                                            rdf:type owl:Class
                                                          ] ;
-                                     rdfs:subClassOf :Agent_without_biking_choice ,
+                                     rdfs:subClassOf :Agent ,
                                                      [ owl:intersectionOf ( :Agent
                                                                             [ rdf:type owl:Restriction ;
                                                                               owl:onProperty :isA ;
@@ -457,6 +493,11 @@
              rdfs:subClassOf owl:Thing .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Green_Space
+:Green_Space rdf:type owl:Class ;
+             rdfs:subClassOf :Walkability .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Groceries_shopping
 :Groceries_shopping rdf:type owl:Class ;
                     rdfs:subClassOf :Activity_Choice_Options ,
@@ -481,6 +522,11 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Intension
 :Intension rdf:type owl:Class ;
            rdfs:subClassOf :BDI_concepts .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Land-use_mix
+:Land-use_mix rdf:type owl:Class ;
+              rdfs:subClassOf :Walkability .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Location_of_Choice_Option
@@ -576,6 +622,16 @@
                           rdfs:subClassOf :Agent_Attributes .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Population_density
+:Population_density rdf:type owl:Class ;
+                    rdfs:subClassOf :Walkability .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Previous_Trip_Mode
+:Previous_Trip_Mode rdf:type owl:Class ;
+                    rdfs:subClassOf :States .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Public_Transport
 :Public_Transport rdf:type owl:Class ;
                   rdfs:subClassOf :Modal_Choice_Options .
@@ -610,6 +666,11 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#School
 :School rdf:type owl:Class ;
         rdfs:subClassOf :Destinations .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Side_walk_presence
+:Side_walk_presence rdf:type owl:Class ;
+                    rdfs:subClassOf :Walkability .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#Sleep
@@ -1060,6 +1121,26 @@
                    rdfs:subClassOf :physical_mobility .
 
 
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#previousMode_biking
+:previousMode_biking rdf:type owl:Class ;
+                     rdfs:subClassOf :Previous_Trip_Mode .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#previousMode_driving
+:previousMode_driving rdf:type owl:Class ;
+                      rdfs:subClassOf :Previous_Trip_Mode .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#previousMode_walking
+:previousMode_walking rdf:type owl:Class ;
+                      rdfs:subClassOf :Previous_Trip_Mode .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#retail_environment
+:retail_environment rdf:type owl:Class ;
+                    rdfs:subClassOf :Walkability .
+
+
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#single_hh
 :single_hh rdf:type owl:Class ;
            rdfs:subClassOf :household_composition .
@@ -1077,6 +1158,11 @@
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#sports_club_membership
 :sports_club_membership rdf:type owl:Class ;
                         rdfs:subClassOf :Access .
+
+
+###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#street_connectivity
+:street_connectivity rdf:type owl:Class ;
+                     rdfs:subClassOf :Walkability .
 
 
 ###  http://www.semanticweb.org/tabea/ontologies/2021/8/untitled-ontology-2#student
