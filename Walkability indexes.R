@@ -5,11 +5,11 @@
 
 #1 Population density
 #2 Density of retail and service destinations (retail environment)
-#3 Land-use mix
+#3 Land-use mix (commercial, cultural) Shannon Entropy 
 #4 Street connectivity (intersection density)
 #5 Green space
-#6 Side walk presence
-
+#6 Side walk density
+#7 Public Transport Density
 
 
 
