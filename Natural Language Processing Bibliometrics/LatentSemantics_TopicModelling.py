@@ -4,7 +4,7 @@ import os
 # Load the regular expression library
 import re
 import numpy as np
-import PIL
+
 
 # Import the wordcloud library
 from wordcloud import WordCloud
@@ -23,27 +23,25 @@ import pyLDAvis
 import pickle
 
 
-# os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-os.chdir(r"C:\Dokumente\PhD EXPANSE\Literature\WOSref\CrossrefResults\txt")
+os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
+# os.chdir(r"C:\Dokumente\PhD EXPANSE\Literature\WOSref\CrossrefResults\txt")
 
-listOfFiles = os.listdir(path='C:/Dokumente/PhD EXPANSE/Literature/WOSref/CrossrefResults/txt')
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"txt"))
 print(listOfFiles)
 
 text_df = pd.DataFrame(columns= ["DOI", "text"])
 text_df['DOI'] = listOfFiles
-#text_df['DOI'] = text_df['DOI'].replace(".txt", "")
 print(text_df)
 
 for textdoc in listOfFiles:
     print(listOfFiles.index(textdoc))
     text_df.iloc[listOfFiles.index(textdoc), 0] = text_df.iloc[listOfFiles.index(textdoc), 0].replace(".txt", "")
-    text_df.iloc[listOfFiles.index(textdoc), 1] = str(open(textdoc, 'r').read())
+    text_df.iloc[listOfFiles.index(textdoc), 1] = str(open(os.path.join(os.getcwd(),("txt/" + textdoc)), 'r').read())
 
 print(text_df.head())
-#csv = os.path.join(os.getcwd(),"textcsv.csv")
-csv = r"C:\Dokumente\PhD EXPANSE\Literature\WOSref\CrossrefResults\textcsv.csv"
+csv = os.path.join(os.getcwd(),"textcsv.csv")
 pd.DataFrame(text_df).to_csv(csv)
-#
+
 # Remove punctuation
 text_df['paper_text_processed'] = \
 text_df['text'].map(lambda x: re.sub('[,\.!?]', '', x))
@@ -54,16 +52,18 @@ text_df['paper_text_processed'].map(lambda x: x.lower())
 text_df['paper_text_processed'].head()
 
 
- # Join the different processed titles together.
-long_string = ','.join(list(text_df.iloc[0, 2]))
+# Join the different processed titles together.
+long_string = ','.join(list((text_df.iloc[0, 2]).split()))
+print(long_string)
 # Create a WordCloud object
 wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='steelblue')
 # Generate a word cloud
 wordcloud.generate(long_string)
 # Visualize the word cloud
 wordcloud.to_image()
-#
-#
+wordcloud.to_file("article_wordcloud.jpg")
+
+
 stop_words = stopwords.words('english')
 stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
 def sent_to_words(sentences):
@@ -88,7 +88,7 @@ texts = data_words
 corpus = [id2word.doc2bow(text) for text in texts]
 # View
 print(corpus[:1][0][:30])
-
+print(corpus)
 #
 # # number of topics
 # num_topics = 10
