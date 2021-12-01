@@ -7,19 +7,20 @@ import numpy as np
 
 
 # Import the wordcloud library
-from wordcloud import WordCloud
+from gensim.corpora import Dictionary
+from wordcloud import WordCloud     # version 1.8.1
 
-import gensim
+import gensim   # version 4.1.2
 from gensim.utils import simple_preprocess
-import nltk
+import nltk     # version 3.6.5
 nltk.download('stopwords')
 from nltk.corpus import stopwords
 import gensim.corpora as corpora
 #
-# from pprint import pprint
+from pprint import pprint
 
-import pyLDAvis
-#import pyLDAvis.gensim
+import pyLDAvis     # version 3.3.1
+from pyLDAvis import gensim_models
 import pickle
 
 
@@ -54,7 +55,7 @@ text_df['paper_text_processed'].head()
 
 # Join the different processed titles together.
 long_string = ','.join(list((text_df.iloc[0, 2]).split()))
-print(long_string)
+# print(long_string)
 # Create a WordCloud object
 wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='steelblue')
 # Generate a word cloud
@@ -65,7 +66,8 @@ wordcloud.to_file("article_wordcloud.jpg")
 
 
 stop_words = stopwords.words('english')
-stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
+stop_words.extend(['from', 'subject', 're', 'edu', 'use', 'al', 'et', 'research',
+                   'studies', 'study', 'ref', 'res', 'also', 'analysis', 'literature', 'review', 'en'])
 def sent_to_words(sentences):
     for sentence in sentences:
         # deacc=True removes punctuations
@@ -77,32 +79,38 @@ data = text_df.paper_text_processed.values.tolist()
 data_words = list(sent_to_words(data))
 # remove stop words
 data_words = remove_stopwords(data_words)
-print(data_words[:1][0][:30])
-
+print(data_words[:1][0][:10])
+# print(data_words)
+file1 = open(os.path.join(os.getcwd(), 'Data_words.txt'), "w",
+             errors="replace")
+file1.writelines(str(data_words))
 
 # Create Dictionary
-id2word = corpora.Dictionary(data_words)
+id2word: Dictionary = corpora.Dictionary(data_words)
 # Create Corpus
 texts = data_words
 # Term Document Frequency
-corpus = [id2word.doc2bow(text) for text in texts]
+corpus= [id2word.doc2bow(text) for text in texts]
 # View
 print(corpus[:1][0][:30])
-print(corpus)
-#
-# # number of topics
-# num_topics = 10
-# # Build LDA model
-# lda_model = gensim.models.LdaMulticore(corpus=corpus,
-#                                        id2word=id2word,
-#                                        num_topics=num_topics)
-# # Print the Keyword in the 10 topics
-# pprint(lda_model.print_topics())
-# doc_lda = lda_model[corpus]
+# print(corpus)
+file1 = open(os.path.join(os.getcwd(), 'Corpus.txt'), "w",
+             errors="replace")
+file1.writelines(str(corpus))
 
-#
-#
-# # Visualize the topics
+# number of topics
+num_topics = 10
+# Build LDA model
+lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
+                                       id2word=id2word,
+                                       num_topics=num_topics)
+# Print the Keyword in the 10 topics
+pprint(lda_model.print_topics())
+doc_lda = lda_model[corpus]
+pprint(lda_model)
+
+
+# Visualize the topics
 # pyLDAvis.enable_notebook()
 # LDAvis_data_filepath = os.path.join('./results/ldavis_prepared_'+str(num_topics))
 # # # this is a bit time consuming - make the if statement True
@@ -116,3 +124,72 @@ print(corpus)
 #     LDAvis_prepared = pickle.load(f)
 # pyLDAvis.save_html(LDAvis_prepared, './results/ldavis_prepared_'+ str(num_topics) +'.html')
 # LDAvis_prepared
+
+visualisation = pyLDAvis.gensim_models.prepare(lda_model, corpus, id2word)
+pyLDAvis.save_html(visualisation, os.path.join(os.getcwd(),('LDA_Visualization' + str(num_topics) + '.html')))
+
+# # https://www.machinelearningplus.com/nlp/topic-modeling-gensim-python/
+#
+# # Compute Coherence Score
+# coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=id2word, coherence='c_v')
+# coherence_lda = coherence_model_lda.get_coherence()
+# print('\nCoherence Score: ', coherence_lda)
+#
+#
+# mallet_path = 'path/to/mallet-2.0.8/bin/mallet' # update this path
+# ldamallet = gensim.models.wrappers.LdaMallet(mallet_path, corpus=corpus, num_topics=20, id2word=id2word)
+# # Show Topics
+# pprint(ldamallet.show_topics(formatted=False))
+#
+# # Compute Coherence Score
+# coherence_model_ldamallet = CoherenceModel(model=ldamallet, texts=data_lemmatized, dictionary=id2word, coherence='c_v')
+# coherence_ldamallet = coherence_model_ldamallet.get_coherence()
+# print('\nCoherence Score: ', coherence_ldamallet)
+#
+# def compute_coherence_values(dictionary, corpus, texts, limit, start=2, step=3):
+#     """
+#     Compute c_v coherence for various number of topics
+#
+#     Parameters:
+#     ----------
+#     dictionary : Gensim dictionary
+#     corpus : Gensim corpus
+#     texts : List of input texts
+#     limit : Max num of topics
+#
+#     Returns:
+#     -------
+#     model_list : List of LDA topic models
+#     coherence_values : Coherence values corresponding to the LDA model with respective number of topics
+#     """
+#     coherence_values = []
+#     model_list = []
+#     for num_topics in range(start, limit, step):
+#         model = gensim.models.wrappers.LdaMallet(mallet_path, corpus=corpus, num_topics=num_topics, id2word=id2word)
+#         model_list.append(model)
+#         coherencemodel = CoherenceModel(model=model, texts=texts, dictionary=dictionary, coherence='c_v')
+#         coherence_values.append(coherencemodel.get_coherence())
+#
+#     return model_list, coherence_values
+#
+#
+# # Can take a long time to run.
+# model_list, coherence_values = compute_coherence_values(dictionary=id2word, corpus=corpus, texts=data_lemmatized, start=2, limit=40, step=6)
+#
+# # Show graph
+# limit=40; start=2; step=6;
+# x = range(start, limit, step)
+# plt.plot(x, coherence_values)
+# plt.xlabel("Num Topics")
+# plt.ylabel("Coherence score")
+# plt.legend(("coherence_values"), loc='best')
+# plt.show()
+#
+# # Print the coherence scores
+# for m, cv in zip(x, coherence_values):
+#     print("Num Topics =", m, " has Coherence Value of", round(cv, 4))
+#
+# # Select the model and print the topics
+# optimal_model = model_list[3]
+# model_topics = optimal_model.show_topics(formatted=False)
+# pprint(optimal_model.print_topics(num_words=10))
