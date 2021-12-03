@@ -118,9 +118,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string absolved_edu;		// "high", "medium", "low", 0
 	string BMI; 				//"underweight", "normal_weight", "moderate_overweight", "obese"
 	string scheduletype;																	// needs robust methodology
-	float budget <- rnd (800.0 , 5000.0); // Euros per month   								// needs robust methodology
-	int car_owner <- 0;																		// needs robust methodology
-	map<string,int> distance_willing_travel  ;												// needs robust methodology
+
 	
 	/// destination locations
 	geometry residence;
@@ -197,24 +195,33 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	float daily_Noise;
 	float yearly_Noise;
 	
-	//////// TRANSPORT BEHAVIOUR: BDI ///////////////
+	//////// TRANSPORT BEHAVIOUR ///////////////
 	bool probabilistic_choice <- true;
-	/// Transport Behaviour: Desires///
+	predicate travelTOdestination <- new_predicate("travelTOdestination");
+	/// Transport Behaviour: Behavioural Factors///
 	// there are also convenience and affordability, but they are defined inside the model
 	int safety;
 	int norm_abidence;
-	predicate travelTOdestination <- new_predicate("travelTOdestination");
-	
-	/// Transport Behaviour: Beliefs///
 	float assumed_traveltime;
-	float assumed_bikability;
-	float assumed_walkability; 
-//	predicate assumed_cost <- new_predicate("assumed_cost"); 
-//	predicate assumed_safety <- new_predicate("assumed_safety");
-//	predicate own_budget <- new_predicate("own_budget"); 
-//	predicate social_norms <- new_predicate("social_norms");
+	map<string, float> assumed_quality_infrastructure <- create_map(["walkability", "bikability", "drivability"], [0.0, 0.0, 0.0]);
+	map<string, float> affordability <- create_map(["perc_budget_bike", "perc_budget_walk", "perc_budget_car"], [0.0, 0.0, 0.0]);
 	
-	/// Transport Behaviour: Emotions ///
+	/// Transport Behaviour: Behavioural Factors Weights///
+	float infrastructure_quality_weight <- 0.8;
+	float safety_weight;
+	float affordability_weight <- 0.7;
+
+	/// Transport Behaviour: Behavioural Constraints///
+	int car_owner <- 0;																		// needs robust methodology
+	float budget <- rnd (800.0 , 5000.0); // Euros per month   								// needs robust methodology
+	map<string,int> distance_willing_travel  ;												// needs robust methodology
+	
+	/// Transport Behaviour: Utilities ///
+	float driving_utility;
+	float biking_utility;
+	float walking_utility;
+	float public_transport_utility;
+	
 	
 	
 /////// setting up the initial parameters and relations //////////
@@ -428,83 +435,43 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     	myself.traveldecision <- 0;	
     	myself.make_modalchoice <- 1;
     	ask myself{
-	   		do add_belief(new_predicate("assumed_quality_infrastructure", ["bikability"::mean(myself.bikability), "walkability"::mean(myself.walkability), "drivability"::mean(myself.drivability)])); 
+	   		assumed_quality_infrastructure <- ["bikability"::mean(myself.bikability), "walkability"::mean(myself.walkability), "drivability"::mean(myself.drivability)];
+			affordability <-["perc_budget_bike":: ((transport_costs["bike"] * (trip_distance/1000) )/((budget/31)-20)), 
+	   		"perc_budget_walk"::((transport_costs["walk"] * (trip_distance/1000) )/((budget/31)-20)),
+	   		"perc_budget_car":: ((transport_costs["car"] * (trip_distance/1000) )/((budget/31)-20))]; 
 //	   		do add_belief(new_predicate("assumed_traveltime", ["traveltime_bike"::(trip_distance/travelspeed["bike"]), "traveltime_walk"::(trip_distance/travelspeed["walk"]), "traveltime_car"::(trip_distance/travelspeed["car"])])); 
-    	}    	
+	   	}    	
     }
    reflex modalchoice when: make_modalchoice = 1 {
    	new_route <- 1;
    	make_modalchoice <- 0;
-	   		do add_belief(new_predicate("convenience", [ 	// construct of quality of infrastructure (walkability, bikability)  and potentially more (e.g. time needed for travel)
-	   		"convenience_bike"::(float(get_predicate(get_belief_with_name("assumed_quality_infrastructure")).values["bikability"]) ), 
-	   		"convenience_walk"::(float(get_predicate(get_belief_with_name("assumed_quality_infrastructure")).values["walkability"]) ),
-	   		"convenience_car"::(float(get_predicate(get_belief_with_name("assumed_quality_infrastructure")).values["drivability"]))])); 
-	   		do add_belief(new_predicate("affordability", [
-	   		"perc_budget_bike":: ((transport_costs["bike"] * (trip_distance/1000) )/((budget/31)-20)), 
-	   		"perc_budget_walk"::((transport_costs["walk"] * (trip_distance/1000) )/((budget/31)-20)),
-	   		"perc_budget_car":: ((transport_costs["car"] * (trip_distance/1000) )/((budget/31)-20))])); 
-//			write transport_safety["bike"];
-			if(trip_distance <= distance_willing_travel["walk"]){
-				if(car_owner = 1){
-					if(float(get_predicate(get_belief_with_name("affordability")).values["perc_budget_car"]) < 0.05){
-						if(float(get_predicate(get_belief_with_name("convenience")).values["convenience_car"]) > float(get_predicate(get_belief_with_name("convenience")).values["convenience_walk"]) 
-							and float(get_predicate(get_belief_with_name("convenience")).values["convenience_car"]) > float(get_predicate(get_belief_with_name("convenience")).values["convenience_bike"])
-						){
-						   	modalchoice <- "car";
-						}
-						else{
-							if(float(get_predicate(get_belief_with_name("convenience")).values["convenience_bike"]) > float(get_predicate(get_belief_with_name("convenience")).values["convenience_walk"])){
-								modalchoice <- "bike";	
-							}
-							else{
-								modalchoice <- "walk";	
-							}							
-						}
-					}
-					else{
-						if(float(get_predicate(get_belief_with_name("convenience")).values["convenience_bike"]) > float(get_predicate(get_belief_with_name("convenience")).values["convenience_walk"])){
-							modalchoice <- "bike";	
-						}
-						else{
-							modalchoice <- "walk";	
-						}
-					}
-				}
-				else{
-						if(float(get_predicate(get_belief_with_name("convenience")).values["convenience_bike"]) > float(get_predicate(get_belief_with_name("convenience")).values["convenience_walk"])){
-							modalchoice <- "bike";	
-						}
-						else{
-							modalchoice <- "walk";	
-						}					
-				}
+	driving_utility <- (affordability_weight * float(affordability["perc_budget_car"])) + (infrastructure_quality_weight * float(assumed_quality_infrastructure["drivability"]));
+	walking_utility <- (affordability_weight * float(affordability["perc_budget_walk"])) + (infrastructure_quality_weight * float(assumed_quality_infrastructure["walkability"]));
+	biking_utility <- (affordability_weight * float(affordability["perc_budget_bike"])) + (infrastructure_quality_weight * float(assumed_quality_infrastructure["bikability"]));
+	if(trip_distance <= distance_willing_travel["walk"]){
+		if(car_owner = 1){
+			modalchoice <- ["car", "walk", "bike"] at ([driving_utility, walking_utility, biking_utility] index_of  max([driving_utility, walking_utility, biking_utility]));	
+		}
+		else{
+			modalchoice <- ["walk", "bike"] at ([walking_utility, biking_utility] index_of  max([walking_utility, biking_utility]));			
+		}
+	}
+	else if(trip_distance <= distance_willing_travel["bike"]){
+		if(car_owner = 1){
+			modalchoice <- ["car","bike"] at ([driving_utility, biking_utility] index_of  max([driving_utility, biking_utility]));	
 			}
-			else if(trip_distance <= distance_willing_travel["bike"]){
-				if(car_owner = 1){
-					if(float(get_predicate(get_belief_with_name("affordability")).values["perc_budget_car"]) < 0.05){
-						if(float(get_predicate(get_belief_with_name("convenience")).values["convenience_car"]) > float(get_predicate(get_belief_with_name("convenience")).values["convenience_bike"])){
-						   	modalchoice <- "car";
-						}
-						else{
-							modalchoice <- "bike";							
-						}
-					}
-					else{
-						modalchoice <- "bike";	
-					}
-				}
-				else{
-					modalchoice <- "bike";	
-				}				
+		else{
+			modalchoice <- "bike";	
+			}				
+		}
+	else{
+		if(car_owner = 1){
+		 	modalchoice <- "car";
+		}
+		else{
+			modalchoice <- "bike";	
 			}
-			else{
-				if(car_owner = 1){
-				   	modalchoice <- "car";
-				}
-				else{
-					modalchoice <- "bike";	
-				}
-			}			
+		}			
 //		do add_desire(travelTOdestination);
 		write string(trip_distance) + " " + modalchoice ;
    }
