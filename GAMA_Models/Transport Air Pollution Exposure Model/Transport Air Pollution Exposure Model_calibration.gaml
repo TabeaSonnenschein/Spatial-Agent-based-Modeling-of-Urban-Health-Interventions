@@ -17,7 +17,8 @@ global skills: [RSkill]{
 //    file shape_file_streets <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/cars/Car Traffic_RDNew.shp");
     file shape_file_streets <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/Amsterdam_roads_RDNew.shp");
     file shape_file_greenspace <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew.shp");
-    file shape_file_Residences <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Residences_neighcode_RDNew.shp");    
+//    file shape_file_Residences <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Residences_neighcode_RDNew.shp");    
+    file shape_file_Residences <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Residences_PC4_RDNew.shp");    
     file shape_file_Schools <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_schools_RDNew.shp");
     file shape_file_Supermarkets <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_supermarkets_RDNew.shp");
     file shape_file_Universities <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_universities_RDNew.shp");
@@ -50,12 +51,17 @@ global skills: [RSkill]{
 //    csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop.csv", ";", string, true);
     file Rcode_agent_subsetting <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Subsetting_Synthetic_AgentPop_for_GAMA.R");
     csv_file Synth_Agent_file;
+    string SynthFile <- "Calibration data/AMS-pop.csv";
     
 //  loading agent schedules   /// need more robust method for schedules based on HETUS data
 	text_file kids_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/kids_schedule.txt");
 	text_file youngadult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/youngadult_schedule.txt");
 	text_file adult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/adult_schedule.txt");
 	text_file elderly_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt");
+
+//  loading ODIN population location along schedule
+	csv_file ODIN_locations <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration data/AMS-schedule_postcodes.csv");
+
 
 // Global variables transport
 	map<string, float> travelspeed <- create_map(["walk", "bike", "car"], [1.4, 3.33, 11.11]); /// meters per seconds (5km/h, 12km/h, 40km/h )
@@ -73,15 +79,17 @@ global skills: [RSkill]{
         write "setting up the model";
         do startR;
         write R_eval("nb_humans = " + to_R_data(nb_humans));
+        write R_eval("filename = " + to_R_data(SynthFile));
         loop s over: Rcode_agent_subsetting.contents{ 			/// the R code creates a csv file of a random subset of the synthetic agent population of specified size "nb_humans"
 							unknown a <- R_eval(s);
 						}
 		Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_GAMA.csv", ";", string, true); // this is the file that was created by the R code
 		Restaurants <- shape_file_Restaurants where (each.location != nil);
 		Entertainment <- shape_file_Entertainment where (each.location != nil);		
-		create Homes from: shape_file_Residences with: [Neighborhood:: read('nghb_cd')];
+		create Homes from: shape_file_Residences with: [Neighborhood:: read('PC4')];
+		create PC4_polygons from:PC4_file with: [Neighborhood:: read('')]
 		create Noise_day from: shape_file_NoiseContour_day with: [Decibel :: float(read('bovengrens'))] ;
-        create Humans from: Synth_Agent_file with:[Agent_ID :: read('Agent_ID'), Neighborhood :: read('neighb_code'), 
+        create Humans from: Synth_Agent_file with:[Agent_ID :: read('agent_ID'), Neighborhood :: read('postcode_home'), 
 	        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
         	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI'), scheduletype:: read('scheduletype')]; // careful: column 1 is has the index 0 in GAMA      //
@@ -119,6 +127,10 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string BMI; 				//"underweight", "normal_weight", "moderate_overweight", "obese"
 	string scheduletype;																	// needs robust methodology
 
+	/// calibration variables
+	container<string> ODIN_location;
+	string current_location;
+	string former_location;
 	
 	/// destination locations
 	geometry residence;
@@ -227,35 +239,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	
 /////// setting up the initial parameters and relations //////////
 	init{
-		  if(scheduletype = "youngadult"){
-		  	schedule <- list(youngadult_schedules_file);
-		  }
-		  else if (scheduletype = "adult"){
-		  	schedule <- list(adult_schedules_file);
-		  }
-		  else if (scheduletype = "kids"){
-		  	schedule <- list(kids_schedules_file);
-		  }
-		  else if (scheduletype = "elderly"){
-		  	schedule <- list(elderly_schedules_file);
-		  }
-		  residence <- one_of(Homes where ((each.Neighborhood = self.Neighborhood) and each.location != nil)) ;
-       	  location <- residence.location;
-       	  if(schedule contains "work"){
-       	  	    workplace <- one_of(shape_file_Profess);
-       	  }
-       	  if(schedule contains "school"){
-       	  		school <- closest_to(shape_file_Schools, self.location);
-       	  }
-       	  if(schedule contains "university"){
-				university <- closest_to(shape_file_Universities, self.location);
-       	  }
-       	  if(schedule contains "kindergarden"){
-				kindergarden <- closest_to(shape_file_Kindergardens, self.location);
-       	  }
-       	  if(schedule contains "groceries_shopping"){
-				supermarket <-  closest_to(shape_file_Supermarkets, self.location) ;
-       	  }       	     	
+		ODIN_location <- ODIN_locations; /// assign the container of the agent     	
        	  activity <- "perform_activity";
        	  if(age > 20){
        	  	if(flip(per_car_owners)){
@@ -284,153 +268,21 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
        	  }
        	  do startR;
 	}
-	
-/////// defining the Human transition functions (behaviour and exposure) //////////
-	reflex schedule_manager when: (((current_date.minute mod 10) = 0) or (current_date.minute = 0)){
-		 current_activity <- schedule[(int((current_date.minute/10) + (current_date.hour * 6)))];
+
+	reflex location_manager when: (((current_date.minute mod 10) = 0) or (current_date.minute = 0)){
+		current_location <- ODIN_location[(int((current_date.minute/10) + (current_date.hour * 6)))];
 		 if((int(current_date.minute) != 0) or (int(current_date.hour) != 0)){
-		 	former_activity <- schedule[int(((current_date.minute/10) + (current_date.hour * 6))-1)];
+		 	former_location <- ODIN_location[int(((current_date.minute/10) + (current_date.hour * 6))-1)];
 		 }
 		 else{
-		 	former_activity <- last(schedule) ;
+		 	former_location <- last(ODIN_location) ;
 		 }
-		 if(current_activity != former_activity){
-		 	if(current_activity = "work"){
-				destination_activity <- workplace;
-				if(homeTOwork != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
-					track_path <- homeTOwork;
-					track_geometry <- homeTOwork_geometry;
-					modalchoice <- homeTOwork_mode;
-					track_duration <- homeTOwork_duration;
-					path_memory <- 1;
-					write "saved pathway";
-				}		 		
+		 if(current_location != former_location){
+		 	 //	destination_activity <- any_location_in(PC4_polygons where Neighborhood == current_location) 
+		 	 traveldecision <- 1;	
+		 	 route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
+		 	trip_distance <- (self.location distance_to destination_activity);
 		 	}
-		 	else if(current_activity = "school"){
-		 		destination_activity <- school;
-		 		if(homeTOschool != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
-					track_path <- homeTOschool;
-					track_geometry <- homeTOschool_geometry;
-					modalchoice <- homeTOschool_mode;
-					track_duration <- homeTOschool_duration;
-					path_memory <- 1;
-					write "saved pathway";
-				}		
-		 	}
-		 	else if(current_activity = "university"){
-		 		destination_activity <- university;
-		 		if(homeTOuni != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
-					track_path <- homeTOuni;
-					track_geometry <- homeTOuni_geometry;
-					track_duration <- homeTOuni_duration;
-					modalchoice <- homeTOuni_mode;
-					path_memory <- 1;
-					write "saved pathway";
-				}		
-		 	}
-		 	else if(current_activity = "groceries_shopping"){
-		 		destination_activity <- supermarket;
-		 		if(homeTOsuperm != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
-					track_path <- homeTOsuperm;
-					track_geometry <- homeTOsuperm_geometry;
-					track_duration <- homeTOsuperm_duration;
-					modalchoice <- homeTOsuperm_mode;
-					path_memory <- 1;
-					write "saved pathway";
-				}		
-		 	}
-		 	else if(current_activity = "kindergarden"){
-		 		destination_activity <- kindergarden;
-		 		if(homeTOkinderga != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
-					track_path <- homeTOkinderga;
-					track_geometry <- homeTOkinderga_geometry;
-					track_duration <- homeTOkinderga_duration;
-					modalchoice <- homeTOkinderga_mode;
-					path_memory <- 1;
-					write "saved pathway";
-				}		
-		 	}
-		 	else if(current_activity = "sleeping" or current_activity = "at_Home"){
-		 		destination_activity <- self.residence.location;
-		 		if(workTOhome != nil and former_activity = "work"){
-					track_path <- workTOhome;
-					track_geometry <- workTOhome_geometry;
-					modalchoice <- homeTOwork_mode;
-					track_duration <- homeTOwork_duration;
-					path_memory <- 1;
-					write "saved pathway_ return";
-		 		}
-		 		else if(schoolTOhome != nil and former_activity = "school"){
-					track_path <- schoolTOhome;
-					track_geometry <- schoolTOhome_geometry;
-					modalchoice <- homeTOschool_mode;
-					track_duration <- homeTOschool_duration;
-					path_memory <- 1;
-					write "saved pathway_ return";
-		 		}
-		 		else if(uniTOhome != nil and self.location = university.location){
-					track_path <- uniTOhome;
-					track_geometry <- uniTOhome_geometry;
-					modalchoice <- homeTOuni_mode;
-					track_duration <- homeTOuni_duration;
-					path_memory <- 1;
-					write "saved pathway_ return";
-		 		}
-		 		else if(supermTOhome != nil and self.location = supermarket.location){
-					track_path <- supermTOhome;
-					track_geometry <- supermTOhome_geometry;
-					modalchoice <- homeTOsuperm_mode;
-					track_duration <- homeTOsuperm_duration;
-					path_memory <- 1;
-					write "saved pathway_ return";
-		 		}
-		 		else if(kindergaTOhome != nil and self.location = supermarket.location){
-					track_path <- kindergaTOhome;
-					track_geometry <- kindergaTOhome_geometry;
-					modalchoice <- homeTOkinderga_mode;
-					track_duration <- homeTOkinderga_duration;
-					path_memory <- 1;
-					write "saved pathway_ return";
-		 		}
-		 	}
-		 	else if(current_activity = "entertainment" ){
-		 		destination_activity <- one_of(Entertainment);
-		 		loop while: destination_activity = nil {
-		 			destination_activity <- one_of(Entertainment);
-		 		}
-		 	}
-		 	else if(current_activity = "eat" ){
-		 		if (one_of(Restaurants inside circle(500, self.location)) != nil){
-		 			destination_activity <- one_of(Restaurants inside circle(500, self.location));
-		 		}
-		 		else{
-		 			destination_activity <- closest_to(Restaurants, self.location);
-		 		}
-		 		loop while: destination_activity = nil {
-		 			destination_activity <- one_of(Restaurants);
-		 		}
-		 	}
-		 	else if(current_activity = "social_life" ){
-		 		destination_activity <- one_of(shape_file_Residences);
-		 	}
-		 	write "Current Activity: " + current_activity + "; Former Activity: " + former_activity;
-		 	if(point(destination_activity.location) != point(self.location)){
-		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
-		 		trip_distance <- (self.location distance_to destination_activity);
-		 		if(path_memory != 1){
-		 			traveldecision <- 1;
-		 		}
-		 		else if(path_memory = 1){
-		 			 activity <- "commuting";
-		 			 track_path <-  path((track_geometry add_point(point(destination_activity))));  
-		 		}
-		 		path_memory <- 0;
-		 	}		 
-		 	else{
-		 		activity <-"perform_activity";
-		 		traveldecision <- 0;
-		 	}
-		 }
 	}
 	perceive Env_Activity_Affordance_Travel target:(Perceivable_Environment where (each intersects route_eucl_line))  when: traveldecision = 1 {
     	myself.traveldecision <- 0;	

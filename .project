@@ -10,6 +10,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>external/AMS-pop.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration data/AMS-pop.csv</location>
+		</link>
+		<link>
 			<name>external/Agent_pop_GAMA.csv</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_GAMA.csv</location>
@@ -103,6 +108,11 @@
 			<name>external/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp</location>
+		</link>
+		<link>
+			<name>external/Residences_PC4_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Residences_PC4_RDNew.shp</location>
 		</link>
 		<link>
 			<name>external/Residences_neighcode_RDNew.shp</name>
