@@ -20,16 +20,18 @@ for file in listOfFiles:
         print("invalid PDF file")
     else:
         pass
-    # pdffileobj = pikepdf.Pdf.open(file)
-    # pdfreader = PyPDF2.PdfFileReader(pdffileobj)
-    x = pdfreader.numPages
-    print(str(x) + " Number of pages")
-    for i in range(0, x, 1):
-        print('page ' + str(i))
-        pageobj = pdfreader.getPage(i)
-        text = pageobj.extractText()
-        filename = str(file).replace(".pdf", "")
-        file1 = open(r'C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults\doi_' + filename + '.txt', "a", errors="replace")
-        print(" ".join(wordninja.split(text)))
-        file1.writelines(" ".join(wordninja.split(text)))
+        x = pdfreader.numPages
+        print(str(x) + " Number of pages")
+        for i in range(0, x, 1):
+            print('page ' + str(i))
+            pageobj = pdfreader.getPage(i)
+            text = pageobj.extractText()
+            sentences = text.split(".")
+            filename = str(file).replace(".pdf", "")
+            file1 = open(
+                r'C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults\doi_' + filename + '.txt',
+                "a", errors="replace")
+            for sentence in sentences:
+                print((" ".join(wordninja.split(sentence))) + ". ")
+                file1.writelines((" ".join(wordninja.split(sentence))) + ". ")
 
