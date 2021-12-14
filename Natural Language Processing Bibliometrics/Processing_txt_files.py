@@ -69,6 +69,7 @@ for index in complete_index:
         if reference_start[length_ref-1] > (len(text_df['text_clean'].iloc[index])/1.5):
             # print(text_df['text_clean'].iloc[index][reference_start[length_ref-1]:(reference_start[length_ref-1]+80)])
             print("passed the check")
+            text_df['text_clean'].iloc[index] = text_df['text_clean'].iloc[index][0: reference_start[length_ref-1]]
     else:
         reference_start = [m.start() for m in re.finditer('Bibliography', text_df['text_clean'].iloc[index])]
         if bool(reference_start):
@@ -76,10 +77,21 @@ for index in complete_index:
             print(reference_start)
             print(text_df['text_clean'].iloc[index][reference_start[length_ref - 1]:(reference_start[length_ref - 1] + 80)])
             text_df['text_clean'].iloc[index] = text_df['text_clean'].iloc[index][0:reference_start[length_ref - 2]]
-    # file1 = open(os.path.join(os.getcwd() , (text_df['DOI_filename'].iloc[index] + '.txt')),
-    #     "a", errors="replace")
-    # file1.writelines(text_df['text_clean'].iloc[index])
+    file1 = open(os.path.join(os.getcwd() , (text_df['DOI_filename'].iloc[index] + '.txt')),
+        "a", errors="replace")
+    file1.writelines(text_df['text_clean'].iloc[index])
 
-print(text_df[['fulltext', 'text_clean']].iloc[complete_index].head())
-csv = os.path.join(os.getcwd(),"textcsv.csv")
-pd.DataFrame(text_df).to_csv(csv)
+# print(text_df[['fulltext', 'text_clean']].iloc[complete_index].head())
+csv = os.path.join(os.getcwd(),"text_metadata.csv")
+pd.DataFrame(text_df.drop(['fulltext', 'text_clean'], axis=1)).to_csv(csv)
+print("Now the relevant sentences")
+keywords = ["variable", "significant", "factor", "determinant", "constraint", "facilitator", "barrier"]
+file1 = open(os.path.join(os.getcwd(), ('keyword_sentences.txt')),
+             "a", errors="replace")
+for index in complete_index:
+    text = text_df['text_clean'].iloc[index]
+    sentences = text.split(".")
+    for sentence in sentences:
+        if any(keyword in sentence.lower() for keyword in keywords):
+            print(sentence)
+            file1.writelines(str(text_df['DOI_filename'].iloc[index]) + ": " + sentence + ". \n")

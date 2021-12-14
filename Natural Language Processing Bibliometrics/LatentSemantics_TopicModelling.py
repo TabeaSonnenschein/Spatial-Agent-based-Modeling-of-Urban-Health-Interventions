@@ -28,7 +28,7 @@ os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref")
 # os.chdir(r"C:\Dokumente\PhD EXPANSE\Literature\WOSref\CrossrefResults\txt")
 
 # listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"txt"))
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"search3txt"))
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"cleantxt_all"))
 print(listOfFiles)
 
 text_df = pd.DataFrame(columns= ["DOI", "text"])
@@ -39,7 +39,7 @@ for textdoc in listOfFiles:
     print(listOfFiles.index(textdoc))
     text_df.iloc[listOfFiles.index(textdoc), 0] = text_df.iloc[listOfFiles.index(textdoc), 0].replace(".txt", "")
     # text_df.iloc[listOfFiles.index(textdoc), 1] = str(open(os.path.join(os.getcwd(),("txt/" + textdoc)), 'r').read())
-    text_df.iloc[listOfFiles.index(textdoc), 1] = str(open(os.path.join(os.getcwd(),("search3txt/" + textdoc)), 'r').read())
+    text_df.iloc[listOfFiles.index(textdoc), 1] = str(open(os.path.join(os.getcwd(),("cleantxt_all/" + textdoc)), 'r').read())
 
 print(text_df.head())
 csv = os.path.join(os.getcwd(),"textcsv.csv")
