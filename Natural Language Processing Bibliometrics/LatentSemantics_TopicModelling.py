@@ -23,11 +23,12 @@ import pyLDAvis     # version 3.3.1
 from pyLDAvis import gensim_models
 import pickle
 
-
-os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
+# os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
+os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref")
 # os.chdir(r"C:\Dokumente\PhD EXPANSE\Literature\WOSref\CrossrefResults\txt")
 
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"txt"))
+# listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"txt"))
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"cleantxt_all"))
 print(listOfFiles)
 
 text_df = pd.DataFrame(columns= ["DOI", "text"])
@@ -37,7 +38,8 @@ print(text_df)
 for textdoc in listOfFiles:
     print(listOfFiles.index(textdoc))
     text_df.iloc[listOfFiles.index(textdoc), 0] = text_df.iloc[listOfFiles.index(textdoc), 0].replace(".txt", "")
-    text_df.iloc[listOfFiles.index(textdoc), 1] = str(open(os.path.join(os.getcwd(),("txt/" + textdoc)), 'r').read())
+    # text_df.iloc[listOfFiles.index(textdoc), 1] = str(open(os.path.join(os.getcwd(),("txt/" + textdoc)), 'r').read())
+    text_df.iloc[listOfFiles.index(textdoc), 1] = str(open(os.path.join(os.getcwd(),("cleantxt_all/" + textdoc)), 'r').read())
 
 print(text_df.head())
 csv = os.path.join(os.getcwd(),"textcsv.csv")
@@ -67,7 +69,8 @@ wordcloud.to_file("article_wordcloud.jpg")
 
 stop_words = stopwords.words('english')
 stop_words.extend(['from', 'subject', 're', 'edu', 'use', 'al', 'et', 'research',
-                   'studies', 'study', 'ref', 'res', 'also', 'analysis', 'literature', 'review', 'en'])
+                   'studies', 'study', 'ref', 'res', 'also', 'analysis', 'literature',
+                   'review', 'en', 'journal', 'doi', 'however', 'co' 'fig'])
 def sent_to_words(sentences):
     for sentence in sentences:
         # deacc=True removes punctuations
