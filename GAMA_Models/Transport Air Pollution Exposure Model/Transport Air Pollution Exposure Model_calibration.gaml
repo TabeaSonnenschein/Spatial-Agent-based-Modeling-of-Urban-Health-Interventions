@@ -9,94 +9,138 @@ model TransportAirPollutionExposureModel
   
 global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
+		
+	string path_data <- "C:/Users/Marco/Documents/ABM_thesis/Data/";
+	string path_workspace <- "C:/Users/Marco/Documents/ABM_thesis/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
 	
-//	loading the spatial built environment
-	file shape_file_buildings <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Buildings_RDNew.shp");
-	file shape_file_buildings2 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Diemen_Buildings.shp");
-	file shape_file_buildings3 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Oude Amstel_buildings.shp");
-//    file shape_file_streets <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/cars/Car Traffic_RDNew.shp");
-    file shape_file_streets <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/Amsterdam_roads_RDNew.shp");
-    file shape_file_greenspace <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew.shp");
-//    file shape_file_Residences <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Residences_neighcode_RDNew.shp");    
-    file shape_file_Residences <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Residences_PC4_RDNew.shp");    
-    file shape_file_Schools <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_schools_RDNew.shp");
-    file shape_file_Supermarkets <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_supermarkets_RDNew.shp");
-    file shape_file_Universities <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_universities_RDNew.shp");
-    file shape_file_Kindergardens <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_kindergardens_RDNew.shp");
-    file shape_file_Restaurants <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Food_RDNew.shp");
-    file shape_file_Entertainment <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp");
-    file shape_file_ShopsnServ <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp");
-    file shape_file_Nightlife <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Nightlife_RDNew.shp");
-    file shape_file_Profess <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp");
-    file spatial_extent <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp");  
+	//	loading the spatial built environment
+	file shape_file_buildings <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Buildings_RDNew.shp");
+	file shape_file_buildings2 <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Diemen_Buildings.shp");
+	file shape_file_buildings3 <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Oude Amstel_buildings.shp");
+	// file shape_file_streets <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/cars/Car Traffic_RDNew.shp");
+    file shape_file_streets <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/Amsterdam_roads_RDNew.shp");
+    file shape_file_greenspace <- shape_file(path_data+"Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew_window.shp");
+	// file shape_file_Residences <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Residences_neighcode_RDNew.shp");    
+    file shape_file_Residences <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Residences_PC4_RDNew.shp");    
+    file shape_file_Schools <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_schools_RDNew.shp");
+    file shape_file_Supermarkets <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_supermarkets_RDNew.shp");
+    file shape_file_Universities <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_universities_RDNew.shp");
+    file shape_file_Kindergardens <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_kindergardens_RDNew.shp");
+    file shape_file_Restaurants <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Food_RDNew.shp");
+    file shape_file_Entertainment <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp");
+    file shape_file_ShopsnServ <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp");
+    file shape_file_Nightlife <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Nightlife_RDNew.shp");
+    file shape_file_Profess <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp");
+    file spatial_extent <- shape_file(path_data+"Amsterdam/SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp");  
    	geometry shape <- envelope(spatial_extent); 
    	map<string,rgb> color_per_type <- ["streets"::#aqua, "vegetation":: #green, "buildings":: #firebrick, "noise":: #purple];
    	list<geometry> Restaurants;
    	list<geometry> Entertainment;
     
-//  loading Environmental Stressor Maps
-	file shape_file_NoiseContour_night <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
-	file shape_file_NoiseContour_day <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp");
-//    file Tiff_file_PM2_5 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PM2_5_RDNew_clipped.tif");
+	//  loading Environmental Stressor Maps
+	file shape_file_NoiseContour_night <- shape_file(path_data+"Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
+	file shape_file_NoiseContour_day <- shape_file(path_data+"Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp");
+	// file Tiff_file_PM2_5 <- file(path_data+"Amsterdam/Environmental Stressors/Noise/PM2_5_RDNew_clipped.tif");
     bool display_air_poll <- true;
     
-    
-//  loading routing code
-    file Rcode_foot_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_foot.R");
-    file Rcode_car_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_car.R");
-    file Rcode_bike_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_bike.R");
+	//  loading routing code
+    file Rcode_foot_routing <- text_file(path_workspace+"OSRM_foot.R");
+    file Rcode_car_routing <- text_file(path_workspace+"OSRM_car.R");
+    file Rcode_bike_routing <- text_file(path_workspace+"OSRM_bike.R");
 
-//  loading agent population attributes
-    int nb_humans <- 150;
-//    csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop.csv", ";", string, true);
-    file Rcode_agent_subsetting <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Subsetting_Synthetic_AgentPop_for_GAMA.R");
+	//  loading agent population attributes
+    int nb_humans <- 30;
+    file Rcode_agent_subsetting <- text_file(path_workspace+"Subsetting_Synthetic_AgentPop_for_GAMA.R");
     csv_file Synth_Agent_file;
-    string SynthFile <- "Calibration data/AMS-pop.csv";
+    string Path_synth_pop_sub <- path_data+"Amsterdam/Calibration/Subset_pop.csv";
     
-//  loading agent schedules   /// need more robust method for schedules based on HETUS data
-	text_file kids_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/kids_schedule.txt");
-	text_file youngadult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/youngadult_schedule.txt");
-	text_file adult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/adult_schedule.txt");
-	text_file elderly_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt");
-
-//  loading ODIN population location along schedule
-	csv_file ODIN_locations <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration data/AMS-schedule_postcodes.csv");
-
-
-// Global variables transport
+	//  loading agent schedules   /// need more robust method for schedules based on HETUS data
+	text_file kids_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/kids_schedule.txt");
+	text_file youngadult_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/youngadult_schedule.txt");
+	text_file adult_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/adult_schedule.txt");
+	text_file elderly_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/elderly_schedule.txt");
+	
+	// Global variables transport
 	map<string, float> travelspeed <- create_map(["walk", "bike", "car"], [1.4, 3.33, 11.11]); /// meters per seconds (5km/h, 12km/h, 40km/h )
 	map<string, float> transport_costs<- create_map(["walk", "bike", "car"], [0, 0.01, 0.2 ]);  // Euros per 1km     												// needs robust methodology
 	map<string, float> transport_safety <- create_map(["walk", "bike", "car"], [0.05, 0.66, 0.1 ]);  //Percent of serious traffic accidents (SWOV)    				// needs robust methodology
 	float per_car_owners	<- 0.5;
 	
-// Global variables exposure
+	// Global variables exposure
 	map<string, float> inhalation_rate <- create_map(["walk", "bike", "normal"], [25.0, 40.0, 15.0]); /// breaths per minute  										// needs robust methodology
 	map<string, float> Noise_Filter <- create_map(["indoor", "car", "walk", "bike"], [0.20, 0.40, 1, 1]); /// percentage of Noise that remains (is not filtered)							// needs robust methodology
 	map<string, float> AirPollution_Filter <- create_map(["indoor", "car",  "walk", "bike"], [0.60, 0.80, 1, 1]); /// percentage of Air Pollution that remains (is not filtered)			// needs robust methodology
 	
-
+	
+	// Calibration
+	bool calibration_flag <- true;	// flag if we are doing calibration
+	file Rcode_ODiN_subset <- text_file(path_workspace+"Subsetting_ODiNpop_for_GAMA.R");
+	string Path_ODiN_pop <- path_data+"Amsterdam/Calibration/AMS-pop.csv";
+	string Path_ODiN_sub <- path_data+"Amsterdam/Calibration/Subset_pop.csv";
+	string Path_schedule <- path_data+"Amsterdam/Calibration/AMS-schedule_postcodes.csv";
+	string Path_modal_choices <- path_data+"Amsterdam/Calibration/AMS-modal_choices.csv";
+	csv_file ODIN_locations_file;	// ODIN population location schedule
+	file pc4_AMS_file <- shape_file(path_data+"Amsterdam/Calibration/AMS-PC4_polygons/AMS-PC4_polygons.shp");	// loading Amsterdam locations for moving the agents
+   
+	
     init  {
         write "setting up the model";
+        // subset the population
         do startR;
         write R_eval("nb_humans = " + to_R_data(nb_humans));
-        write R_eval("filename = " + to_R_data(SynthFile));
-        loop s over: Rcode_agent_subsetting.contents{ 			/// the R code creates a csv file of a random subset of the synthetic agent population of specified size "nb_humans"
-							unknown a <- R_eval(s);
-						}
-		Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_GAMA.csv", ";", string, true); // this is the file that was created by the R code
+        
+        if(calibration_flag){
+        	write R_eval("path_ODiN_pop = " + to_R_data(Path_ODiN_pop));
+        	write R_eval("path_ODiN_sub = " + to_R_data(Path_ODiN_sub));
+        	write R_eval("path_schedule = " + to_R_data(Path_schedule));
+        	write R_eval("path_modal_choices = " + to_R_data(Path_modal_choices));
+        	
+        	loop s over: Rcode_ODiN_subset.contents{ 			/// the R code creates a csv file of a random subset of the synthetic agent population of specified size "nb_humans"
+        		unknown a <- R_eval(s); // execute each line of the R script
+			}
+			Synth_Agent_file <- csv_file(Path_ODiN_sub, ";", string, true); // read the subsetted created population by the R script
+        } else {
+			loop s over: Rcode_agent_subsetting.contents{ 			/// the R code creates a csv file of a random subset of the synthetic agent population of specified size "nb_humans"
+        		unknown a <- R_eval(s); // execute each line of the R script
+			}
+			Synth_Agent_file <- csv_file(Path_synth_pop_sub, ";", string, true); // read the subsetted created population by the R script
+        }
+		write(Synth_Agent_file);
+		
+		// import the agentified elements
 		Restaurants <- shape_file_Restaurants where (each.location != nil);
 		Entertainment <- shape_file_Entertainment where (each.location != nil);		
 		create Homes from: shape_file_Residences with: [Neighborhood:: read('PC4')];
-		create PC4_polygons from:PC4_file with: [Neighborhood:: read('')]
 		create Noise_day from: shape_file_NoiseContour_day with: [Decibel :: float(read('bovengrens'))] ;
-        create Humans from: Synth_Agent_file with:[Agent_ID :: read('agent_ID'), Neighborhood :: read('postcode_home'), 
-	        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
-	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
-        	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI'), scheduletype:: read('scheduletype')]; // careful: column 1 is has the index 0 in GAMA      //
+		
+		// humans creation
+		if (!calibration_flag) {
+			// synthetic humans
+			create Humans from: Synth_Agent_file with:[Agent_ID :: read('Agent_ID'), Neighborhood :: read('neighb_code'), 
+		        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
+		        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
+	        	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI')]; // careful: column 1 is has the index 0 in GAMA
+		} else {
+			// polygons for displacements
+        	create PC4_polygons from: pc4_AMS_file with: [Neighborhood:: read('PC4')];	
+        	
+	        // humans for calibration
+	        create Humans from: Synth_Agent_file with:[Agent_ID :: string(read('agent_ID')), Neighborhood :: read('postcode_home'), 
+		        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
+		        hh_single :: int(read('hh_single')), has_child:: int(read('havechild')), 
+	        	absolved_edu:: read('absolved_edu'),
+	        	ODIN_locations_str:: string(read('lookup')),
+	        	ODIN_modal_choices_str:: string(read('modal_choices'))
+	        	]; // careful: column 1 is has the index 0 in GAMA      //
+		}
     }
     float step <- 1 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
     date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
     int year;
+}
+
+species PC4_polygons {
+	string Neighborhood;
 }
 
 species Homes{
@@ -109,10 +153,10 @@ species Noise_day{
 }
 
 species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
-	 // definition of attributes, actions, behaviors	
+	// definition of attributes, actions, behaviors	
 	 
-/////// declaring variables //////////
-	 /// individual characteristics
+	/////// declaring variables //////////
+	/// individual characteristics
 	string Agent_ID;
 	int Agent_index;
 	string Neighborhood;
@@ -128,9 +172,16 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string scheduletype;																	// needs robust methodology
 
 	/// calibration variables
-	container<string> ODIN_location;
+	string ODIN_locations_str;
+	list<string> ODIN_locations;
+	string ODIN_modal_choices_str;
+	list<string> ODIN_modal_choices;
 	string current_location;
-	string former_location;
+	string former_location;		
+	int counter_modal_choice <- -1;
+	int counter_correct_modal_choices <- 0;
+	int counter_total_modal_choices <- 0;
+	float modal_choice_accuracy;
 	
 	/// destination locations
 	geometry residence;
@@ -239,51 +290,99 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	
 /////// setting up the initial parameters and relations //////////
 	init{
-		ODIN_location <- ODIN_locations; /// assign the container of the agent     	
-       	  activity <- "perform_activity";
-       	  if(age > 20){
-       	  	if(flip(per_car_owners)){
-       	  		car_owner <- 1;
+		// postcode schedule 10 mins: convert the postcodes string into a list of postcodes
+		string cs <- "";
+		loop s over:list(self.ODIN_locations_str) {
+			if s!='-' {cs <- cs+s;}
+			else {self.ODIN_locations <+ cs; cs <- "";}
+		}
+		self.ODIN_locations <+ cs;
+		
+		// initialise the location
+		int index_min;
+		if (int(current_date.minute)=0) {
+			index_min <- 0;
+		} else {
+			index_min <- int(current_date.minute)/10;
+		}
+		int index <- int(current_date.hour)*6 + index_min;
+		self.former_location<-self.ODIN_locations[index];
+		self.current_location<-self.ODIN_locations[index];
+		if (self.former_location='outsideAMS'){	// if agent start outside Amsterdam it is initialised with the home postcode instead
+			self.location<-(PC4_polygons where (each.Neighborhood = self.Neighborhood))[0].shape;
+		} else {
+			self.location<-(PC4_polygons where (each.Neighborhood = self.former_location))[0].shape;
+		}
+
+		
+		// modal choices: convert the string into list
+		cs <- "";
+		loop s over:list(self.ODIN_modal_choices_str) {
+			if s!='-' {cs <- cs+s;}
+			else {self.ODIN_modal_choices <+ cs; cs <- "";}
+		}
+		self.ODIN_modal_choices <+ cs;
+		
+		activity <- "perform_activity";
+		if(age > 20){
+			if(flip(per_car_owners)){
+				car_owner <- 1;
        	  	}
-       	  }
-       	  if(BMI != "moderate_overweight" and BMI != "obese"){
-       	  	if(age <= 8){
-       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [600, 0, 0 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
+       	}
+       	
+       	if(BMI != "moderate_overweight" and BMI != "obese"){
+       		if(age <= 8){
+       			distance_willing_travel <- create_map(["walk", "bike", "car"], [600, 0, 0 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
        	  	}
-       	  	 if(age > 8 and age<= 17){
+       	  	if(age > 8 and age<= 17){
        	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 0 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
        	  	}
        	  	if(age < 50 and age > 17){
        	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1500, 6000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
-       	  	}
-       	  	else if(age >= 50 and age < 70){
+       	  	}else if(age >= 50 and age < 70){
        	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1500, 3000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
-       	  	}
-       	  	else if(age >= 70){
+       	  	}else if(age >= 70){
        	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
        	  	}
-       	  }
-       	  else{
+       	}else{
        	  	distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
-       	  }
-       	  do startR;
+       	}
+       	do startR;
 	}
-
+	
+	
 	reflex location_manager when: (((current_date.minute mod 10) = 0) or (current_date.minute = 0)){
-		current_location <- ODIN_location[(int((current_date.minute/10) + (current_date.hour * 6)))];
-		 if((int(current_date.minute) != 0) or (int(current_date.hour) != 0)){
-		 	former_location <- ODIN_location[int(((current_date.minute/10) + (current_date.hour * 6))-1)];
-		 }
-		 else{
-		 	former_location <- last(ODIN_location) ;
-		 }
-		 if(current_location != former_location){
-		 	 //	destination_activity <- any_location_in(PC4_polygons where Neighborhood == current_location) 
-		 	 traveldecision <- 1;	
-		 	 route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
-		 	trip_distance <- (self.location distance_to destination_activity);
-		 	}
+		// executed every 10 minutes
+
+		// calculate the index to then retrieve	the postcode from the schedule	
+		int index_min;
+		if (int(current_date.minute)=0) {
+			index_min <- 0;
+		} else {
+			index_min <- int(current_date.minute)/10;
+		}
+		int index <- int(current_date.hour)*6 + index_min;
+		
+		// update location variables
+		self.current_location <- self.ODIN_locations[index];	// retrieve new location
+		if (index!=0) {	// if 00:00 there is no previous yet
+			self.former_location <- self.ODIN_locations[index-1];
+		}
+		
+		// displacement management
+		if (self.current_location != self.former_location) {	// when there is a location change
+			if ((self.current_location != 'outsideAMS') and (self.former_location != 'outsideAMS')) {	// if in Amsterdam -> new trip
+				destination_activity <- (PC4_polygons where (each.Neighborhood = self.current_location))[0].shape;	// cast into individual geometry
+				traveldecision <- 1; // flag that a new travel decision has to be made
+			 	route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));	// calculate trip to new location
+			 	trip_distance <- (self.location distance_to destination_activity); // calculate distance to new location
+			 	self.counter_modal_choice <- self.counter_modal_choice + 1;	// increment the modal choice counter for the extraction
+			} else if ((self.former_location='outsideAMS') and (self.current_location != 'outsideAMS')) {	// if the agent returns from outside Amsterdam, I just update with the new location (no trip)
+				self.location <- (PC4_polygons where (each.Neighborhood = self.current_location))[0].shape.location;
+			}	
+		}
 	}
+	
 	perceive Env_Activity_Affordance_Travel target:(Perceivable_Environment where (each intersects route_eucl_line))  when: traveldecision = 1 {
     	myself.traveldecision <- 0;	
     	myself.make_modalchoice <- 1;
@@ -295,6 +394,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 //	   		do add_belief(new_predicate("assumed_traveltime", ["traveltime_bike"::(trip_distance/travelspeed["bike"]), "traveltime_walk"::(trip_distance/travelspeed["walk"]), "traveltime_car"::(trip_distance/travelspeed["car"])])); 
 	   	}    	
     }
+    
    reflex modalchoice when: make_modalchoice = 1 {
    	new_route <- 1;
    	make_modalchoice <- 0;
@@ -324,12 +424,26 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		else{
 			modalchoice <- "bike";	
 			}
-		}			
+		}
+		
+		// calibration			
+		counter_total_modal_choices <- counter_total_modal_choices +1; // increment
+		if (modalchoice = self.ODIN_modal_choices[counter_modal_choice]) {
+			counter_correct_modal_choices <- counter_correct_modal_choices+1;
+			write('modal choice correctly predicted');
+		} else {
+			write("wrong modal choice predicted. Predicted: "+modalchoice+". True label: "+self.ODIN_modal_choices[counter_modal_choice]);
+		}
+		if (counter_correct_modal_choices!=0) {
+			self.modal_choice_accuracy <- counter_total_modal_choices/counter_correct_modal_choices;	// update accuracy counter
+		}
+		write("agent accuracy modal choices: "+self.modal_choice_accuracy);
+		
 		write string(trip_distance) + " " + modalchoice ;
    }
 	reflex routing when:  new_route = 1  {
-		  activity <- "commuting";
-		  new_route <- 0;
+		activity <- "commuting";
+		new_route <- 0;
 		/// routing through OSRM via R interface
 		unknown a <-  R_eval("origin = " + to_R_data(container(self.location CRS_transform("EPSG:4326"))));
 		unknown a <-  R_eval("destination = " + to_R_data(container(point(destination_activity.location) CRS_transform("EPSG:4326"))));	
@@ -466,6 +580,16 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 }
 
 
+// experiment?
+// list as long a n agents
+// everytime there is a travel per agent, I need to perceive it
+// each agent needs a counter of trips done?
+// I should check how many trips are in the same postcode actually
+// 
+
+
+
+
 grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
 	float AirPoll_PM2_5 <- 0.0;
 	float AirPoll_PM10 <- 0.0;
@@ -499,28 +623,29 @@ grid Perceivable_Environment cell_width: 100 cell_height: 100 parallel: true{
 
 experiment TransportAirPollutionExposureModel type: gui {
 	/** Insert here the definition of the input and output of the model */
-	parameter "Number of human agents" var: nb_humans min: 10 max: 10000  category: "Human attributes";
+	parameter "Number of human agents" var: nb_humans min: 1 max: 10000  category: "Human attributes";
 	parameter "Share of adult car owners" var: per_car_owners min: 0.0 max: 1.0 category: "Human attributes";	
 //	parameter "Visualize Air Pollution Field" var:display_air_poll among: [true, false] type:bool;
+	 
 	
 	output {
 		layout horizontal([1::6000,0::4000]) tabs: false;
 	
     	display stats type: java2D synchronized: true {
-        	overlay position: {0, 0} size: {1, 0.05} background: #black  border: #black {
-    	  	  		draw "Model Time: " + current_date color: #white font: font("SansSerif", 17) at: {40#px, 30#px};
-				}
-  	      chart "Transport Mode distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.5} position: {0.5, 0.5} label_font: font("SansSerif", 12){
- 		       	data "walk" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting") color:#green;
+			overlay position: {0, 0} size: {1, 0.05} background: #black  border: #black {
+				draw "Model Time: " + current_date color: #white font: font("SansSerif", 17) at: {40#px, 30#px};
+			}
+			chart "Transport Mode distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.5} position: {0.5, 0.5} label_font: font("SansSerif", 12){
+ 		    	data "walk" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting") color:#green;
 	        	data "bike" value: Humans count (each.modalchoice = "bike" and each.activity = "commuting") color:#blue;
    		     	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "commuting") color:#fuchsia;
    		     	data "not travelling" value: Humans count (each.activity = "perform_activity") color:#yellow;
-     	   }
+     	   	}
 			chart "Mean Noise Exposure" type: scatter x_label: (string(int(step/60))) + " Minute Steps"  y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.45} position: {0, 0.05} label_font: font("SansSerif", 12){
-					data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #red marker: false style: line;
+				data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #red marker: false style: line;
 			}
 			chart "Mean PM10 Exposure" type: scatter x_label: (string(int(step/60))) + " Minute Steps" y_label: "µg" background: #black color: #white axes: #white size: {0.5,0.45} position: {0.5, 0.05} label_font: font("SansSerif", 12){
-					data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #red marker: false style: line;
+				data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #red marker: false style: line;
 			}
 			chart "Agent Age Distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.25} position: {0, 0.5} {
 				data "0-10" value: Humans count (each.age <= 10) color:#teal;
@@ -556,32 +681,42 @@ experiment TransportAirPollutionExposureModel type: gui {
 			}
        		species Humans aspect: base ;
 //     	  	grid Environment_stressors elevation: (AirPoll_PM2_5 * 20.0) grayscale: true triangulation: true transparency: 0.7;
-			graphics Noise transparency: 0.7{
-			if(current_date.hour < 4 or current_date.hour > 22){
-				draw shape_file_NoiseContour_night color: #purple ;
-			}
-			else{
-				draw shape_file_NoiseContour_day color: #purple ;				
-			}
-			}
-//		graphics AirPollution{
+	/* 		graphics Noise transparency: 0.7{
+				if(current_date.hour < 4 or current_date.hour > 22){
+					draw shape_file_NoiseContour_night color: #purple ;
+				}
+				else{
+					draw shape_file_NoiseContour_day color: #purple ;				
+				}
+			}	*/
+//			graphics AirPollution{
 //				draw Tiff_file_PM2_5 color:#forestgreen ;
-//		}        
-        	 overlay position: {0, 0, 0} size: {180 #px, 130#px} background: #black rounded: false transparency: 0.0 {
-                float y <- 30#px;
-                loop type over: color_per_type.keys  {   
-                	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
-                	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
-                	draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
-                	draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);		// this might look confusing. Unfortunately overlay transparency is automatically set at 0.75 (highly transparent) and that cannot be changed.
-                    draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);		// this makes a legend hardly readable. Therefore I draw it multiple times above each other for stronger colors).
-                    draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
-                    draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
-                    y <- y + 25#px;
-                }
+//			} 
+
+        /* 
+        	overlay position: {0, 0, 0} size: {180 #px, 130#px} background: #black rounded: false transparency: 0.0 {
+        		float y <- 30#px;
+            	loop type over: color_per_type.keys  {   
+            		draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
+    	            draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
+        	        draw square(10#px) at: { 20#px, y} color: color_per_type[type] border: #white;
+            	    draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);		// this might look confusing. Unfortunately overlay transparency is automatically set at 0.75 (highly transparent) and that cannot be changed.
+                	draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);		// this makes a legend hardly readable. Therefore I draw it multiple times above each other for stronger colors).
+                	draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
+                	draw type at: { 50#px, y + 5#px} color: #white font: font("SansSerif", 16, #bold);
+                	y <- y + 25#px;
+            	}
             }    
+            */
    		 }
-    }
+   		 
+    } 
+    
+    
+    
+    
+    
+    
 }
 
 
