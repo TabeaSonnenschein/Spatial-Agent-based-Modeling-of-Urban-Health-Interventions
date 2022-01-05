@@ -7,7 +7,7 @@ import itertools
 import elsapy
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref")
-paper_DOIs = pd.read_csv("WOS_references_search3_reviews_DOIs.csv")
+paper_DOIs = pd.read_csv("WOS_references_search5_metareviews_DOIs.csv")
 print(paper_DOIs.iloc[:,0])
 
 
@@ -50,12 +50,12 @@ for paper in paper_DOIs.iloc[:,0]:
             xmlLink = np.char.split(np.array([s for s in array if "xml" in s][0]), sep = ",").tolist()[1]
             xmlLink = xmlLink.replace("<", "").replace(">", "")
             if any("elsevier" in s for s in array):
-                xmlLink= (xmlLink+"&apiKey=b4392aff9fe5150839817eb72bc2b70b")
+                xmlLink= (xmlLink+"&apiKey=b4392aff9fe5150839817eb72bc2b70b&insttoken=6ec21df6f452c6f1e466640cd0b51bfd")
             print(xmlLink)
             xmldoc = requests.get(xmlLink)
             paper_file = (paper.replace("/", "_") + '.txt')
-            with open(os.path.join(os.getcwd(),'CrossrefResults/xml/', paper_file), 'wb') as f:
-                f.write(xmldoc.content)
+#            with open(os.path.join(os.getcwd(),'CrossrefResults/xml/', paper_file), 'wb') as f:
+#                f.write(xmldoc.content)
         if any("pdf" in s for s in array):
             print("has pdf")
             if any("creativecommons" in s for s in array):
@@ -72,6 +72,7 @@ for paper in paper_DOIs.iloc[:,0]:
                 print("required lincese: " + str(license))
         if any("elsevier" in s for s in array):
             pdfLink= xmlLink.replace("text/xml", "application/pdf")
+            print(pdfLink)
             pdf = requests.get(pdfLink)
             paper_file = (paper.replace("/", "_") + '.pdf')
             with open(os.path.join(os.getcwd(), 'CrossrefResults/pdf/', paper_file), 'wb') as f:

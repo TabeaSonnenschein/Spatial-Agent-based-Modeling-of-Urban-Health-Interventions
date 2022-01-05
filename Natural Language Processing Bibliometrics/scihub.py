@@ -316,7 +316,7 @@ def main():
 sh = SciHub()
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref")
-paper_DOIs = pd.read_csv("WOS_references_search3_reviews_DOIs.csv")
+paper_DOIs = pd.read_csv("WOS_references_search5_metareviews_DOIs.csv")
 print(paper_DOIs.iloc[:,0])
 
 for paper in paper_DOIs.iloc[:,0]:

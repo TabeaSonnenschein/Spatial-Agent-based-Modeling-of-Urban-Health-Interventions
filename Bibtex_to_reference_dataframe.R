@@ -3,7 +3,7 @@ pkgs = c("stringr", "mgsub")
 sapply(pkgs, require, character.only = T) #load 
 
 setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper")
-ref_data = read.csv("search3_reference_data.csv")
+ref_data = read.csv("search5_reference_data.csv")
 
 length(which(!is.na(str_extract(ref_data$ï..input, "^file*"))))
 
@@ -68,7 +68,18 @@ ref_data_clean$keywords = mgsub(ref_data_clean$keywords, c("keywords = \\{", "\\
 ref_data_clean$year = mgsub(ref_data_clean$year, c("year = \\{", "\\}"), c("", ""))
 ref_data_clean$pages = mgsub(ref_data_clean$pages, c("pages = \\{", "\\},"), c("", ""))
 
-write.csv(ref_data_clean, "ref_data_clean.csv", row.names = F)
+write.csv(ref_data_clean, "ref_data5_clean.csv", row.names = F)
+ref_data_clean = read.csv("ref_data5_clean.csv")
+
+WOS_details = read.csv("WOS_references_search5_metareviews.csv")
+colnames(WOS_details)[1] = "doi"
+reference_details= merge(WOS_details, ref_data_clean, by = "doi")
+write.csv(reference_details, "metareview_details.csv")
+
+reference_details_short = reference_details[, c( "doi", "citation", "Publication.Year", "Source.Title", "Article.Title")]
+reference_details_short = WOS_details[, c( "doi", "citation", "Publication.Year", "Source.Title", "Article.Title")]
+write.csv(reference_details_short, "metareview_details_short.csv")
+
 
 ref_ids = ref_data_clean[, c("article_id", "doi", "file_name")]
 write.csv(ref_ids, "ref_ids.csv", row.names = F)

@@ -14,14 +14,15 @@ os.chdir(os.path.join(core_folder, "CrossrefResults"))
 # os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref")
 # os.chdir(r"C:\Dokumente\PhD EXPANSE\Literature\WOSref\CrossrefResults\txt")
 
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"txt"))
-# listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"search3txt"))
+
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"xml"))
 print(listOfFiles)
 
 text_df['DOI_filename'] = 'doi_' + text_df['doi']
 text_df['DOI_filename'] = [str(doi).replace("/", "_") for doi in text_df['DOI_filename']]
 text_df['fulltext'] = ''
 text_df['complete'] = 'empty'
+text_df['input_type'] = ''
 print(text_df.head())
 
 for textdoc in listOfFiles:
@@ -29,8 +30,24 @@ for textdoc in listOfFiles:
     print(doi_filename)
     index = text_df.index[text_df['DOI_filename'] == doi_filename].tolist()
     print("index: " + str(index))
-    text_df['fulltext'].iloc[index] = str(open(os.path.join(os.getcwd(),("txt/" + textdoc)), 'r').read()).replace(",", "")
+    text_df['fulltext'].iloc[index] = str(open(os.path.join(os.getcwd(),("txt/" + textdoc)), 'r').read())
     text_df['complete'].iloc[index] = 'complete'
+    textdoc['input_type'].iloc[index] = 'xml'
+
+
+
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(),"txt"))
+print(listOfFiles)
+
+
+for textdoc in listOfFiles:
+    doi_filename = str(textdoc.replace(".txt", ""))
+    print(doi_filename)
+    index = text_df.index[text_df['DOI_filename'] == doi_filename].tolist()
+    if text_df['complete'].iloc[index] == 'empty':
+        print("index: " + str(index))
+        text_df['fulltext'].iloc[index] = str(open(os.path.join(os.getcwd(),("txt/" + textdoc)), 'r').read()).replace(",", "")
+        text_df['complete'].iloc[index] = 'complete'
 
 
 os.chdir(core_folder)
