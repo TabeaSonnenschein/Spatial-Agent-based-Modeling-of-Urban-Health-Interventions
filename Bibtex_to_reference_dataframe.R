@@ -78,7 +78,7 @@ write.csv(reference_details, "metareview_details.csv")
 
 reference_details_short = reference_details[, c( "doi", "citation", "Publication.Year", "Source.Title", "Article.Title")]
 reference_details_short = WOS_details[, c( "doi", "citation", "Publication.Year", "Source.Title", "Article.Title")]
-write.csv(reference_details_short, "metareview_details_short.csv")
+write.csv(reference_details_short, "metareview_details_short.csv", row.names = F)
 
 
 ref_ids = ref_data_clean[, c("article_id", "doi", "file_name")]
