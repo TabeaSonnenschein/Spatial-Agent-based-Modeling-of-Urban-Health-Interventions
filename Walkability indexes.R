@@ -38,6 +38,7 @@ crs = "+init=EPSG:28992" #Amersfoort / RD New
 crs_name = "RDNew"
 extent = readOGR(dsn=paste(dataFolder, "/SpatialExtent", sep = "" ),layer="Amsterdam Diemen Oude Amstel Extent")
 extent = spTransform(extent, CRSobj = crs)
+city = "Amsterdam"
 
 ########################################
 #1 Population density
@@ -56,14 +57,25 @@ plot(Population_extent)
 ########################################
 setwd(paste(dataFolder, "/Built Environment/Facilities", sep = ""))
 
-Fsq = readOGR(dsn=paste(dataFolder, "/Built Environment/Facilities", sep = "") ,layer= paste(city, "_Fsq.csv", sep = ""))
+Fsq_Arts = read.csv(paste(city, "_Foursquarevenues_ArtsEntertainment.csv", sep = ""))
+Fsq_Food = read.csv(paste(city, "_Foursquarevenues_Food.csv", sep = ""))
+Fsq_Nightlife = read.csv(paste(city, "_Foursquarevenues_Nightlife.csv", sep = ""))
+Fsq_Shops = read.csv(paste(city, "_Foursquarevenues_ShopsServ.csv", sep = ""))
 
-"Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew"
-"Amsterdam_Foursquarevenues_Food_RDNew"
-"Amsterdam_Foursquarevenues_Nightlife_RDNew"
-"Amsterdam_Foursquarevenues_ShopsServ_RDNew"
+Fsq_retail= rbind(Fsq_Arts, Fsq_Food, Fsq_Nightlife, Fsq_Shops)
+Fsq_retail= unique(subset(Fsq_retail, select= -c(X)))
+coordinates(Fsq_retail)= ~lon+lat
+proj4string(Fsq_retail)=CRS("+proj=longlat +datum=WGS84") 
+Fsq_retail = spTransform(Fsq_retail, CRSobj = crs)
+Fsq_retai_extent = crop(Fsq_retail, extent(extent))
+
+
+#######################################
+#5 Green space
+#######################################
 
 
 
-
-
+#######################################
+#7 Public Transport Density
+#######################################
