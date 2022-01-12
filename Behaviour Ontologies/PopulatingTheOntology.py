@@ -40,7 +40,5 @@ for count, value in enumerate(meta_review_details['doi']):
         for DataPropertyValue in prop[paper_doi]:
             print(".%s == %s" % (prop.python_name, DataPropertyValue))
 
-
-
 onto.save(file = os.path.join(os.getcwd(),"extendedBehaviouralModelOntology.owl"), format = "rdfxml")
 

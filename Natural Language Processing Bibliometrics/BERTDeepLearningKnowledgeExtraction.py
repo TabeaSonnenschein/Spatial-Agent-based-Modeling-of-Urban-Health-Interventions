@@ -11,22 +11,26 @@ from transformers import BertForTokenClassification, AdamW
 from transformers import get_linear_schedule_with_warmup
 from seqeval.metrics import f1_score, accuracy_score
 import matplotlib.pyplot as plt
-%matplotlib inline
-
+#%matplotlib inline
 import seaborn as sns
+import os
+
 torch.__version__
 transformers.__version__
 
 ## settings (hardware usage and model parameters)
+print(torch.cuda.is_available())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 n_gpu = torch.cuda.device_count()
+print(n_gpu)
 torch.cuda.get_device_name(0)
 MAX_LEN = 75
 bs = 32
 
 ## loading and preparing data
-data = pd.read_csv("ner_dataset.csv", encoding="latin1").fillna(method="ffill")
-data.tail(10)
+os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
+data = pd.read_csv("10.1016_j.healthplace.2020.102337.csv", encoding="latin1").fillna(method="ffill")
+print(data.head(10))
 
 class SentenceGetter(object):
 
@@ -50,14 +54,18 @@ class SentenceGetter(object):
 
 
 getter = SentenceGetter(data)
+print(getter)
+
+sentences = [[word[0] for word in sentence] for sentence in getter.sentences]
+print(sentences[1])
 
 labels = [[s[2] for s in sentence] for sentence in getter.sentences]
-print(labels[0])
+print(labels)
 
 tag_values = list(set(data["Tag"].values))
 tag_values.append("PAD")
 tag2idx = {t: i for i, t in enumerate(tag_values)}
-
+print(tag_values)
 
 ## applying BERT
 # Prepare the sentences and labels
@@ -151,7 +159,7 @@ optimizer = AdamW(
 )
 
 
-epochs = 3
+epochs = 10
 max_grad_norm = 1.0
 
 # Total number of training steps is number of batches * number of epochs.
@@ -184,6 +192,7 @@ for _ in trange(epochs, desc="Epoch"):
         # add batch to gpu
         batch = tuple(t.to(device) for t in batch)
         b_input_ids, b_input_mask, b_labels = batch
+        b_labels = b_labels.to(torch.int64)
         # Always clear any previously calculated gradients before performing a backward pass.
         model.zero_grad()
         # forward pass
@@ -228,6 +237,7 @@ for _ in trange(epochs, desc="Epoch"):
     for batch in valid_dataloader:
         batch = tuple(t.to(device) for t in batch)
         b_input_ids, b_input_mask, b_labels = batch
+        b_labels = b_labels.to(torch.int64)
 
         # Telling the model not to compute or store gradients,
         # saving memory and speeding up validation
@@ -253,7 +263,13 @@ for _ in trange(epochs, desc="Epoch"):
     valid_tags = [tag_values[l_i] for l in true_labels
                                   for l_i in l if tag_values[l_i] != "PAD"]
     print("Validation Accuracy: {}".format(accuracy_score(pred_tags, valid_tags)))
-    print("Validation F1-Score: {}".format(f1_score(pred_tags, valid_tags)))
+    print(pred_tags)
+    print(valid_tags)
+    # a measure of a test's accuracy. It is calculated from the precision and recall of the test,
+    # where the precision is the number of true positive results divided by the number of all positive results,
+    # including those not identified correctly, and the recall is the number of true positive results
+    # divided by the number of all samples that should have been identified as positive.
+    # print("Validation F1-Score: {}".format(f1_score(pred_tags, valid_tags)))
     print()
 
 # Visualize the training loss
