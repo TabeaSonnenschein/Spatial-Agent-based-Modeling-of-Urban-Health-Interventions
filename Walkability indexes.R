@@ -201,7 +201,7 @@ writeOGR(walkability_grid, dsn=getwd() ,layer= "walkability_grid",driver="ESRI S
 writeRaster(walkability_grid_raster, "walkability_grid.tif", format = "GTiff", overwrite = T)
 walkability_measures = as.data.frame(walkability_grid)
 walkability_measures= subset(walkability_measures, select= -c(layer))
-write.csv(walkability_measures, "walkability_measures.csv", row.names = F)
+write.csv(walkability_measures, "walkability_measures.csv", row.names = F, quote=FALSE)
 
 
 #####################################
