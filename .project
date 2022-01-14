@@ -95,6 +95,11 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew.shp</location>
 		</link>
 		<link>
+			<name>external/Green Spaces_RDNew_window.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew_window.shp</location>
+		</link>
+		<link>
 			<name>external/Oude Amstel_buildings.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Oude Amstel_buildings.shp</location>
@@ -155,6 +160,81 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp</location>
 		</link>
 		<link>
+			<name>external/copy of Amsterdam_kindergardens_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Facilities/Amsterdam_kindergardens_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Amsterdam_roads_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Transport Infrastructure/Amsterdam_roads_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Amsterdam_schools_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Facilities/Amsterdam_schools_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Amsterdam_supermarkets_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Facilities/Amsterdam_supermarkets_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Amsterdam_universities_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Facilities/Amsterdam_universities_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Buildings_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Buildings/Buildings_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Diemen_Buildings.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Buildings/Diemen_Buildings.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Oude Amstel_buildings.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Buildings/Oude Amstel_buildings.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Residences_neighcode_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Buildings/Residences_neighcode_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Amsterdam Diemen Oude Amstel Extent.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Amsterdam_Foursquarevenues_Food_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Food_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Amsterdam_Foursquarevenues_Nightlife_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Nightlife_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Amsterdam_Foursquarevenues_Profess_other_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_ShopsServ_RDNew.shp</location>
+		</link>
+		<link>
 			<name>external/elderly_schedule.txt</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt</location>
@@ -163,6 +243,11 @@
 			<name>external/kids_schedule.txt</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/kids_schedule.txt</location>
+		</link>
+		<link>
+			<name>external/walkability_grid.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.shp</location>
 		</link>
 		<link>
 			<name>external/youngadult_schedule.txt</name>
