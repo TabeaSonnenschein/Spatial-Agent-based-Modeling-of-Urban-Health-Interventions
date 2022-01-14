@@ -6,9 +6,15 @@
 */
 
 model TransportAirPollutionExposureModel
+
+import "Transport Air Pollution Exposure Model_calibration.gaml"
   
 global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
+	float affordability_weight <- 0.7;
+	float infrastructure_quality_weight <- 0.8;
+	int n_diff_modal_choices <- 0;
+	int n_displacements <- 0;
 		
 	string path_data <- "C:/Users/Marco/Documents/ABM_thesis/Data/";
 	string path_workspace <- "C:/Users/Marco/Documents/ABM_thesis/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
@@ -49,7 +55,8 @@ global skills: [RSkill]{
     file Rcode_bike_routing <- text_file(path_workspace+"OSRM_bike.R");
 
 	//  loading agent population attributes
-    int nb_humans <- 30;
+    int nb_humans <- 10;
+    //int nb_humans <- 6247; // all
     file Rcode_agent_subsetting <- text_file(path_workspace+"Subsetting_Synthetic_AgentPop_for_GAMA.R");
     csv_file Synth_Agent_file;
     string Path_synth_pop_sub <- path_data+"Amsterdam/Calibration/Subset_pop.csv";
@@ -76,12 +83,15 @@ global skills: [RSkill]{
 	bool calibration_flag <- true;	// flag if we are doing calibration
 	file Rcode_ODiN_subset <- text_file(path_workspace+"Subsetting_ODiNpop_for_GAMA.R");
 	string Path_ODiN_pop <- path_data+"Amsterdam/Calibration/AMS-pop.csv";
-	string Path_ODiN_sub <- path_data+"Amsterdam/Calibration/Subset_pop.csv";
+	float seed_value <- int(self) + 1.0;
+	string Path_ODiN_sub <- path_data+"Amsterdam/Calibration/Subset_pop/Subset_pop"+seed_value+".csv";
 	string Path_schedule <- path_data+"Amsterdam/Calibration/AMS-schedule_postcodes.csv";
 	string Path_modal_choices <- path_data+"Amsterdam/Calibration/AMS-modal_choices.csv";
 	csv_file ODIN_locations_file;	// ODIN population location schedule
 	file pc4_AMS_file <- shape_file(path_data+"Amsterdam/Calibration/AMS-PC4_polygons/AMS-PC4_polygons.shp");	// loading Amsterdam locations for moving the agents
-   
+    float start_time <- machine_time;
+   	
+   	list results;
 	
     init  {
         write "setting up the model";
@@ -134,8 +144,9 @@ global skills: [RSkill]{
 	        	]; // careful: column 1 is has the index 0 in GAMA      //
 		}
     }
-    float step <- 1 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
-    date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
+    float step <- 10 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
+    //date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
+    date starting_date <- date([2019,1,1,0,0,0]); //correspond the 1st of January 2019, at 00:00:00
     int year;
 }
 
@@ -178,10 +189,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	list<string> ODIN_modal_choices;
 	string current_location;
 	string former_location;		
-	int counter_modal_choice <- -1;
-	int counter_correct_modal_choices <- 0;
-	int counter_total_modal_choices <- 0;
-	float modal_choice_accuracy;
+	int counter_modal_choice <- -1;	// to iterate through the list of modal choices, retrieving the one matching the current displacement
 	
 	/// destination locations
 	geometry residence;
@@ -272,9 +280,9 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	float budget <- rnd (800.0 , 5000.0); // Euros per month   								// needs robust methodology
 	
 	/// Transport Behaviour: Behavioural Factors Weights///
-	float infrastructure_quality_weight <- 0.8;
-	float safety_weight;
-	float affordability_weight <- 0.7;
+	//float infrastructure_quality_weight <- 0.8;
+	//float safety_weight;
+	//float affordability_weight <- 0.7;
 
 	/// Transport Behaviour: Behavioural Constraints///
 	int car_owner <- 0;																		// needs robust methodology
@@ -426,20 +434,17 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 			}
 		}
 		
-		// calibration			
-		counter_total_modal_choices <- counter_total_modal_choices +1; // increment
+		n_displacements <- n_displacements + 1;
+		// calibration		
 		if (modalchoice = self.ODIN_modal_choices[counter_modal_choice]) {
-			counter_correct_modal_choices <- counter_correct_modal_choices+1;
-			write('modal choice correctly predicted');
+			//write('modal choice correctly predicted');
 		} else {
-			write("wrong modal choice predicted. Predicted: "+modalchoice+". True label: "+self.ODIN_modal_choices[counter_modal_choice]);
+			//write("wrong modal choice predicted. Predicted: "+modalchoice+". True label: "+self.ODIN_modal_choices[counter_modal_choice]);
+			n_diff_modal_choices <- n_diff_modal_choices + 1;
+			//modalchoice <- self.ODIN_modal_choices[counter_modal_choice];	// override with the true label. To do when all modal choices are implemented
 		}
-		if (counter_correct_modal_choices!=0) {
-			self.modal_choice_accuracy <- counter_total_modal_choices/counter_correct_modal_choices;	// update accuracy counter
-		}
-		write("agent accuracy modal choices: "+self.modal_choice_accuracy);
 		
-		write string(trip_distance) + " " + modalchoice ;
+		//write string(trip_distance) + " " + modalchoice ;
    }
 	reflex routing when:  new_route = 1  {
 		activity <- "commuting";
@@ -524,7 +529,6 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		do follow path: self.track_path speed: travelspeed[modalchoice];
 		if((self.location = self.destination_activity.location)){
 			self.location <- destination_activity.location;
-//			write "arrived";
 			activity <- "perform_activity";
     		activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/( length(Environment_stressors overlapping self.track_geometry) + 1)) * inhalation_rate[modalchoice] * track_duration * AirPollution_Filter[modalchoice];
 			activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) +1) )  * track_duration * Noise_Filter[modalchoice];
@@ -579,15 +583,47 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     }
 }
 
+experiment HillClimbing type: batch repeat: 2 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	method hill_climbing iter_max: 50 minimize: (n_diff_modal_choices/n_displacements);
+	
+	reflex end_of_runs{
+		ask simulations{
+			add [affordability_weight, infrastructure_quality_weight, (n_diff_modal_choices/n_displacements), (machine_time-start_time)] to: results;
+			write(results);
+		}
+		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/hill_climbing.csv" rewrite:false;
+	}
+}
 
-// experiment?
-// list as long a n agents
-// everytime there is a travel per agent, I need to perceive it
-// each agent needs a counter of trips done?
-// I should check how many trips are in the same postcode actually
-// 
+experiment SimulatedAnnealing type: batch repeat: 2 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	method annealing temp_init: 100 temp_end: 1 temp_decrease: 0.5 nb_iter_cst_temp: 1 minimize: (n_diff_modal_choices/n_displacements);	
+	
+	reflex end_of_runs{
+		ask simulations{
+			add [affordability_weight, infrastructure_quality_weight, (n_diff_modal_choices/n_displacements)] to: results;
+			write(results);
+		}
+		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/simulated_annealing.csv" rewrite:false;
+	}
+}
 
-
+experiment GenericAlgorithm type: batch repeat: 2 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	method genetic minimize: (n_diff_modal_choices/n_displacements) pop_dim: 2 crossover_prob: 0.7 mutation_prob: 0.1 nb_prelim_gen: 1 max_gen: 20;
+	
+	reflex end_of_runs{
+		ask simulations{
+			add [affordability_weight, infrastructure_quality_weight, (n_diff_modal_choices/n_displacements)] to: results;
+			write(results);
+		}
+		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/genetic_algorithm.csv" rewrite:false;
+	}
+}
 
 
 grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
