@@ -39,7 +39,7 @@ global skills: [RSkill]{
     //  loading grid with walkability measures
     file shape_file_walkability <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.shp");
     file rasterfile_walkability <- file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
-    
+    csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv", ";", string, true); 
     
 //  loading Environmental Stressor Maps
 	file shape_file_NoiseContour_night <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
