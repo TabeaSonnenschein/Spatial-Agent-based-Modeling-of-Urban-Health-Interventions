@@ -38,6 +38,7 @@ global skills: [RSkill]{
     
     //  loading grid with walkability measures
     file shape_file_walkability <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.shp");
+    file rasterfile_walkability <- file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
     
     
 //  loading Environmental Stressor Maps
@@ -102,6 +103,10 @@ global skills: [RSkill]{
 species Homes{
 	string Neighborhood;
 }
+
+//grid walkability_grid from:rasterfile_walkability {
+//   id <- 0;
+//}
 
 
 species Noise_day{
