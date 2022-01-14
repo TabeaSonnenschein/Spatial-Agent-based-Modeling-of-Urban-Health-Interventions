@@ -26,9 +26,9 @@
 # Specific walking destinations such as light rail stops and bus stops (Brown et al., 2009)
 # Job density
 
-pkgs = c("maptools","rgdal","sp", "sf", "jpeg", "data.table", "purrr", "rgeos" , 
+pkgs = c("maptools","rgdal","sp", "sf", "jpeg", "data.table", "purrr", "rgeos" , "leaflet", "RColorBrewer",
          "ggplot2", "lattice",  "raster",  "spatialEco", "rjson", "jsonlite","EconGeo", 
-         "rstan", "boot",  "concaveman", "data.tree", "DiagrammeR", "networkD3", "rgexf", "tidytree")
+         "rstan", "boot",  "concaveman", "data.tree", "DiagrammeR", "networkD3", "rgexf", "tidytree", "exactextractr")
 sapply(pkgs, require, character.only = T) #load 
 rm(pkgs)
 
@@ -36,22 +36,24 @@ dataFolder= "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
 
 crs = "+init=EPSG:28992" #Amersfoort / RD New
 crs_name = "RDNew"
+CRS_defin = "+towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725"
 extent = readOGR(dsn=paste(dataFolder, "/SpatialExtent", sep = "" ),layer="Amsterdam Diemen Oude Amstel Extent")
 extent = spTransform(extent, CRSobj = crs)
 city = "Amsterdam"
 
-
+library()
 ########################################
 # Making a grid of size: 100mx100m
 ########################################
-walkability_grid = raster(xmn=extent(extent)[1], xmx=extent(extent)[2], ymn=extent(extent)[3], ymx=extent(extent)[4])
-res(walkability_grid) <- 200
-projection(walkability_grid) = crs
-ncells = ncell(walkability_grid)
-dim(walkability_grid)
-walkability_grid = rasterToPolygons(walkability_grid)
+walkability_grid_raster = raster(xmn=extent(extent)[1], xmx=extent(extent)[2], ymn=extent(extent)[3], ymx=extent(extent)[4])
+raster_size = 200
+res(walkability_grid_raster) <- raster_size
+projection(walkability_grid_raster) = crs
+ncells = ncell(walkability_grid_raster)
+dim(walkability_grid_raster)
+walkability_grid = rasterToPolygons(walkability_grid_raster)
 walkability_grid@data[("unique_id")] = paste("id_", 1:ncells, sep = "")
-plot(walkability_grid,add=TRUE, border='black', lwd=1)
+plot(walkability_grid,border='black', lwd=1)
 
 
 ########################################
@@ -77,7 +79,7 @@ for(x in walkability_grid$unique_id){
 
 #analysis
 summary(walkability_grid$population_density)
-plot(walkability_grid["population_density"])
+plot(walkability_grid, col= walkability_grid$population_density)
 plot(Population_extent, add=T)
 
 
@@ -107,22 +109,117 @@ for(x in walkability_grid@data$unique_id){
 
 #Analysis
 summary(walkability_grid$retail_density)
-plot(walkability_grid["retail_density"])
+plot(walkability_grid, col= walkability_grid$retail_density)
 plot(Fsq_retail_extent, add = T)
+
+
+#######################################
+#4 Street connectivity (intersection density)
+#######################################
+setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = ""))
+Streets = readOGR(dsn=paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = "" ),layer="Amsterdam_roads_RDNew")
+Streets = spTransform(Streets, CRSobj = crs)
+plot(Streets, add = T)
+Streets = st_as_sfc(Streets)
+street_intersections = st_intersection(Streets)
+street_intersections_gridjoin = point.in.poly(street_intersections, walkability_grid)
+
+walkability_grid$street_intersection_density =0
+for(x in walkability_grid@data$unique_id){
+  walkability_grid$street_intersection_density[which(walkability_grid$unique_id == x)] = length(which(street_intersections_gridjoin$unique_id == x))
+}
+
 
 #######################################
 #5 Green space
 #######################################
 setwd(paste(dataFolder, "/Built Environment/Green Spaces", sep = ""))
-GreenSpaces = readOGR(dsn=paste(dataFolder, "/Built Environment/Green Spaces", sep = "" ),layer="Green Spaces_RDNew")
+GreenSpaces = readOGR(dsn=paste(dataFolder, "/Built Environment/Green Spaces", sep = "" ),layer="Green Spaces")
 GreenSpaces = spTransform(GreenSpaces, CRSobj = crs)
-GreenSpaces_extent = crop(GreenSpaces, extent(extent))
+GreenSpaces = aggregate(GreenSpaces, dissolve = T)
+GreenSpaces_sfc = st_as_sfc(GreenSpaces)
+plot(GreenSpaces,col="green", add = T)
+
+green_space_raster = coverage_fraction(walkability_grid_raster, GreenSpaces_sfc)[[1]]
+plot(green_space_raster)
+green_space_raster= rasterToPolygons(green_space_raster)
+walkability_grid@data$green_coverage_fraction = green_space_raster@data$layer
+plot(walkability_grid, col= walkability_grid$green_coverage_fraction)
+summary(walkability_grid$green_coverage_fraction)
+
+
 
 
 #######################################
 #7 Public Transport Density
 #######################################
+setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure/public transport", sep = ""))
+PT_stations = readOGR(dsn=paste(dataFolder, "/Built Environment/Transport Infrastructure/public transport", sep = "" ),layer="Tram_n_Metrostations")
+PT_stations = spTransform(PT_stations, CRSobj = crs)
+PT_stations_gridjoin = point.in.poly(PT_stations, walkability_grid)
+
+walkability_grid$public_trans_density =0
+for(x in walkability_grid@data$unique_id){
+  walkability_grid$public_trans_density[which(walkability_grid$unique_id == x)] = length(which(PT_stations_gridjoin$unique_id == x))
+}
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+#####################################
+# Mapping
+#####################################
+
+rlang::last_error()
+
+# Define cut points for the colorbins
+cuts <- c(0.0, 0.1, 0.2, 0.3, 0.40, 0.5, 0.60, 0.7, 0.8, 0.9, 1)
+
+# Choose a color palette and assign it to the values
+colorbins <- colorBin("YlOrRd", domain = walkability_grid$green_coverage_fraction, bins = cuts)
+
+# Display data on elderly people on the map 
+map <-  leaflet(walkability_grid) %>%
+  #  addTiles() %>%
+  #  addProviderTiles("Esri.WorldGrayCanvas") %>%
+  addPolygons(stroke = TRUE, color = "white", weight="1", smoothFactor = 0.3, 
+              fillOpacity = 0.7, fillColor = ~colorbins(walkability_grid$green_coverage_fraction))  
+
+map
+
+# Add a legend
+map_with_legend <- map %>% addLegend(pal = colorbins, 
+                                     values = neighborhoods_utrecht$p_65_inf,
+                                     labFormat = labelFormat(suffix = " %", transform = function(p_65_inf) 100 * p_65_inf),
+                                     opacity = 0.7, title = "Residents of age 65 and older", position = "topright")
+
+map_with_legend
+ggplot(walkability_grid, aes(long,lat,group=group, fill=green_coverage_fraction )) + geom_polygon() + geom_path(colour="white")+coord_fixed()
+
+
+ggplot(walkability_grid, aes(x=long, y=lat, group=group))+
+  geom_polygon(aes(fill=walkability_grid$green_coverage_fraction))+
+  geom_path(colour="grey50")+
+  scale_fill_gradientn("2012 Marriages",
+                       colours=rev(brewer.pal(10,"Spectral")), 
+                       trans="log", 
+                       breaks=c(0.0, 0.1, 0.2, 0.3, 0.40, 0.5, 0.60, 0.7, 0.8, 0.9, 1))+
+  theme(axis.text=element_blank(), 
+        axis.ticks=element_blank(), 
+        axis.title=element_blank())+
+  coord_fixed()
+
+walkability_grid
