@@ -193,6 +193,10 @@ summary(walkability_grid$public_trans_density)
 
 setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = ""))
 
+colnames(walkability_grid@data)
+c("layer", "unique_id",  "population_density", "retail_density" , "green_coverage_fraction", "public_trans_density"  , "street_intersection_density", "int_id")   
+colnames(walkability_grid@data) = c("layer", "unqId",  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid")   
+
 writeOGR(walkability_grid, dsn=getwd() ,layer= "walkability_grid",driver="ESRI Shapefile")
 writeRaster(walkability_grid_raster, "walkability_grid.tif", format = "GTiff", overwrite = T)
 walkability_measures = as.data.frame(walkability_grid)
