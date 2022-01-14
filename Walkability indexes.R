@@ -54,7 +54,9 @@ dim(walkability_grid_raster)
 walkability_grid = rasterToPolygons(walkability_grid_raster)
 walkability_grid@data[("unique_id")] = paste("id_", 1:ncells, sep = "")
 plot(walkability_grid,border='black', lwd=1)
-
+walkability_grid$int_id = gsub("id_", "", walkability_grid$unique_id)
+as.numeric(walkability_grid$int_id)
+values(walkability_grid_raster) = as.numeric(walkability_grid$int_id)
 
 ########################################
 #1 Population density
@@ -192,11 +194,10 @@ summary(walkability_grid$public_trans_density)
 setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = ""))
 
 writeOGR(walkability_grid, dsn=getwd() ,layer= "walkability_grid",driver="ESRI Shapefile")
-
-
-
-
-
+writeRaster(walkability_grid_raster, "walkability_grid.tif", format = "GTiff", overwrite = T)
+walkability_measures = as.data.frame(walkability_grid)
+walkability_measures= subset(walkability_measures, select= -c(layer))
+write.csv(walkability_measures, "walkability_measures.csv", row.names = F)
 
 
 #####################################

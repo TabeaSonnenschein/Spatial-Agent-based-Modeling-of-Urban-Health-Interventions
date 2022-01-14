@@ -64,10 +64,10 @@ global skills: [RSkill]{
     string Path_synth_pop_sub <- path_data+"Amsterdam/Calibration/Subset_pop.csv";
     
 	//  loading agent schedules   /// need more robust method for schedules based on HETUS data
-	text_file kids_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/kids_schedule.txt");
-	text_file youngadult_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/youngadult_schedule.txt");
-	text_file adult_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/adult_schedule.txt");
-	text_file elderly_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/elderly_schedule.txt");
+//	text_file kids_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/kids_schedule.txt");
+//	text_file youngadult_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/youngadult_schedule.txt");
+//	text_file adult_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/adult_schedule.txt");
+//	text_file elderly_schedules_file <- text_file(path_data+"Amsterdam/Population/Schedules/elderly_schedule.txt");
 	
 	// Global variables transport
 	map<string, float> travelspeed <- create_map(["walk", "bike", "car"], [1.4, 3.33, 11.11]); /// meters per seconds (5km/h, 12km/h, 40km/h )
@@ -182,7 +182,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string current_edu;			// "high", "medium", "low", "no_current_edu"
 	string absolved_edu;		// "high", "medium", "low", 0
 	string BMI; 				//"underweight", "normal_weight", "moderate_overweight", "obese"
-	string scheduletype;																	// needs robust methodology
+//	string scheduletype;																	// needs robust methodology
 
 	/// calibration variables
 	string ODIN_locations_str;
