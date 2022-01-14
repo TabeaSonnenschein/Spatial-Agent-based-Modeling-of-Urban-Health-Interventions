@@ -16,9 +16,11 @@ global skills: [RSkill]{
 	int n_diff_modal_choices <- 0;
 	int n_displacements <- 0;
 		
-	string path_data <- "C:/Users/Marco/Documents/ABM_thesis/Data/";
-	string path_workspace <- "C:/Users/Marco/Documents/ABM_thesis/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
-	
+//	string path_data <- "C:/Users/Marco/Documents/ABM_thesis/Data/";
+//	string path_workspace <- "C:/Users/Marco/Documents/ABM_thesis/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
+	string path_data <- "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/";
+	string path_workspace <- "C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
+			
 	//	loading the spatial built environment
 	file shape_file_buildings <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Buildings_RDNew.shp");
 	file shape_file_buildings2 <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Diemen_Buildings.shp");

@@ -122,12 +122,27 @@ Streets = spTransform(Streets, CRSobj = crs)
 plot(Streets, add = T)
 Streets = st_as_sfc(Streets)
 street_intersections = st_intersection(Streets)
-street_intersections_gridjoin = point.in.poly(street_intersections, walkability_grid)
+street_intersections_df = as.data.frame(street_intersections)
+street_intersections_df$nr_coordinates = nchar(street_intersections_df$geometry)/16
+street_intersections_df = street_intersections_df[which(street_intersections_df$nr_coordinates < 3),]
+
+intersection_points_data = as.data.frame(matrix(NA, nrow = length(intersection_points)))
+intersection_points = as(street_intersections_df$geometry, "Spatial")
+intersection_points= SpatialPointsDataFrame(intersection_points, data = intersection_points_data)
+writeOGR(intersection_points, dsn=getwd() ,layer= "intersection_points",driver="ESRI Shapefile")
+
+plot(Streets)
+plot(intersection_points, col= "Red", add= T)
+
+street_intersections_gridjoin = point.in.poly(intersection_points, walkability_grid)
 
 walkability_grid$street_intersection_density =0
 for(x in walkability_grid@data$unique_id){
   walkability_grid$street_intersection_density[which(walkability_grid$unique_id == x)] = length(which(street_intersections_gridjoin$unique_id == x))
 }
+
+plot(walkability_grid, col= walkability_grid$street_intersection_density)
+summary(walkability_grid$street_intersection_density)
 
 
 #######################################
@@ -163,15 +178,20 @@ for(x in walkability_grid@data$unique_id){
   walkability_grid$public_trans_density[which(walkability_grid$unique_id == x)] = length(which(PT_stations_gridjoin$unique_id == x))
 }
 
+plot(walkability_grid, col= walkability_grid$public_trans_density)
+summary(walkability_grid$public_trans_density)
 
 
 
 
 
+#####################################
+# Saving the grid data
+#####################################
 
+setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = ""))
 
-
-
+writeOGR(walkability_grid, dsn=getwd() ,layer= "walkability_grid",driver="ESRI Shapefile")
 
 
 
