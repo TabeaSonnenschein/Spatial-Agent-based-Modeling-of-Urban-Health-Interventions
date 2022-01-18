@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 #%matplotlib inline
 import seaborn as sns
 import os
+from itertools import chain
 
 torch.__version__
 transformers.__version__
@@ -295,9 +296,15 @@ plt.show()
 # Of the 11 demographic/biological variables examined, evidence for consistent positive associations were found for employment
 # status and home ownership (those who were employed and those who owned their own home had higher levels of overall walking).
 # """
+
+def flatten(listOfLists):
+    "Flatten one level of nesting"
+    return list(chain.from_iterable(listOfLists))
+
 test_data = pd.read_csv("10.1016_j.jtrangeo.2017.04.004.csv", encoding="latin1")
 labels = []
 tags = []
+sentenceid = []
 for count, value in enumerate(dict.fromkeys(test_data["Sentence #"])):
     subset = test_data.iloc[test_data.index[test_data["Sentence #"] == value]]
     test_sentence = " ".join(str(item) for item in subset['Word'])
@@ -320,7 +327,10 @@ for count, value in enumerate(dict.fromkeys(test_data["Sentence #"])):
         print("{}\t{}".format(label, token))
     labels.append(new_labels)
     tags.append(new_tokens)
+    # sentenceid.append(value.extend([value] * len(new_tokens)))
+    sentenceid.append([value] * len(new_tokens))
 
-d = {'Word': labels,'Tag': tags}
+d = {'Sentence': flatten(sentenceid), 'Word': flatten(labels),'Tag': flatten(tags)}
+print(d)
 pd.DataFrame(d).to_csv("10.1016_j.jtrangeo.2017.04.004_labeled.csv", index=False)
 

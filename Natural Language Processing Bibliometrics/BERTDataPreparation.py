@@ -8,16 +8,18 @@ nltk.download('averaged_perceptron_tagger')
 
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "xml_extractedtxt"))
+# listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "xml_extractedtxt"))
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "txt"))
 
 print(listOfFiles)
 
 for file in listOfFiles:
-    txt_file = open(os.path.join(os.getcwd(), ("xml_extractedtxt/" + file)), 'r').read()
+    # txt_file = open(os.path.join(os.getcwd(), ("xml_extractedtxt/" + file)), 'r').read()
+    txt_file = open(os.path.join(os.getcwd(), ("txt/" + file)), 'r').read()
     txt_file = txt_file.replace(", ", " , ")
     messy_words = txt_file.split(" ")
     sentences = txt_file.split(". ")
-    word_id = list(range(1, (len(messy_words) + len(sentences))))
+    word_id = list(range(1, (len(messy_words) + (len(sentences)*2))))
     text_df = pd.DataFrame(data=word_id, columns=["word_id"])
     text_df['Sentence #'] = ""
     text_df['Word'] = ""
@@ -32,7 +34,7 @@ for file in listOfFiles:
         text_df['Sentence #'].iloc[(index + 1):(index + len(words) + 2)] = ("Sentence: " + str(count))
         text_df['Word'].iloc[(index + 1):(index + 1 + len(words))] = words
         text_df['Word'].iloc[(index + len(words) + 1)] = "."
-        print(text_df[['Sentence #', 'word']].iloc[(index + 1):(index + 3 + len(words))])
+        print(text_df[['Sentence #', 'Word']].iloc[(index + 1):(index + 3 + len(words))])
         index = index + len(words) + 1
     text_df = text_df.iloc[0:index]
 
@@ -46,5 +48,6 @@ for file in listOfFiles:
     text_df['POS'] = POS["POS_tag"]
     text_df['Tag'] = "O"
 
-    csv = os.path.join(os.getcwd(), (file.replace(".txt", "") + ".csv"))
+    # csv = os.path.join(os.getcwd(),  ("xml_csvs/" + (file.replace(".txt", "") + ".csv")))
+    csv = os.path.join(os.getcwd(), ("pdftxt_csvs/" + (file.replace(".txt", "") + ".csv")))
     text_df.to_csv(csv, index=False)
