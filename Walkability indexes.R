@@ -203,6 +203,9 @@ walkability_measures = as.data.frame(walkability_grid)
 walkability_measures= subset(walkability_measures, select= -c(layer))
 write.csv(walkability_measures, "walkability_measures.csv", row.names = F, quote=FALSE)
 
+walkability_grid = readOGR(dsn=getwd(),layer="walkability_grid")
+
+
 
 #####################################
 # Mapping

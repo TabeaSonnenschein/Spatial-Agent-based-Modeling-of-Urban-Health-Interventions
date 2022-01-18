@@ -19,8 +19,8 @@ for file in listOfFiles:
     sentences = txt_file.split(". ")
     word_id = list(range(1, (len(messy_words) + len(sentences))))
     text_df = pd.DataFrame(data=word_id, columns=["word_id"])
-    text_df['sentence_id'] = ""
-    text_df['word'] = ""
+    text_df['Sentence #'] = ""
+    text_df['Word'] = ""
     print(text_df)
     index = -1
 
@@ -29,21 +29,22 @@ for file in listOfFiles:
         print(count)
         words = value.strip().split(" ")
         print(len(words))
-        text_df['sentence_id'].iloc[(index + 1):(index + len(words) + 2)] = ("Sentence: " + str(count))
-        text_df['word'].iloc[(index + 1):(index + 1 + len(words))] = words
-        text_df['word'].iloc[(index + len(words) + 1)] = "."
-        print(text_df[['sentence_id', 'word']].iloc[(index + 1):(index + 3 + len(words))])
+        text_df['Sentence #'].iloc[(index + 1):(index + len(words) + 2)] = ("Sentence: " + str(count))
+        text_df['Word'].iloc[(index + 1):(index + 1 + len(words))] = words
+        text_df['Word'].iloc[(index + len(words) + 1)] = "."
+        print(text_df[['Sentence #', 'word']].iloc[(index + 1):(index + 3 + len(words))])
         index = index + len(words) + 1
     text_df = text_df.iloc[0:index]
 
     ## part-of-speech (POS) tagging
     ## Part - of - speech(POS) tagging is a natural language processing task which consists in labelling words in context
     ## with their grammatical category, such as noun, verb, preposition
-    # text_df["POS"] = nltk.pos_tag( text_df['word'])
-    POS = list(nltk.pos_tag(text_df['word']))
-    POS = pd.DataFrame(data= POS, columns= ["word", "POS_tag"])
+    # text_df["POS"] = nltk.pos_tag( text_df['Word'])
+    POS = list(nltk.pos_tag(text_df['Word']))
+    POS = pd.DataFrame(data= POS, columns= ["Word", "POS_tag"])
     print(POS.iloc[0:30])
     text_df['POS'] = POS["POS_tag"]
+    text_df['Tag'] = "O"
 
     csv = os.path.join(os.getcwd(), (file.replace(".txt", "") + ".csv"))
     text_df.to_csv(csv, index=False)

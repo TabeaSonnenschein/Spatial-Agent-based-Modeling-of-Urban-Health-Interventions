@@ -1,3 +1,4 @@
+import pandas
 import pandas as pd
 import numpy as np
 from tqdm import tqdm, trange
@@ -9,7 +10,7 @@ from sklearn.model_selection import train_test_split
 import transformers
 from transformers import BertForTokenClassification, AdamW
 from transformers import get_linear_schedule_with_warmup
-from seqeval.metrics import f1_score, accuracy_score
+from seqeval.metrics import f1_score, accuracy_score, classification_report
 import matplotlib.pyplot as plt
 #%matplotlib inline
 import seaborn as sns
@@ -22,14 +23,14 @@ transformers.__version__
 print(torch.cuda.is_available())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 n_gpu = torch.cuda.device_count()
-print(n_gpu)
 torch.cuda.get_device_name(0)
+print(torch.cuda.get_device_name(0))
 MAX_LEN = 75
 bs = 32
 
 ## loading and preparing data
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-data = pd.read_csv("10.1016_j.healthplace.2020.102337.csv", encoding="latin1").fillna(method="ffill")
+data = pd.read_csv("10.1016_j.healthplace.2020.102337.csv", encoding="latin1").fillna("O")
 print(data.head(10))
 
 class SentenceGetter(object):
@@ -159,7 +160,7 @@ optimizer = AdamW(
 )
 
 
-epochs = 10
+epochs = 100
 max_grad_norm = 1.0
 
 # Total number of training steps is number of batches * number of epochs.
@@ -263,14 +264,11 @@ for _ in trange(epochs, desc="Epoch"):
     valid_tags = [tag_values[l_i] for l in true_labels
                                   for l_i in l if tag_values[l_i] != "PAD"]
     print("Validation Accuracy: {}".format(accuracy_score(pred_tags, valid_tags)))
-    print(pred_tags)
-    print(valid_tags)
-    # a measure of a test's accuracy. It is calculated from the precision and recall of the test,
-    # where the precision is the number of true positive results divided by the number of all positive results,
-    # including those not identified correctly, and the recall is the number of true positive results
-    # divided by the number of all samples that should have been identified as positive.
-    # print("Validation F1-Score: {}".format(f1_score(pred_tags, valid_tags)))
+    print("Validation F1-Score: {}".format(f1_score([pred_tags], [valid_tags])))
     print()
+
+# torch.save(model, 'C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/model')
+torch.save(model.state_dict(),'C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/model.bin')
 
 # Visualize the training loss
 # Use plot styling from seaborn.
@@ -293,24 +291,36 @@ plt.legend()
 plt.show()
 
 ## Applying the model to a new sentence
-test_sentence = """
-Mr. Trump’s tweets began just moments after a Fox News report by Mike Tobin, a 
-reporter for the network, about protests in Minnesota and elsewhere. 
-"""
+# test_sentence = """
+# Of the 11 demographic/biological variables examined, evidence for consistent positive associations were found for employment
+# status and home ownership (those who were employed and those who owned their own home had higher levels of overall walking).
+# """
+test_data = pd.read_csv("10.1016_j.jtrangeo.2017.04.004.csv", encoding="latin1")
+labels = []
+tags = []
+for count, value in enumerate(dict.fromkeys(test_data["Sentence #"])):
+    subset = test_data.iloc[test_data.index[test_data["Sentence #"] == value]]
+    test_sentence = " ".join(str(item) for item in subset['Word'])
+    tokenized_sentence = tokenizer.encode(test_sentence)
+    input_ids = torch.tensor([tokenized_sentence]).cuda()
+    with torch.no_grad():
+        output = model(input_ids)
+    label_indices = np.argmax(output[0].to('cpu').numpy(), axis=2)
 
-tokenized_sentence = tokenizer.encode(test_sentence)
-input_ids = torch.tensor([tokenized_sentence]).cuda()
-with torch.no_grad():
-    output = model(input_ids)
-label_indices = np.argmax(output[0].to('cpu').numpy(), axis=2)
 # join bpe split tokens
-tokens = tokenizer.convert_ids_to_tokens(input_ids.to('cpu').numpy()[0])
-new_tokens, new_labels = [], []
-for token, label_idx in zip(tokens, label_indices[0]):
-    if token.startswith("##"):
-        new_tokens[-1] = new_tokens[-1] + token[2:]
-    else:
-        new_labels.append(tag_values[label_idx])
-        new_tokens.append(token)
-for token, label in zip(new_tokens, new_labels):
-    print("{}\t{}".format(label, token))
+    tokens = tokenizer.convert_ids_to_tokens(input_ids.to('cpu').numpy()[0])
+    new_tokens, new_labels = [], []
+    for token, label_idx in zip(tokens, label_indices[0]):
+        if token.startswith("##"):
+            new_tokens[-1] = new_tokens[-1] + token[2:]
+        else:
+            new_labels.append(tag_values[label_idx])
+            new_tokens.append(token)
+    for token, label in zip(new_tokens, new_labels):
+        print("{}\t{}".format(label, token))
+    labels.append(new_labels)
+    tags.append(new_tokens)
+
+d = {'Word': labels,'Tag': tags}
+pd.DataFrame(d).to_csv("10.1016_j.jtrangeo.2017.04.004_labeled.csv", index=False)
+
