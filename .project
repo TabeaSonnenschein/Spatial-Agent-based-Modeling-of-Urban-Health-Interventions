@@ -250,6 +250,16 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.shp</location>
 		</link>
 		<link>
+			<name>external/walkability_grid.tif</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif</location>
+		</link>
+		<link>
+			<name>external/walkability_measures.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv</location>
+		</link>
+		<link>
 			<name>external/youngadult_schedule.txt</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/youngadult_schedule.txt</location>

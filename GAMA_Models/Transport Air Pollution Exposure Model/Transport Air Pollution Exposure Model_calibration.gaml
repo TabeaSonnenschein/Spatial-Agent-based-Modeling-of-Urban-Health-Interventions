@@ -47,7 +47,7 @@ global skills: [RSkill]{
     
     //  loading grid with walkability measures
     file shape_file_walkability <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.shp");
-    file rasterfile_walkability <- file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
+//    file rasterfile_walkability <- file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
     csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv", ";", string, true); 
     
 	//  loading Environmental Stressor Maps
@@ -160,10 +160,6 @@ global skills: [RSkill]{
 species PC4_polygons {
 	string Neighborhood;
 }
-
-//grid walkability_grid from:rasterfile_walkability {
-//   id <- 0;
-//}
 
 
 species Homes{

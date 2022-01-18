@@ -161,7 +161,7 @@ optimizer = AdamW(
 )
 
 
-epochs = 100
+epochs = 300
 max_grad_norm = 1.0
 
 # Total number of training steps is number of batches * number of epochs.
@@ -301,36 +301,63 @@ def flatten(listOfLists):
     "Flatten one level of nesting"
     return list(chain.from_iterable(listOfLists))
 
-test_data = pd.read_csv("10.1016_j.jtrangeo.2017.04.004.csv", encoding="latin1")
-labels = []
-tags = []
-sentenceid = []
-for count, value in enumerate(dict.fromkeys(test_data["Sentence #"])):
-    subset = test_data.iloc[test_data.index[test_data["Sentence #"] == value]]
-    test_sentence = " ".join(str(item) for item in subset['Word'])
-    tokenized_sentence = tokenizer.encode(test_sentence)
-    input_ids = torch.tensor([tokenized_sentence]).cuda()
-    with torch.no_grad():
-        output = model(input_ids)
-    label_indices = np.argmax(output[0].to('cpu').numpy(), axis=2)
-
-# join bpe split tokens
-    tokens = tokenizer.convert_ids_to_tokens(input_ids.to('cpu').numpy()[0])
-    new_tokens, new_labels = [], []
-    for token, label_idx in zip(tokens, label_indices[0]):
-        if token.startswith("##"):
-            new_tokens[-1] = new_tokens[-1] + token[2:]
+def predict_labels(doc):
+    labels = []
+    tags = []
+    sentenceid = []
+    for count, value in enumerate(dict.fromkeys(doc["Sentence #"])):
+        subset = doc.iloc[doc.index[doc["Sentence #"] == value]]
+        test_sentence = " ".join(str(item) for item in subset['Word'])
+        tokenized_sentence = tokenizer.encode(test_sentence)
+        input_ids = torch.tensor([tokenized_sentence]).cuda()
+        if len(input_ids) > 500:
+            with torch.no_grad():
+                output = model(input_ids[0:500])
+            label_indices = np.argmax(output[0].to('cpu').numpy(), axis=2)
+            i = 500
+            while (i+500) < len(input_ids):
+                with torch.no_grad():
+                    output = model(input_ids[i+1:(i+500)])
+                label_indices.append(np.argmax(output[0].to('cpu').numpy(), axis=2))
+                i += 500
+            while i < len(input_ids):
+                with torch.no_grad():
+                    output = model(input_ids[i+1:len(input_ids)])
+                label_indices.append(np.argmax(output[0].to('cpu').numpy(), axis=2))
+                i += 500
         else:
-            new_labels.append(tag_values[label_idx])
-            new_tokens.append(token)
-    for token, label in zip(new_tokens, new_labels):
-        print("{}\t{}".format(label, token))
-    labels.append(new_labels)
-    tags.append(new_tokens)
-    # sentenceid.append(value.extend([value] * len(new_tokens)))
-    sentenceid.append([value] * len(new_tokens))
+            with torch.no_grad():
+                output = model(input_ids)
+            label_indices = np.argmax(output[0].to('cpu').numpy(), axis=2)
 
-d = {'Sentence': flatten(sentenceid), 'Word': flatten(labels),'Tag': flatten(tags)}
-print(d)
-pd.DataFrame(d).to_csv("10.1016_j.jtrangeo.2017.04.004_labeled.csv", index=False)
+        # join bpe split tokens
+        tokens = tokenizer.convert_ids_to_tokens(input_ids.to('cpu').numpy()[0])
+        new_tokens, new_labels = [], []
+        for token, label_idx in zip(tokens, label_indices[0]):
+            if token.startswith("##"):
+                new_tokens[-1] = new_tokens[-1] + token[2:]
+            else:
+                new_labels.append(tag_values[label_idx])
+                new_tokens.append(token)
+        for token, label in zip(new_tokens, new_labels):
+            print("{}\t{}".format(label, token))
+        labels.append(new_labels)
+        tags.append(new_tokens)
+        # sentenceid.append(value.extend([value] * len(new_tokens)))
+        sentenceid.append([value] * len(new_tokens))
+    return pd.DataFrame({'Sentence': flatten(sentenceid), 'Word': flatten(labels),'Tag': flatten(tags)})
 
+
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "xml_csvs"))
+for file in listOfFiles:
+    doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("xml_csvs/" + file)), encoding="latin1")
+    d = predict_labels(doc_txt)
+    print(d)
+    d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
+
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "pdftxt_csvs"))
+for file in listOfFiles:
+    doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("pdftxt_csvs/" + file)), encoding="latin1")
+    d = predict_labels(doc_txt)
+    print(d)
+    d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
