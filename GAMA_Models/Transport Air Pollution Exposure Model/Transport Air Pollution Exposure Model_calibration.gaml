@@ -62,12 +62,6 @@ global skills: [RSkill]{
     //	columnnames:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid"
     
     
-	//  loading Environmental Stressor Maps
-	file shape_file_NoiseContour_night <- shape_file(path_data+"Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
-	file shape_file_NoiseContour_day <- shape_file(path_data+"Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp");
-	// file Tiff_file_PM2_5 <- file(path_data+"Amsterdam/Environmental Stressors/Noise/PM2_5_RDNew_clipped.tif");
-    bool display_air_poll <- true;
-    
 	//  loading routing code
     file Rcode_foot_routing <- text_file(path_workspace+"OSRM_foot.R");
     file Rcode_car_routing <- text_file(path_workspace+"OSRM_car.R");
@@ -91,11 +85,6 @@ global skills: [RSkill]{
 	map<string, float> transport_costs<- create_map(["walk", "bike", "car"], [0, 0.01, 0.2 ]);  // Euros per 1km     												// needs robust methodology
 	map<string, float> transport_safety <- create_map(["walk", "bike", "car"], [0.05, 0.66, 0.1 ]);  //Percent of serious traffic accidents (SWOV)    				// needs robust methodology
 	float per_car_owners	<- 0.5;
-	
-	// Global variables exposure
-	map<string, float> inhalation_rate <- create_map(["walk", "bike", "normal"], [25.0, 40.0, 15.0]); /// breaths per minute  										// needs robust methodology
-	map<string, float> Noise_Filter <- create_map(["indoor", "car", "walk", "bike"], [0.20, 0.40, 1, 1]); /// percentage of Noise that remains (is not filtered)							// needs robust methodology
-	map<string, float> AirPollution_Filter <- create_map(["indoor", "car",  "walk", "bike"], [0.60, 0.80, 1, 1]); /// percentage of Air Pollution that remains (is not filtered)			// needs robust methodology
 	
 	grid Perceivable_Environment file: rasterfile_walkability{
 		int csvindex;
@@ -149,7 +138,6 @@ global skills: [RSkill]{
 		Restaurants <- shape_file_Restaurants where (each.location != nil);
 		Entertainment <- shape_file_Entertainment where (each.location != nil);		
 		create Homes from: shape_file_Residences with: [Neighborhood:: read('PC4')];
-		create Noise_day from: shape_file_NoiseContour_day with: [Decibel :: float(read('bovengrens'))] ;
 		
 		// humans creation
 		if (!calibration_flag) {
@@ -200,9 +188,6 @@ species Homes{
 }
 
 
-species Noise_day{
-	float Decibel;
-}
 
 species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	// definition of attributes, actions, behaviors	
@@ -320,11 +305,6 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	map<string, float> affordability <- create_map(["perc_budget_bike", "perc_budget_walk", "perc_budget_car"], [0.0, 0.0, 0.0]);
 	float budget <- rnd (800.0 , 5000.0); // Euros per month   								// needs robust methodology
 	
-	/// Transport Behaviour: Behavioural Factors Weights///
-	//float infrastructure_quality_weight <- 0.8;
-	//float safety_weight;
-	//float affordability_weight <- 0.7;
-
 	/// Transport Behaviour: Behavioural Constraints///
 	int car_owner <- 0;																		// needs robust methodology
 	map<string,int> distance_willing_travel  ;												// needs robust methodology
@@ -571,53 +551,16 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				supermTOhome <- path(supermTOhome_geometry);
 		}			
 	}
-//	reflex any_activity when: activity = "perform_activity" and current_activity = "name of activity"{
-//		e.g. the activity could have an impact on health (sports...)
-//	}
-	reflex at_Place_exposure when: activity = "perform_activity"{
-		activity_PM10 <- (sum((Environment_stressors overlapping self) collect each.AirPoll_PM10)) * inhalation_rate["normal"] * AirPollution_Filter["indoor"];
-		activity_Noise <- (sum((Noise_day overlapping self) collect each.Decibel)) * Noise_Filter["indoor"];
-		hourly_PM10 <- hourly_PM10 + activity_PM10;
-		hourly_Noise <- hourly_Noise + activity_Noise;
-	}
 	
     reflex commuting when: activity = "commuting"{
 		do follow path: self.track_path speed: travelspeed[modalchoice];
 		if((self.location = self.destination_activity.location)){
 			self.location <- destination_activity.location;
 			activity <- "perform_activity";
-    		activity_PM10 <- (sum((Environment_stressors overlapping self.track_geometry) collect each.AirPoll_PM10)/( length(Environment_stressors overlapping self.track_geometry) + 1)) * inhalation_rate[modalchoice] * track_duration * AirPollution_Filter[modalchoice];
-			activity_Noise <- (sum((Noise_day overlapping self.track_geometry) collect each.Decibel)/(length(Noise_day overlapping self.track_geometry) +1) )  * track_duration * Noise_Filter[modalchoice];
-    		hourly_PM10 <- hourly_PM10 + activity_PM10;
-			hourly_Noise <- hourly_Noise + activity_Noise;
-    		if(modalchoice = "bike"){
-    			bike_exposure <- bike_exposure + track_duration;
-    		}
-    		 else if(modalchoice = "walk"){
-    			walk_exposure <- walk_exposure + track_duration;
-    		}
-    		if(modalchoice = "car"){
-    			ask (Environment_stressors overlapping track_geometry) {
-					AirPoll_PM2_5 <- AirPoll_PM2_5 + 10.0;
-				}
-    		}
     	}
     }
 
-    reflex update_exposure when: current_date.minute = 0{
-    	daily_PM10 <- daily_PM10 + hourly_PM10;
-    	hourly_PM10 <- 0.0;
-    }
-    reflex acute_exposure_impacts when: current_date.hour = 0{	
-    	daily_PM10 <- 0.0;
-//		daily_PM2_5
-//		daily_Noise
-    }
-    reflex chronic_exposure_impacts when: current_date.year > year{
-//    	yearly_PM10
-//		yearly_PM2_5
-// 		yearly_Noise
-    }
+
     aspect base {
     	if(activity = "perform_activity"){
     		   draw sphere(30) color: #yellow;
@@ -682,36 +625,6 @@ experiment GenericAlgorithm type: batch repeat: 2 keep_seed: true until: (curren
 }
 
 
-grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
-	float AirPoll_PM2_5 <- 0.0;
-	float AirPoll_PM10 <- 0.0;
-	float AirPoll_NO2 <- 0.0;
-	float Noise_Decibel_night;
-	float Noise_Decibel_day;
-	init{
-		if(flip(0.5)){
-				AirPoll_PM2_5 <- gauss({20,6.6});
-				AirPoll_PM10 <- gauss({20,5.6}); 
-				AirPoll_NO2 <- gauss({10,2.6});
-		}
-	}
-	
-//	rgb color <- #green update: rgb(255 *(AirPoll_PM10/30.0) , 255 * (1 - (AirPoll_PM10/30.0)), 0.0);
-//	reflex stressor_adjustment when: (((current_date.minute mod 10) = 0) or (current_date.minute = 0)){
-//		if(AirPoll_PM2_5 != 0){
-//			diffuse var: AirPoll_PM2_5 on: Environment_stressors proportion: 0.3 radius: 1;
-//			AirPoll_PM2_5 <- AirPoll_PM2_5 * 0.3;
-//		}
-//	}
-	
-}
-
-//grid Perceivable_Environment cell_width: 100 cell_height: 100 parallel: true{
-//	float bikability <- gauss({10,3.6});
-//	float walkability <- gauss({10,3.6});
-//	float drivability <- gauss({10,3.6});
-//}
-
 
 experiment TransportAirPollutionExposureModel type: gui {
 	/** Insert here the definition of the input and output of the model */
@@ -733,12 +646,6 @@ experiment TransportAirPollutionExposureModel type: gui {
    		     	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "commuting") color:#fuchsia;
    		     	data "not travelling" value: Humans count (each.activity = "perform_activity") color:#yellow;
      	   	}
-			chart "Mean Noise Exposure" type: scatter x_label: (string(int(step/60))) + " Minute Steps"  y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.45} position: {0, 0.05} label_font: font("SansSerif", 12){
-				data "Noise exposure" value: mean(Humans collect each.activity_Noise) color: #red marker: false style: line;
-			}
-			chart "Mean PM10 Exposure" type: scatter x_label: (string(int(step/60))) + " Minute Steps" y_label: "µg" background: #black color: #white axes: #white size: {0.5,0.45} position: {0.5, 0.05} label_font: font("SansSerif", 12){
-				data "PM10 exposure" value: mean(Humans collect each.activity_PM10) color: #red marker: false style: line;
-			}
 			chart "Agent Age Distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.25} position: {0, 0.5} {
 				data "0-10" value: Humans count (each.age <= 10) color:#teal;
 				data "11-20" value: Humans count ((each.age > 10) and (each.age <= 20)) color:#teal;
@@ -772,18 +679,6 @@ experiment TransportAirPollutionExposureModel type: gui {
     			draw shape_file_greenspace color: #green;
 			}
        		species Humans aspect: base ;
-//     	  	grid Environment_stressors elevation: (AirPoll_PM2_5 * 20.0) grayscale: true triangulation: true transparency: 0.7;
-	/* 		graphics Noise transparency: 0.7{
-				if(current_date.hour < 4 or current_date.hour > 22){
-					draw shape_file_NoiseContour_night color: #purple ;
-				}
-				else{
-					draw shape_file_NoiseContour_day color: #purple ;				
-				}
-			}	*/
-//			graphics AirPollution{
-//				draw Tiff_file_PM2_5 color:#forestgreen ;
-//			} 
 
         /* 
         	overlay position: {0, 0, 0} size: {180 #px, 130#px} background: #black rounded: false transparency: 0.0 {
