@@ -46,9 +46,10 @@ global skills: [RSkill]{
    	list<geometry> Entertainment;
     
     //  loading grid with walkability measures
-    file shape_file_walkability <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.shp");
-//    file rasterfile_walkability <- file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
-    csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv", ";", string, true); 
+    file rasterfile_walkability <- grid_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
+    csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv", ",", string); 
+    //	columnnames:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid"
+    
     
 	//  loading Environmental Stressor Maps
 	file shape_file_NoiseContour_night <- shape_file(path_data+"Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
@@ -85,6 +86,15 @@ global skills: [RSkill]{
 	map<string, float> Noise_Filter <- create_map(["indoor", "car", "walk", "bike"], [0.20, 0.40, 1, 1]); /// percentage of Noise that remains (is not filtered)							// needs robust methodology
 	map<string, float> AirPollution_Filter <- create_map(["indoor", "car",  "walk", "bike"], [0.60, 0.80, 1, 1]); /// percentage of Air Pollution that remains (is not filtered)			// needs robust methodology
 	
+	grid Perceivable_Environment file: rasterfile_walkability{
+		int csvindex;
+		float pop_density;
+		float retail_density;
+		float greenCoverage ;
+		float public_Transport_density;
+		float road_intersection_density;
+		list datalist;
+	}	
 	
 	// Calibration
 	bool calibration_flag <- true;	// flag if we are doing calibration
@@ -150,6 +160,18 @@ global skills: [RSkill]{
 	        	ODIN_modal_choices_str:: string(read('modal_choices'))
 	        	]; // careful: column 1 is has the index 0 in GAMA      //
 		}
+		matrix walkability_measures <- matrix(walkability_data);
+    	ask Perceivable_Environment{
+    		write "id gridvalue: " + int(self.grid_value);
+    		datalist <- rows_list(walkability_measures) at (int(self.grid_value)-1);
+    		write datalist;
+			pop_density <- float(datalist at 1);
+			write pop_density;
+			retail_density <-  float(datalist at 2);
+			greenCoverage <-  float(datalist at 3);
+			public_Transport_density <-  float(datalist at 4);
+			road_intersection_density <-  float(datalist at 5);
+    	}
     }
     float step <- 10 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
     //date starting_date <- date([2019,1,1,6,0,0]); //correspond the 1st of January 2019, at 6:00:00
@@ -283,7 +305,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	int safety;
 	int norm_abidence;
 	float assumed_traveltime;
-	map<string, float> assumed_quality_infrastructure <- create_map(["walkability", "bikability", "drivability"], [0.0, 0.0, 0.0]);
+	map<string, float> assumed_quality_infrastructure <- create_map(["pop_density", "retail_density", "greenCoverage", "public_Transport_density", "road_intersection_density"], [0.0, 0.0, 0.0, 0.0, 0.0]);	
 	map<string, float> affordability <- create_map(["perc_budget_bike", "perc_budget_walk", "perc_budget_car"], [0.0, 0.0, 0.0]);
 	float budget <- rnd (800.0 , 5000.0); // Euros per month   								// needs robust methodology
 	
@@ -403,8 +425,10 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     	myself.traveldecision <- 0;	
     	myself.make_modalchoice <- 1;
     	ask myself{
-	   		assumed_quality_infrastructure <- ["bikability"::mean(myself.bikability), "walkability"::mean(myself.walkability), "drivability"::mean(myself.drivability)];
-			affordability <-["perc_budget_bike":: ((transport_costs["bike"] * (trip_distance/1000) )/((budget/31)-20)), 
+	   		assumed_quality_infrastructure <- (["pop_density"::mean(myself.pop_density), "retail_density"::mean(myself.retail_density), 
+	   			"greenCoverage"::mean(myself.greenCoverage), "public_Transport_density"::mean(myself.public_Transport_density), 
+	   			"road_intersection_density"::mean(myself.road_intersection_density)]);
+	   		affordability <-["perc_budget_bike":: ((transport_costs["bike"] * (trip_distance/1000) )/((budget/31)-20)), 
 	   		"perc_budget_walk"::((transport_costs["walk"] * (trip_distance/1000) )/((budget/31)-20)),
 	   		"perc_budget_car":: ((transport_costs["car"] * (trip_distance/1000) )/((budget/31)-20))]; 
 //	   		do add_belief(new_predicate("assumed_traveltime", ["traveltime_bike"::(trip_distance/travelspeed["bike"]), "traveltime_walk"::(trip_distance/travelspeed["walk"]), "traveltime_car"::(trip_distance/travelspeed["car"])])); 
@@ -658,11 +682,11 @@ grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
 	
 }
 
-grid Perceivable_Environment cell_width: 100 cell_height: 100 parallel: true{
-	float bikability <- gauss({10,3.6});
-	float walkability <- gauss({10,3.6});
-	float drivability <- gauss({10,3.6});
-}
+//grid Perceivable_Environment cell_width: 100 cell_height: 100 parallel: true{
+//	float bikability <- gauss({10,3.6});
+//	float walkability <- gauss({10,3.6});
+//	float drivability <- gauss({10,3.6});
+//}
 
 
 experiment TransportAirPollutionExposureModel type: gui {

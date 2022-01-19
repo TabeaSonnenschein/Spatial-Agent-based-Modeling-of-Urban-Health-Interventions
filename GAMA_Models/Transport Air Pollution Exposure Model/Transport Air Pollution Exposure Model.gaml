@@ -85,7 +85,6 @@ global skills: [RSkill]{
 		float greenCoverage ;
 		float public_Transport_density;
 		float road_intersection_density;
-		int nr_grids <- max(grid_value);
 		list datalist;
 	}	
 
@@ -111,9 +110,6 @@ global skills: [RSkill]{
     		write "id gridvalue: " + int(self.grid_value);
     		datalist <- rows_list(walkability_measures) at (int(self.grid_value)-1);
     		write datalist;
-//    		write (walkability_measures[int(self.grid_value), 6]);
-//    		csvindex <- (walkability_measures[int(self.grid_value), 6]) index_of string(grid_value);
-//    		write csvindex;
 			pop_density <- float(datalist at 1);
 			write pop_density;
 			retail_density <-  float(datalist at 2);
