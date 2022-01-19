@@ -14,6 +14,7 @@ global skills: [RSkill]{
 	float infrastructure_quality_weight <- 0.8;   /// cut this one out, once you switched the calibration methods to the new parameters. 
 	
 	float affordability_weight <- 0.7;
+	float traveltime_weight <- 0.5;
 	float pop_density_weight_walk <- 0.8;
 	float retail_density_weight_walk <- 0.8;
 	float greenCoverage_weight_walk <- 0.8;
@@ -24,7 +25,7 @@ global skills: [RSkill]{
 	float greenCoverage_weight_bike <- 0.8;
 	float public_Transport_density_weight_bike <- 0.8;
 	float road_intersection_density_weight_bike <- 0.8;
-	float traveltime_weight <- 0.5;
+	
 	int n_diff_modal_choices <- 0;
 	int n_displacements <- 0;
 		
