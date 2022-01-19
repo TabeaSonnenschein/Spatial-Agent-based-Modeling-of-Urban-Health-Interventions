@@ -102,6 +102,13 @@ global skills: [RSkill]{
 	float public_Transport_density_weight_bike <- 0.8;
 	float road_intersection_density_weight_bike <- 0.8;
 	float traveltime_weight <- 0.5;
+	map<string,float> tripdistance_weight_age_walk <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 3.33, 11.11, 0.4,0.5]);
+	map<string,float> tripdistance_weight_age_bike <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 3.33, 11.11, 0.4,0.5]);
+	map<string,float> tripdistance_weight_age_car <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 3.33, 11.11, 0.4,0.5]);
+	map<string,float> tripdistance_weight_BMI_walk <- create_map(["normal", "overweight"], [0.3, 3.33]);
+	map<string,float> tripdistance_weight_BMI_bike <- create_map(["normal", "overweight"], [0.3, 3.33]);
+	map<string,float> tripdistance_weight_BMI_car <- create_map(["normal", "overweight"], [0.3, 3.33]);
+
 
     init  {
         write "setting up the model";
@@ -163,7 +170,10 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string current_edu;			// "high", "medium", "low", "no_current_edu"
 	string absolved_edu;		// "high", "medium", "low", 0
 	string BMI; 				//"underweight", "normal_weight", "moderate_overweight", "obese"
-	string scheduletype;																	// needs robust methodology
+	string scheduletype;
+	string agegroup;    /// 
+	string weightgroup; /// "normal", "overweight"
+	string incomegroup; /// "low", "middle", "high"																	// needs robust methodology
 
 	
 	/// destination locations
@@ -308,6 +318,36 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
        	  		car_owner <- 1;
        	  	}
        	  }
+       	  
+       	  	if (age < 8){
+       	  		agegroup <- "minor";
+       	  	}
+       	  	else if (age > 8 and age<= 17){
+       	  		agegroup <- "teenager";
+       	  	}    
+       	  	if(age > 8 and age<= 17){
+       	  		agegroup <-  "youngadult";
+       	  	}
+       	  	if(age < 50 and age > 17){
+       	  		agegroup <- "adult";
+       	  	}
+       	  	else if(age >= 50 and age < 70){
+       	  		agegroup <- "senior";
+       	  	}
+       	  	else if(age >= 70){
+       	  		agegroup <- "elderly";
+       	  	}
+
+			if(BMI = "moderate_overweight" or BMI = "obese" ){
+			weightgroup <- "overweight";
+			}
+			else{
+			weightgroup <- "normal";	
+			}
+			
+//			string incomegroup; same for incomegroup
+
+
        	  if(BMI != "moderate_overweight" and BMI != "obese"){
        	  	if(age <= 8){
        	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [600, 0, 0 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
@@ -495,21 +535,24 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
    	new_route <- 1;
    	make_modalchoice <- 0;
 	driving_utility <- (affordability_weight * float(affordability["perc_budget_car"]))
-					+ (traveltime_weight * float(assumed_traveltime["traveltime_car"]));
+					+ (traveltime_weight * float(assumed_traveltime["traveltime_car"])) 
+					+ (tripdistance_weight_age_car[agegroup] * tripdistance_weight_BMI_car[weightgroup] * (trip_distance/1000));
 	walking_utility <- (affordability_weight * float(affordability["perc_budget_walk"])) 
 					+ (pop_density_weight_walk * float(assumed_quality_infrastructure["pop_density"]))
 					+ (retail_density_weight_walk * float(assumed_quality_infrastructure["retail_density"]))					
 					+ (greenCoverage_weight_walk * float(assumed_quality_infrastructure["greenCoverage"]))
 					+ (public_Transport_density_weight_walk * float(assumed_quality_infrastructure["public_Transport_density"]))
 					+ (road_intersection_density_weight_walk * float(assumed_quality_infrastructure["road_intersection_density"]))
-					+ (traveltime_weight * float(assumed_traveltime["traveltime_walk"]));
+					+ (traveltime_weight * float(assumed_traveltime["traveltime_walk"]))
+					+ (tripdistance_weight_age_walk[agegroup] * tripdistance_weight_BMI_walk[weightgroup] * (trip_distance/1000));					
 	biking_utility <- (affordability_weight * float(affordability["perc_budget_bike"])) 
 					+ (pop_density_weight_bike * float(assumed_quality_infrastructure["pop_density"]))
 					+ (retail_density_weight_bike * float(assumed_quality_infrastructure["retail_density"]))					
 					+ (greenCoverage_weight_bike * float(assumed_quality_infrastructure["greenCoverage"]))
 					+ (public_Transport_density_weight_bike * float(assumed_quality_infrastructure["public_Transport_density"]))
 					+ (road_intersection_density_weight_bike * float(assumed_quality_infrastructure["road_intersection_density"]))
-					+ (traveltime_weight * float(assumed_traveltime["traveltime_bike"]));
+					+ (traveltime_weight * float(assumed_traveltime["traveltime_bike"]))
+					+ (tripdistance_weight_age_bike[agegroup] * tripdistance_weight_BMI_bike[weightgroup] * (trip_distance/1000));
 if(trip_distance <= distance_willing_travel["walk"]){
 		if(car_owner = 1){
 			modalchoice <- ["car", "walk", "bike"] at ([driving_utility, walking_utility, biking_utility] index_of  max([driving_utility, walking_utility, biking_utility]));	
