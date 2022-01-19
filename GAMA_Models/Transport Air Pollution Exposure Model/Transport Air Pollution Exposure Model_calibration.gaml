@@ -13,6 +13,17 @@ global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
 	float affordability_weight <- 0.7;
 	float infrastructure_quality_weight <- 0.8;
+	float pop_density_weight_walk <- 0.8;
+	float retail_density_weight_walk <- 0.8;
+	float greenCoverage_weight_walk <- 0.8;
+	float public_Transport_density_weight_walk <- 0.8;
+	float road_intersection_density_weight_walk <- 0.8;
+	float pop_density_weight_bike <- 0.8;
+	float retail_density_weight_bike <- 0.8;
+	float greenCoverage_weight_bike <- 0.8;
+	float public_Transport_density_weight_bike <- 0.8;
+	float road_intersection_density_weight_bike <- 0.8;
+	float traveltime_weight <- 0.5;
 	int n_diff_modal_choices <- 0;
 	int n_displacements <- 0;
 		
@@ -304,7 +315,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	// there are also convenience and affordability, but they are defined inside the model
 	int safety;
 	int norm_abidence;
-	float assumed_traveltime;
+	map<string, float> assumed_traveltime  <- create_map(["traveltime_bike", "traveltime_walk", "traveltime_car"], [0.0, 0.0, 0.0]);
 	map<string, float> assumed_quality_infrastructure <- create_map(["pop_density", "retail_density", "greenCoverage", "public_Transport_density", "road_intersection_density"], [0.0, 0.0, 0.0, 0.0, 0.0]);	
 	map<string, float> affordability <- create_map(["perc_budget_bike", "perc_budget_walk", "perc_budget_car"], [0.0, 0.0, 0.0]);
 	float budget <- rnd (800.0 , 5000.0); // Euros per month   								// needs robust methodology
@@ -431,16 +442,29 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	   		affordability <-["perc_budget_bike":: ((transport_costs["bike"] * (trip_distance/1000) )/((budget/31)-20)), 
 	   		"perc_budget_walk"::((transport_costs["walk"] * (trip_distance/1000) )/((budget/31)-20)),
 	   		"perc_budget_car":: ((transport_costs["car"] * (trip_distance/1000) )/((budget/31)-20))]; 
-//	   		do add_belief(new_predicate("assumed_traveltime", ["traveltime_bike"::(trip_distance/travelspeed["bike"]), "traveltime_walk"::(trip_distance/travelspeed["walk"]), "traveltime_car"::(trip_distance/travelspeed["car"])])); 
+	   		assumed_traveltime <- ["traveltime_bike"::(trip_distance/travelspeed["bike"]), "traveltime_walk"::(trip_distance/travelspeed["walk"]), "traveltime_car"::(trip_distance/travelspeed["car"])]; 
 	   	}    	
     }
     
    reflex modalchoice when: make_modalchoice = 1 {
    	new_route <- 1;
    	make_modalchoice <- 0;
-	driving_utility <- (affordability_weight * float(affordability["perc_budget_car"])) + (infrastructure_quality_weight * float(assumed_quality_infrastructure["drivability"]));
-	walking_utility <- (affordability_weight * float(affordability["perc_budget_walk"])) + (infrastructure_quality_weight * float(assumed_quality_infrastructure["walkability"]));
-	biking_utility <- (affordability_weight * float(affordability["perc_budget_bike"])) + (infrastructure_quality_weight * float(assumed_quality_infrastructure["bikability"]));
+	driving_utility <- (affordability_weight * float(affordability["perc_budget_car"]))
+					+ (traveltime_weight * float(assumed_traveltime["traveltime_car"]));
+	walking_utility <- (affordability_weight * float(affordability["perc_budget_walk"])) 
+					+ (pop_density_weight_walk * float(assumed_quality_infrastructure["pop_density"]))
+					+ (retail_density_weight_walk * float(assumed_quality_infrastructure["retail_density"]))					
+					+ (greenCoverage_weight_walk * float(assumed_quality_infrastructure["greenCoverage"]))
+					+ (public_Transport_density_weight_walk * float(assumed_quality_infrastructure["public_Transport_density"]))
+					+ (road_intersection_density_weight_walk * float(assumed_quality_infrastructure["road_intersection_density"]))
+					+ (traveltime_weight * float(assumed_traveltime["traveltime_walk"]));
+	biking_utility <- (affordability_weight * float(affordability["perc_budget_bike"])) 
+					+ (pop_density_weight_bike * float(assumed_quality_infrastructure["pop_density"]))
+					+ (retail_density_weight_bike * float(assumed_quality_infrastructure["retail_density"]))					
+					+ (greenCoverage_weight_bike * float(assumed_quality_infrastructure["greenCoverage"]))
+					+ (public_Transport_density_weight_bike * float(assumed_quality_infrastructure["public_Transport_density"]))
+					+ (road_intersection_density_weight_bike * float(assumed_quality_infrastructure["road_intersection_density"]))
+					+ (traveltime_weight * float(assumed_traveltime["traveltime_bike"]));
 	if(trip_distance <= distance_willing_travel["walk"]){
 		if(car_owner = 1){
 			modalchoice <- ["car", "walk", "bike"] at ([driving_utility, walking_utility, biking_utility] index_of  max([driving_utility, walking_utility, biking_utility]));	

@@ -8,30 +8,30 @@ nltk.download('averaged_perceptron_tagger')
 
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-# listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "xml_extractedtxt"))
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "txt"))
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "xml_extractedtxt"))
+# listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "txt"))
 
 print(listOfFiles)
 
 for file in listOfFiles:
     print(file)
-    # txt_file = open(os.path.join(os.getcwd(), ("xml_extractedtxt/" + file)), 'r').read()
-    txt_file = open(os.path.join(os.getcwd(), ("txt/" + file)), 'r').read()
+    txt_file = open(os.path.join(os.getcwd(), ("xml_extractedtxt/" + file)), 'r').read()
+    # txt_file = open(os.path.join(os.getcwd(), ("txt/" + file)), 'r').read()
     txt_file = txt_file.replace(", ", " , ")
     messy_words = txt_file.split(" ")
     sentences = txt_file.split(". ")
-    def condition(x): return len(x.split(" ")) > 490
+    def condition(x): return len(x.split(" ")) > 400
     toolongsentence = [idx for idx, element in enumerate(sentences) if condition(element)]
     print(toolongsentence)
     print("nr sentences before: ",  len(sentences))
     added_indxs = 0
     for longsentence in toolongsentence:
         wordsinsentence = sentences[longsentence].split(" ")
-        i = 490
-        sentences[longsentence + added_indxs]= " ".join(wordsinsentence[0:490])
-        while i + 490 < len(wordsinsentence):
-            sentences.insert(longsentence+1+added_indxs, " ".join(wordsinsentence[i+1:i+490]))
-            i += 490
+        i = 400
+        sentences[longsentence + added_indxs]= " ".join(wordsinsentence[0:400])
+        while i + 400 < len(wordsinsentence):
+            sentences.insert(longsentence+1+added_indxs, " ".join(wordsinsentence[i+1:i+400]))
+            i += 400
             added_indxs += 1
         sentences.insert(longsentence+1+added_indxs, " ".join(wordsinsentence[i+1:i+len(wordsinsentence)-1]))
         added_indxs += 1
@@ -66,6 +66,6 @@ for file in listOfFiles:
     text_df['POS'] = POS["POS_tag"]
     text_df['Tag'] = "O"
 
-    # csv = os.path.join(os.getcwd(),  ("xml_csvs/" + (file.replace(".txt", "") + ".csv")))
-    csv = os.path.join(os.getcwd(), ("pdftxt_csvs/" + (file.replace(".txt", "") + ".csv")))
+    csv = os.path.join(os.getcwd(),  ("xml_csvs/" + (file.replace(".txt", "") + ".csv")))
+    # csv = os.path.join(os.getcwd(), ("pdftxt_csvs/" + (file.replace(".txt", "") + ".csv")))
     text_df.to_csv(csv, index=False)
