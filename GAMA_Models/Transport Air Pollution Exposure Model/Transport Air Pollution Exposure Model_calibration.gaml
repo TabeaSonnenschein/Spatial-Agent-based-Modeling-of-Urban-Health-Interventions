@@ -26,13 +26,20 @@ global skills: [RSkill]{
 	float public_Transport_density_weight_bike <- 0.8;
 	float road_intersection_density_weight_bike <- 0.8;
 	
+	// objective function and metrics
 	int n_diff_modal_choices <- 0;
-	int n_displacements <- 0;
+	float n_displacements_calibration <- 0.001;	// better something small to avoid division by zero
+	matrix<float> confusion_matrix <- matrix ([[0.001, 0.001, 0.001], [0.001, 0.001, 0.001], [0.001, 0.001, 0.001]]) ;
+   	list<float> precision <- [0.0, 0.0, 0.0];
+   	list<float> recall <- [0.0, 0.0, 0.0];
+   	list<float> f1 <- [0.0, 0.0, 0.0];
+   	float weightedf1 <- 0.0;
+   	list<int> n_sample <- [0, 0, 0];
 		
-//	string path_data <- "C:/Users/Marco/Documents/ABM_thesis/Data/";
-//	string path_workspace <- "C:/Users/Marco/Documents/ABM_thesis/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
-	string path_data <- "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/";
-	string path_workspace <- "C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
+	string path_data <- "C:/Users/Marco/Documents/ABM_thesis/Data/";
+	string path_workspace <- "C:/Users/Marco/Documents/ABM_thesis/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
+//	string path_data <- "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/";
+//	string path_workspace <- "C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
 			
 	//	loading the spatial built environment
 	file shape_file_buildings <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Buildings_RDNew.shp");
@@ -163,11 +170,11 @@ global skills: [RSkill]{
 		}
 		matrix walkability_measures <- matrix(walkability_data);
     	ask Perceivable_Environment{
-    		write "id gridvalue: " + int(self.grid_value);
+    		//write "id gridvalue: " + int(self.grid_value);
     		datalist <- rows_list(walkability_measures) at (int(self.grid_value)-1);
-    		write datalist;
+    		//write datalist;
 			pop_density <- float(datalist at 1);
-			write pop_density;
+			//write pop_density;
 			retail_density <-  float(datalist at 2);
 			greenCoverage <-  float(datalist at 3);
 			public_Transport_density <-  float(datalist at 4);
@@ -472,14 +479,68 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 			}
 		}
 		
-		n_displacements <- n_displacements + 1;
 		// calibration		
-		if (modalchoice = self.ODIN_modal_choices[counter_modal_choice]) {
-			//write('modal choice correctly predicted');
-		} else {
-			//write("wrong modal choice predicted. Predicted: "+modalchoice+". True label: "+self.ODIN_modal_choices[counter_modal_choice]);
-			n_diff_modal_choices <- n_diff_modal_choices + 1;
-			//modalchoice <- self.ODIN_modal_choices[counter_modal_choice];	// override with the true label. To do when all modal choices are implemented
+		if (self.ODIN_modal_choices[counter_modal_choice] in ['walk', 'bike', 'car']) {	// it does not make sense to calibrate on a modal choice not implemented
+			n_displacements_calibration <- n_displacements_calibration + 1;
+			if (modalchoice = self.ODIN_modal_choices[counter_modal_choice]) {
+				// correct prediction
+				if (modalchoice='walk') {
+					put (confusion_matrix[0, 0]+1) at: {0, 0} in: confusion_matrix;
+					n_sample[0] <- n_sample[0]+1;
+				} else if (modalchoice='bike') {
+					put (confusion_matrix[1,1]+1) at: {1, 1} in: confusion_matrix;
+					n_sample[1] <- n_sample[1]+1;
+				} else {
+					put (confusion_matrix[2, 2]+1) at: {2, 2} in: confusion_matrix;
+					n_sample[2] <- n_sample[2]+1;
+				}
+				write('modal choice correctly predicted');
+			} else {
+				// wrong prediction
+				if (modalchoice='walk') {
+					if (self.ODIN_modal_choices[counter_modal_choice]='bike') {
+						put (confusion_matrix[1, 0]+1) at: {1, 0} in: confusion_matrix;
+						n_sample[1] <- n_sample[1]+1;
+					} else { // car
+						put (confusion_matrix[2, 0]+1) at: {2, 0} in: confusion_matrix;
+						n_sample[2] <- n_sample[2]+1;
+					}
+				} else if (modalchoice='bike') {
+					if (self.ODIN_modal_choices[counter_modal_choice]='walk') {
+						put (confusion_matrix[0, 1]+1) at: {0, 1} in: confusion_matrix;
+						n_sample[0] <- n_sample[0]+1;
+					} else { // car
+						put (confusion_matrix[2, 1]+1) at: {2, 1} in: confusion_matrix;
+						n_sample[2] <- n_sample[2]+1;
+					}
+				} else { // modalchoice='car'
+					if (self.ODIN_modal_choices[counter_modal_choice]='walk') {
+						put (confusion_matrix[0, 2]+1) at: {0, 2} in: confusion_matrix;
+						n_sample[0] <- n_sample[0]+1;
+					} else { // bike
+						put (confusion_matrix[1, 2]+1) at: {1, 2} in: confusion_matrix;
+						n_sample[1] <- n_sample[1]+1;
+					}
+				}
+				//write("wrong modal choice predicted. Predicted: "+modalchoice+". True label: "+self.ODIN_modal_choices[counter_modal_choice]);
+				n_diff_modal_choices <- n_diff_modal_choices + 1;
+
+				precision[0] <- confusion_matrix[0, 0]/(confusion_matrix[0, 0]+confusion_matrix[1, 0]+confusion_matrix[2, 0]);
+				precision[1] <- confusion_matrix[1, 1]/(confusion_matrix[0, 1]+confusion_matrix[1, 1]+confusion_matrix[2, 1]);
+				precision[2] <- confusion_matrix[2, 2]/(confusion_matrix[0, 2]+confusion_matrix[1, 2]+confusion_matrix[2, 2]);
+				
+				recall[0] <- confusion_matrix[0, 0]/(confusion_matrix[0, 0]+confusion_matrix[0, 1]+confusion_matrix[0, 2]);
+				recall[1] <- confusion_matrix[1, 1]/(confusion_matrix[1, 0]+confusion_matrix[1, 1]+confusion_matrix[1, 2]);
+				recall[2] <- confusion_matrix[2, 2]/(confusion_matrix[2, 0]+confusion_matrix[2, 1]+confusion_matrix[2, 2]);
+				
+				f1[0] <- 2*(precision[0]*recall[0])/(precision[0]+recall[0]);
+				f1[1] <- 2*(precision[1]*recall[1])/(precision[1]+recall[1]);
+				f1[2] <- 2*(precision[2]*recall[2])/(precision[2]+recall[2]);
+				
+				weightedf1 <- (f1[0]*n_sample[0] + f1[1]*n_sample[1] + f1[2]*n_sample[2])/(n_sample[0]+n_sample[1]+n_sample[2]);
+				write(confusion_matrix);
+				write('f1: '+weightedf1);
+			}
 		}
 		
 		//write string(trip_distance) + " " + modalchoice ;
@@ -585,13 +646,13 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 }
 
 experiment HillClimbing type: batch repeat: 2 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
-	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
-	method hill_climbing iter_max: 50 minimize: (n_diff_modal_choices/n_displacements);
+	parameter 'Affordability:' var: affordability_weight min: 0.0 max: 1.0 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.0 max: 1.0 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	method hill_climbing iter_max: 50 maximize: weightedf1;
 	
 	reflex end_of_runs{
 		ask simulations{
-			add [affordability_weight, infrastructure_quality_weight, (n_diff_modal_choices/n_displacements), (machine_time-start_time)] to: results;
+			add [affordability_weight, infrastructure_quality_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
 			write(results);
 		}
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/hill_climbing.csv" rewrite:false;
@@ -601,11 +662,11 @@ experiment HillClimbing type: batch repeat: 2 keep_seed: true until: (current_da
 experiment SimulatedAnnealing type: batch repeat: 2 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
 	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
-	method annealing temp_init: 100 temp_end: 1 temp_decrease: 0.5 nb_iter_cst_temp: 1 minimize: (n_diff_modal_choices/n_displacements);	
+	method annealing temp_init: 100 temp_end: 1 temp_decrease: 0.5 nb_iter_cst_temp: 1 maximize: weightedf1;	
 	
 	reflex end_of_runs{
 		ask simulations{
-			add [affordability_weight, infrastructure_quality_weight, (n_diff_modal_choices/n_displacements)] to: results;
+			add [affordability_weight, infrastructure_quality_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
 			write(results);
 		}
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/simulated_annealing.csv" rewrite:false;
@@ -615,11 +676,11 @@ experiment SimulatedAnnealing type: batch repeat: 2 keep_seed: true until: (curr
 experiment GenericAlgorithm type: batch repeat: 2 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
 	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
-	method genetic minimize: (n_diff_modal_choices/n_displacements) pop_dim: 2 crossover_prob: 0.7 mutation_prob: 0.1 nb_prelim_gen: 1 max_gen: 20;
+	method genetic maximize: weightedf1 pop_dim: 2 crossover_prob: 0.7 mutation_prob: 0.1 nb_prelim_gen: 1 max_gen: 20;
 	
 	reflex end_of_runs{
 		ask simulations{
-			add [affordability_weight, infrastructure_quality_weight, (n_diff_modal_choices/n_displacements)] to: results;
+			add [affordability_weight, infrastructure_quality_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
 			write(results);
 		}
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/genetic_algorithm.csv" rewrite:false;
