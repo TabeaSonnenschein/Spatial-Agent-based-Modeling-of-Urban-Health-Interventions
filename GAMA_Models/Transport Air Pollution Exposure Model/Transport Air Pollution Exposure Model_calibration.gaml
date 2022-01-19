@@ -11,8 +11,9 @@ import "Transport Air Pollution Exposure Model_calibration.gaml"
   
 global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
+	float infrastructure_quality_weight <- 0.8;   /// cut this one out, once you switched the calibration methods to the new parameters. 
+	
 	float affordability_weight <- 0.7;
-	float infrastructure_quality_weight <- 0.8;
 	float pop_density_weight_walk <- 0.8;
 	float retail_density_weight_walk <- 0.8;
 	float greenCoverage_weight_walk <- 0.8;
