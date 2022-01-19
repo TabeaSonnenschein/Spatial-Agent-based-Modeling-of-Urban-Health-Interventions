@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from itertools import chain
+import pickle
 
 torch.__version__
 transformers.__version__
@@ -66,6 +67,8 @@ print(labels)
 
 tag_values = list(set(data["Tag"].values))
 tag_values.append("PAD")
+open_file = open("tag_values.pkl", "wb")
+pickle.dump(tag_values, open_file)
 tag2idx = {t: i for i, t in enumerate(tag_values)}
 print(tag_values)
 
@@ -119,6 +122,13 @@ tr_tags = torch.tensor(tr_tags)
 val_tags = torch.tensor(val_tags)
 tr_masks = torch.tensor(tr_masks)
 val_masks = torch.tensor(val_masks)
+
+# meta_data = {
+#         "enc_pos": enc_pos,
+#         "enc_tag": enc_tag
+#     }
+#
+# joblib.dump(meta_data, "meta.bin")
 
 train_data = TensorDataset(tr_inputs, tr_masks, tr_tags)
 train_sampler = RandomSampler(train_data)
@@ -268,8 +278,9 @@ for _ in trange(epochs, desc="Epoch"):
     print("Validation F1-Score: {}".format(f1_score([pred_tags], [valid_tags])))
     print()
 
-# torch.save(model, 'C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/model')
-torch.save(model.state_dict(),'C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/model.bin')
+output_model = ('C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/model_' + str(epochs) + '.bin')
+torch.save(model.state_dict(),output_model)
+
 
 # Visualize the training loss
 # Use plot styling from seaborn.
@@ -310,25 +321,9 @@ def predict_labels(doc):
         test_sentence = " ".join(str(item) for item in subset['Word'])
         tokenized_sentence = tokenizer.encode(test_sentence)
         input_ids = torch.tensor([tokenized_sentence]).cuda()
-        if len(input_ids) > 500:
-            with torch.no_grad():
-                output = model(input_ids[0:500])
-            label_indices = np.argmax(output[0].to('cpu').numpy(), axis=2)
-            i = 500
-            while (i+500) < len(input_ids):
-                with torch.no_grad():
-                    output = model(input_ids[i+1:(i+500)])
-                label_indices.append(np.argmax(output[0].to('cpu').numpy(), axis=2))
-                i += 500
-            while i < len(input_ids):
-                with torch.no_grad():
-                    output = model(input_ids[i+1:len(input_ids)])
-                label_indices.append(np.argmax(output[0].to('cpu').numpy(), axis=2))
-                i += 500
-        else:
-            with torch.no_grad():
-                output = model(input_ids)
-            label_indices = np.argmax(output[0].to('cpu').numpy(), axis=2)
+        with torch.no_grad():
+            output = model(input_ids)
+        label_indices = np.argmax(output[0].to('cpu').numpy(), axis=2)
 
         # join bpe split tokens
         tokens = tokenizer.convert_ids_to_tokens(input_ids.to('cpu').numpy()[0])
@@ -352,7 +347,7 @@ listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "xml_csvs"))
 for file in listOfFiles:
     doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("xml_csvs/" + file)), encoding="latin1")
     d = predict_labels(doc_txt)
-    print(d)
+    # print(d)
     d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
 
 listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "pdftxt_csvs"))
