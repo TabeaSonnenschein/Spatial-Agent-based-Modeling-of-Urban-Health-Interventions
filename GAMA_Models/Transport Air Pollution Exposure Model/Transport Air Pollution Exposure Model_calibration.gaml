@@ -215,7 +215,6 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string current_edu;			// "high", "medium", "low", "no_current_edu"
 	string absolved_edu;		// "high", "medium", "low", 0
 	string BMI; 				//"underweight", "normal_weight", "moderate_overweight", "obese"
-//	string scheduletype;																	// needs robust methodology
 
 	/// calibration variables
 	string ODIN_locations_str;
