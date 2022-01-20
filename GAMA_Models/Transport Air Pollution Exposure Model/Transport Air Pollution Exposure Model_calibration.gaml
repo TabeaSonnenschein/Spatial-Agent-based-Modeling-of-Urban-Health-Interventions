@@ -11,10 +11,8 @@ import "Transport Air Pollution Exposure Model_calibration.gaml"
   
 global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
-	float infrastructure_quality_weight <- 0.8;   /// cut this one out, once you switched the calibration methods to the new parameters. 
-	
 	float affordability_weight <- 0.7;
-	float traveltime_weight <- 0.5;
+	float infrastructure_quality_weight <- 0.8;
 	float pop_density_weight_walk <- 0.8;
 	float retail_density_weight_walk <- 0.8;
 	float greenCoverage_weight_walk <- 0.8;
@@ -25,6 +23,13 @@ global skills: [RSkill]{
 	float greenCoverage_weight_bike <- 0.8;
 	float public_Transport_density_weight_bike <- 0.8;
 	float road_intersection_density_weight_bike <- 0.8;
+	float traveltime_weight <- 0.5;
+	map<string,float> tripdistance_weight_age_walk <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 3.33, 11.11, 0.4,0.5]);
+	map<string,float> tripdistance_weight_age_bike <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 3.33, 11.11, 0.4,0.5]);
+	map<string,float> tripdistance_weight_age_car <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 3.33, 11.11, 0.4,0.5]);
+	map<string,float> tripdistance_weight_BMI_walk <- create_map(["normal", "overweight"], [0.3, 3.33]);
+	map<string,float> tripdistance_weight_BMI_bike <- create_map(["normal", "overweight"], [0.3, 3.33]);
+	map<string,float> tripdistance_weight_BMI_car <- create_map(["normal", "overweight"], [0.3, 3.33]);
 	
 	// objective function and metrics
 	int n_diff_modal_choices <- 0;
@@ -160,7 +165,9 @@ global skills: [RSkill]{
 		        hh_single :: int(read('hh_single')), has_child:: int(read('havechild')), 
 	        	absolved_edu:: read('absolved_edu'),
 	        	ODIN_locations_str:: string(read('lookup')),
-	        	ODIN_modal_choices_str:: string(read('modal_choices'))
+	        	ODIN_modal_choices_str:: string(read('modal_choices')),
+	        	BMI:: string(read('BMI')),
+	        	income_household:: int(read('income_household'))
 	        	]; // careful: column 1 is has the index 0 in GAMA      //
 		}
 		matrix walkability_measures <- matrix(walkability_data);
@@ -212,7 +219,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string BMI; 				//"underweight", "normal_weight", "moderate_overweight", "obese"
 	string agegroup;    /// 
 	string weightgroup; /// "normal", "overweight"
-	string incomegroup; /// "low", "middle", "high"	
+	int income_household;
+	string incomegroup; /// "low", "middle", "high"
 	
 	/// calibration variables
 	string ODIN_locations_str;
@@ -365,6 +373,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
        	  	}
        	}
        	
+       	// old distance_willing_travel TO DELETE
        	if(BMI != "moderate_overweight" and BMI != "obese"){
        		if(age <= 8){
        			distance_willing_travel <- create_map(["walk", "bike", "car"], [600, 0, 0 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
@@ -383,34 +392,35 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
        	  	distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
        	}
        	
-       	  	if (age < 8){
-       	  		agegroup <- "minor";
-       	  	}
-       	  	else if (age > 8 and age<= 17){
-       	  		agegroup <- "teenager";
-       	  	}    
-       	  	if(age > 8 and age<= 17){
-       	  		agegroup <-  "youngadult";
-       	  	}
-       	  	if(age < 50 and age > 17){
-       	  		agegroup <- "adult";
-       	  	}
-       	  	else if(age >= 50 and age < 70){
-       	  		agegroup <- "senior";
-       	  	}
-       	  	else if(age >= 70){
-       	  		agegroup <- "elderly";
-       	  	}
 
-			if(BMI = "moderate_overweight" or BMI = "obese" ){
-			weightgroup <- "overweight";
-			}
-			else{
-			weightgroup <- "normal";	
-			}
-			
-//			string incomegroup; same for incomegroup
-       	
+       	// assign age group based on actual age
+       	if (self.age<=8){
+       		self.agegroup <- "minor";
+       	} else if (self.age>=9 and self.age<= 17){
+       		self.agegroup <-  "youngadult";
+       	} else if(self.age>=18 and self.age<=49){
+       		self.agegroup <- "adult";
+       	} else if (self.age>=50 and self.age<=69){
+       		self.agegroup <- "senior";
+       	} else if(self.age>=70){
+       		self.agegroup <- "elderly";
+       	}
+		
+		// assign weight group based on BMI
+		if(self.BMI="moderate_overweight" or self.BMI="obese" ){
+			self.weightgroup <- "overweight";
+		} else {
+			self.weightgroup <- "normal";	
+		}
+		
+	    // assign bigger income group based on more precise income group
+       	if (self.income_household<=2){
+       		self.incomegroup <- "low";
+       	} else if (self.income_household>=3 and self.income_household<= 5){
+       		self.incomegroup <-  "middle";
+       	} else if(self.income_household>=6){
+       		self.incomegroup <- "high";
+       	}
        	
        	do startR;
 	}
@@ -462,47 +472,48 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	   	}    	
     }
     
-   reflex modalchoice when: make_modalchoice = 1 {
-   	new_route <- 1;
-   	make_modalchoice <- 0;
-	driving_utility <- (affordability_weight * float(affordability["perc_budget_car"]))
-					+ (traveltime_weight * float(assumed_traveltime["traveltime_car"]));
-	walking_utility <- (affordability_weight * float(affordability["perc_budget_walk"])) 
-					+ (pop_density_weight_walk * float(assumed_quality_infrastructure["pop_density"]))
-					+ (retail_density_weight_walk * float(assumed_quality_infrastructure["retail_density"]))					
-					+ (greenCoverage_weight_walk * float(assumed_quality_infrastructure["greenCoverage"]))
-					+ (public_Transport_density_weight_walk * float(assumed_quality_infrastructure["public_Transport_density"]))
-					+ (road_intersection_density_weight_walk * float(assumed_quality_infrastructure["road_intersection_density"]))
-					+ (traveltime_weight * float(assumed_traveltime["traveltime_walk"]));
-	biking_utility <- (affordability_weight * float(affordability["perc_budget_bike"])) 
-					+ (pop_density_weight_bike * float(assumed_quality_infrastructure["pop_density"]))
-					+ (retail_density_weight_bike * float(assumed_quality_infrastructure["retail_density"]))					
-					+ (greenCoverage_weight_bike * float(assumed_quality_infrastructure["greenCoverage"]))
-					+ (public_Transport_density_weight_bike * float(assumed_quality_infrastructure["public_Transport_density"]))
-					+ (road_intersection_density_weight_bike * float(assumed_quality_infrastructure["road_intersection_density"]))
-					+ (traveltime_weight * float(assumed_traveltime["traveltime_bike"]));
-	if(trip_distance <= distance_willing_travel["walk"]){
-		if(car_owner = 1){
-			modalchoice <- ["car", "walk", "bike"] at ([driving_utility, walking_utility, biking_utility] index_of  max([driving_utility, walking_utility, biking_utility]));	
-		}
-		else{
-			modalchoice <- ["walk", "bike"] at ([walking_utility, biking_utility] index_of  max([walking_utility, biking_utility]));			
-		}
-	}
-	else if(trip_distance <= distance_willing_travel["bike"]){
-		if(car_owner = 1){
-			modalchoice <- ["car","bike"] at ([driving_utility, biking_utility] index_of  max([driving_utility, biking_utility]));	
+   	reflex modalchoice when: make_modalchoice = 1 {
+	   	new_route <- 1;
+	   	make_modalchoice <- 0;
+		driving_utility <- (affordability_weight * float(affordability["perc_budget_car"]))
+						+ (traveltime_weight * float(assumed_traveltime["traveltime_car"])) 
+						+ (tripdistance_weight_age_car[agegroup] * tripdistance_weight_BMI_car[weightgroup] * (trip_distance/1000));
+		walking_utility <- (affordability_weight * float(affordability["perc_budget_walk"])) 
+						+ (pop_density_weight_walk * float(assumed_quality_infrastructure["pop_density"]))
+						+ (retail_density_weight_walk * float(assumed_quality_infrastructure["retail_density"]))					
+						+ (greenCoverage_weight_walk * float(assumed_quality_infrastructure["greenCoverage"]))
+						+ (public_Transport_density_weight_walk * float(assumed_quality_infrastructure["public_Transport_density"]))
+						+ (road_intersection_density_weight_walk * float(assumed_quality_infrastructure["road_intersection_density"]))
+						+ (traveltime_weight * float(assumed_traveltime["traveltime_walk"]))
+						+ (tripdistance_weight_age_walk[agegroup] * tripdistance_weight_BMI_walk[weightgroup] * (trip_distance/1000));					
+		biking_utility <- (affordability_weight * float(affordability["perc_budget_bike"])) 
+						+ (pop_density_weight_bike * float(assumed_quality_infrastructure["pop_density"]))
+						+ (retail_density_weight_bike * float(assumed_quality_infrastructure["retail_density"]))					
+						+ (greenCoverage_weight_bike * float(assumed_quality_infrastructure["greenCoverage"]))
+						+ (public_Transport_density_weight_bike * float(assumed_quality_infrastructure["public_Transport_density"]))
+						+ (road_intersection_density_weight_bike * float(assumed_quality_infrastructure["road_intersection_density"]))
+						+ (traveltime_weight * float(assumed_traveltime["traveltime_bike"]))
+						+ (tripdistance_weight_age_bike[agegroup] * tripdistance_weight_BMI_bike[weightgroup] * (trip_distance/1000));
+			
+		// filter possible modal choice				
+		if(trip_distance <= distance_willing_travel["walk"]){
+			if(car_owner = 1){
+				modalchoice <- ["car", "walk", "bike"] at ([driving_utility, walking_utility, biking_utility] index_of  max([driving_utility, walking_utility, biking_utility]));	
 			}
-		else{
-			modalchoice <- "bike";	
+			else{
+				modalchoice <- ["walk", "bike"] at ([walking_utility, biking_utility] index_of  max([walking_utility, biking_utility]));			
+			}
+		} else if(trip_distance <= distance_willing_travel["bike"]){
+			if(car_owner = 1){
+				modalchoice <- ["car","bike"] at ([driving_utility, biking_utility] index_of  max([driving_utility, biking_utility]));	
+			} else{
+				modalchoice <- "bike";	
 			}				
-		}
-	else{
-		if(car_owner = 1){
-		 	modalchoice <- "car";
-		}
-		else{
-			modalchoice <- "bike";	
+		} else{
+			if(car_owner = 1){
+			 	modalchoice <- "car";
+			} else{
+				modalchoice <- "bike";	
 			}
 		}
 		
@@ -571,7 +582,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		}
 		
 		//write string(trip_distance) + " " + modalchoice ;
-   }
+	}
+	
 	reflex routing when:  new_route = 1  {
 		activity <- "commuting";
 		new_route <- 0;
