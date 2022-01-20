@@ -12,7 +12,6 @@ import "Transport Air Pollution Exposure Model_calibration.gaml"
 global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
 	float affordability_weight <- 0.7;
-	float infrastructure_quality_weight <- 0.8;
 	float pop_density_weight_walk <- 0.8;
 	float retail_density_weight_walk <- 0.8;
 	float greenCoverage_weight_walk <- 0.8;
@@ -79,15 +78,7 @@ global skills: [RSkill]{
 	//  loading routing code
     file Rcode_foot_routing <- text_file(path_workspace+"OSRM_foot.R");
     file Rcode_car_routing <- text_file(path_workspace+"OSRM_car.R");
-    file Rcode_bike_routing <- text_file(path_workspace+"OSRM_bike.R");
-
-	//  loading agent population attributes
-    int nb_humans <- 10;
-    //int nb_humans <- 6247; // all
-    file Rcode_agent_subsetting <- text_file(path_workspace+"Subsetting_Synthetic_AgentPop_for_GAMA.R");
-    csv_file Synth_Agent_file;
-    string Path_synth_pop_sub <- path_data+"Amsterdam/Calibration/Subset_pop.csv";
-    
+    file Rcode_bike_routing <- text_file(path_workspace+"OSRM_bike.R");    
 	
 	// Global variables transport
 	map<string, float> travelspeed <- create_map(["walk", "bike", "car"], [1.4, 3.33, 11.11]); /// meters per seconds (5km/h, 12km/h, 40km/h )
@@ -105,15 +96,10 @@ global skills: [RSkill]{
 		list datalist;
 	}	
 	
-	// Calibration
-	bool calibration_flag <- true;	// flag if we are doing calibration
-	file Rcode_ODiN_subset <- text_file(path_workspace+"Subsetting_ODiNpop_for_GAMA.R");
-	string Path_ODiN_pop <- path_data+"Amsterdam/Calibration/AMS-pop.csv";
 	float seed_value <- int(self) + 1.0;
-	string Path_ODiN_sub <- path_data+"Amsterdam/Calibration/Subset_pop/Subset_pop"+seed_value+".csv";
-	string Path_schedule <- path_data+"Amsterdam/Calibration/AMS-schedule_postcodes.csv";
-	string Path_modal_choices <- path_data+"Amsterdam/Calibration/AMS-modal_choices.csv";
-	csv_file ODIN_locations_file;	// ODIN population location schedule
+	int nb_humans <- 1000;	// make sure it's the same size of the subset ODiN pop!
+	
+	csv_file file_subset_ODiN <- csv_file(path_data+"Amsterdam/Calibration/Subset_ODiN.csv", ";", string, true);
 	file pc4_AMS_file <- shape_file(path_data+"Amsterdam/Calibration/AMS-PC4_polygons/AMS-PC4_polygons.shp");	// loading Amsterdam locations for moving the agents
     float start_time <- machine_time;
    	
@@ -121,55 +107,27 @@ global skills: [RSkill]{
 	
     init  {
         write "setting up the model";
-        // subset the population
-        do startR;
-        write R_eval("nb_humans = " + to_R_data(nb_humans));
-        
-        if(calibration_flag){
-        	write R_eval("path_ODiN_pop = " + to_R_data(Path_ODiN_pop));
-        	write R_eval("path_ODiN_sub = " + to_R_data(Path_ODiN_sub));
-        	write R_eval("path_schedule = " + to_R_data(Path_schedule));
-        	write R_eval("path_modal_choices = " + to_R_data(Path_modal_choices));
-        	
-        	loop s over: Rcode_ODiN_subset.contents{ 			/// the R code creates a csv file of a random subset of the synthetic agent population of specified size "nb_humans"
-        		unknown a <- R_eval(s); // execute each line of the R script
-			}
-			Synth_Agent_file <- csv_file(Path_ODiN_sub, ";", string, true); // read the subsetted created population by the R script
-        } else {
-			loop s over: Rcode_agent_subsetting.contents{ 			/// the R code creates a csv file of a random subset of the synthetic agent population of specified size "nb_humans"
-        		unknown a <- R_eval(s); // execute each line of the R script
-			}
-			Synth_Agent_file <- csv_file(Path_synth_pop_sub, ";", string, true); // read the subsetted created population by the R script
-        }
-		write(Synth_Agent_file);
 		
 		// import the agentified elements
 		Restaurants <- shape_file_Restaurants where (each.location != nil);
 		Entertainment <- shape_file_Entertainment where (each.location != nil);		
 		create Homes from: shape_file_Residences with: [Neighborhood:: read('PC4')];
 		
-		// humans creation
-		if (!calibration_flag) {
-			// synthetic humans
-			create Humans from: Synth_Agent_file with:[Agent_ID :: read('Agent_ID'), Neighborhood :: read('neighb_code'), 
-		        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
-		        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
-	        	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI')]; // careful: column 1 is has the index 0 in GAMA
-		} else {
-			// polygons for displacements
-        	create PC4_polygons from: pc4_AMS_file with: [Neighborhood:: read('PC4')];	
+		// polygons for displacements
+        create PC4_polygons from: pc4_AMS_file with: [Neighborhood:: read('PC4')];	
         	
-	        // humans for calibration
-	        create Humans from: Synth_Agent_file with:[Agent_ID :: string(read('agent_ID')), Neighborhood :: read('postcode_home'), 
-		        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
-		        hh_single :: int(read('hh_single')), has_child:: int(read('havechild')), 
-	        	absolved_edu:: read('absolved_edu'),
-	        	ODIN_locations_str:: string(read('lookup')),
-	        	ODIN_modal_choices_str:: string(read('modal_choices')),
-	        	BMI:: string(read('BMI')),
-	        	income_household:: int(read('income_household'))
-	        	]; // careful: column 1 is has the index 0 in GAMA      //
-		}
+	    // humans for calibration
+	    create Humans from: file_subset_ODiN with:[Agent_ID :: string(read('agent_ID')),
+	    	Neighborhood :: read('postcode_home'),
+	    	hh_single :: int(read('hh_single')),
+	    	has_child:: int(read('havechild')), 
+	        absolved_edu:: read('absolved_edu'),
+	        ODIN_locations_str:: string(read('lookup')),
+	        ODIN_modal_choices_str:: string(read('modal_choices')),
+	        BMI:: string(read('BMI')),
+	        income_household:: int(read('income_household'))
+	        ]; // careful: column 1 is has the index 0 in GAMA      //
+		
 		matrix walkability_measures <- matrix(walkability_data);
     	ask Perceivable_Environment{
     		//write "id gridvalue: " + int(self.grid_value);
@@ -560,7 +518,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 						n_sample[1] <- n_sample[1]+1;
 					}
 				}
-				//write("wrong modal choice predicted. Predicted: "+modalchoice+". True label: "+self.ODIN_modal_choices[counter_modal_choice]);
+				write("wrong modal choice predicted. Predicted: "+modalchoice+". True label: "+self.ODIN_modal_choices[counter_modal_choice]);
 				n_diff_modal_choices <- n_diff_modal_choices + 1;
 
 				precision[0] <- confusion_matrix[0, 0]/(confusion_matrix[0, 0]+confusion_matrix[1, 0]+confusion_matrix[2, 0]);
@@ -576,8 +534,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				f1[2] <- 2*(precision[2]*recall[2])/(precision[2]+recall[2]);
 				
 				weightedf1 <- (f1[0]*n_sample[0] + f1[1]*n_sample[1] + f1[2]*n_sample[2])/(n_sample[0]+n_sample[1]+n_sample[2]);
-				write(confusion_matrix);
-				write('f1: '+weightedf1);
+				//write(confusion_matrix);
+				//write('f1: '+weightedf1);
 			}
 		}
 		
@@ -684,42 +642,42 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     }
 }
 
-experiment HillClimbing type: batch repeat: 2 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+experiment HillClimbing type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
 	parameter 'Affordability:' var: affordability_weight min: 0.0 max: 1.0 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
-	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.0 max: 1.0 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	parameter 'Travel time' var: traveltime_weight min: 0.0 max: 1.0 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	method hill_climbing iter_max: 50 maximize: weightedf1;
 	
 	reflex end_of_runs{
 		ask simulations{
-			add [affordability_weight, infrastructure_quality_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
+			add [affordability_weight, traveltime_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
 			write(results);
 		}
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/hill_climbing.csv" rewrite:false;
 	}
 }
 
-experiment SimulatedAnnealing type: batch repeat: 2 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+experiment SimulatedAnnealing type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
 	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
-	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	parameter 'Travel time' var: traveltime_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	method annealing temp_init: 100 temp_end: 1 temp_decrease: 0.5 nb_iter_cst_temp: 1 maximize: weightedf1;	
 	
 	reflex end_of_runs{
 		ask simulations{
-			add [affordability_weight, infrastructure_quality_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
+			add [affordability_weight, traveltime_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
 			write(results);
 		}
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/simulated_annealing.csv" rewrite:false;
 	}
 }
 
-experiment GenericAlgorithm type: batch repeat: 2 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+experiment GenericAlgorithm type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
 	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
-	parameter 'Infrastructure quality' var: infrastructure_quality_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
+	parameter 'Travel time' var: traveltime_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	method genetic maximize: weightedf1 pop_dim: 2 crossover_prob: 0.7 mutation_prob: 0.1 nb_prelim_gen: 1 max_gen: 20;
 	
 	reflex end_of_runs{
 		ask simulations{
-			add [affordability_weight, infrastructure_quality_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
+			add [affordability_weight, traveltime_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
 			write(results);
 		}
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/genetic_algorithm.csv" rewrite:false;
@@ -800,9 +758,6 @@ experiment TransportAirPollutionExposureModel type: gui {
    		 }
    		 
     } 
-    
-    
-    
     
     
     
