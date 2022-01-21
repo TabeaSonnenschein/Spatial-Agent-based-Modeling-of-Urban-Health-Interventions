@@ -1,18 +1,14 @@
-import pandas
 import pandas as pd
 import numpy as np
 from tqdm import tqdm, trange
 import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
-from transformers import BertTokenizer, BertConfig
+import transformers
+from transformers import BertForTokenClassification, AdamW, BertTokenizer, BertConfig, get_linear_schedule_with_warmup, AutoTokenizer, AutoModelForTokenClassification
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
-import transformers
-from transformers import BertForTokenClassification, AdamW
-from transformers import get_linear_schedule_with_warmup
 from seqeval.metrics import f1_score, accuracy_score, classification_report
 import matplotlib.pyplot as plt
-#%matplotlib inline
 import seaborn as sns
 import os
 from itertools import chain
@@ -32,7 +28,7 @@ bs = 32
 
 ## loading and preparing data
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-data = pd.read_csv("10.1016_j.healthplace.2020.102337.csv", encoding="latin1").fillna("O")
+data = pd.read_csv("manually_labeled/10.1016_j.healthplace.2020.102337.csv", encoding="latin1").fillna("O")
 print(data.head(10))
 
 class SentenceGetter(object):
@@ -69,12 +65,17 @@ tag_values = list(set(data["Tag"].values))
 tag_values.append("PAD")
 open_file = open("tag_values.pkl", "wb")
 pickle.dump(tag_values, open_file)
+open_file.close()
 tag2idx = {t: i for i, t in enumerate(tag_values)}
 print(tag_values)
 
 ## applying BERT
 # Prepare the sentences and labels
+# tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=False)
+# tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased', do_lower_case= True)
+# tokenizer = BertTokenizer.from_pretrained('allenai/scibert_scivocab_uncased', do_lower_case= True)
+
 
 def tokenize_and_preserve_labels(sentence, text_labels):
     tokenized_sentence = []
@@ -142,11 +143,18 @@ valid_dataloader = DataLoader(valid_data, sampler=valid_sampler, batch_size=bs)
 # Setup the Bert model for finetuning
 
 model = BertForTokenClassification.from_pretrained(
+# model = AutoModelForTokenClassification.from_pretrained(
     "bert-base-cased",
+#     "bert-base-uncased",
+    # 'allenai/scibert_scivocab_uncased',
     num_labels=len(tag2idx),
     output_attentions = False,
     output_hidden_states = False
 )
+# model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased')
+
+
+
 
 model.cuda();
 
@@ -171,7 +179,7 @@ optimizer = AdamW(
 )
 
 
-epochs = 300
+epochs = 50
 max_grad_norm = 1.0
 
 # Total number of training steps is number of batches * number of epochs.
@@ -348,11 +356,11 @@ for file in listOfFiles:
     doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("xml_csvs/" + file)), encoding="latin1")
     d = predict_labels(doc_txt)
     # print(d)
-    d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
+    # d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
 
 listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "pdftxt_csvs"))
 for file in listOfFiles:
     doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("pdftxt_csvs/" + file)), encoding="latin1")
     d = predict_labels(doc_txt)
     print(d)
-    d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
+    # d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
