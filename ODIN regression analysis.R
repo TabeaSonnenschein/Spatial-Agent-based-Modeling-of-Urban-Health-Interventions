@@ -18,34 +18,45 @@ walkability_grid = readOGR(dsn=getwd(),layer="walkability_grid")
 
 postcode_polys =  readOGR(dsn="C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/Amsterdam/Calibration/AMS-PC4_polygons",layer="AMS-PC4_polygons")
 
-ODIN_df = read.csv("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Subset_ODiN_1000.csv")
+ODIN_df = read.csv("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Subset_ODiN_1000.csv", sep = ";")
 
 env_grid_centroids = gCentroid(walkability_grid, byid= T, id= walkability_grid$unqId)
 postcode_env_join = point.in.poly(env_grid_centroids, postcode_polys)
 postcode_env_join = merge(as.data.frame(postcode_env_join@data), as.data.frame(walkability_grid@data), by.x="pt.ids" , by.y = "Intid")
 
-postcode_env_join
+
 postcode_polys@data[,c("popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid")] = 0
 for(x in postcode_polys$PC4){
-  postcode_polys$popDns[which(postcode_polys$PC4 == x)] = mean(postcode_env_join@data[which(postcode_env_join$PC4 == x), c("popDns")])
-  postcode_polys$retaiDns[which(postcode_polys$PC4 == x)] = mean(postcode_env_join@data[which(postcode_env_join$PC4 == x), c("retaiDns")])
-  postcode_polys$greenCovr[which(postcode_polys$PC4 == x)] = mean(postcode_env_join@data[which(postcode_env_join$PC4 == x), c("greenCovr")])
-  postcode_polys$pubTraDns[which(postcode_polys$PC4 == x)] = mean(postcode_env_join@data[which(postcode_env_join$PC4 == x), c("pubTraDns")])
-  postcode_polys$RdIntrsDns[which(postcode_polys$PC4 == x)] = mean(postcode_env_join@data[which(postcode_env_join$PC4 == x), c("RdIntrsDns")])
+  postcode_polys$popDns[which(postcode_polys$PC4 == x)] = mean(postcode_env_join[which(postcode_env_join$PC4 == x), c("popDns")])
+  postcode_polys$retaiDns[which(postcode_polys$PC4 == x)] = mean(postcode_env_join[which(postcode_env_join$PC4 == x), c("retaiDns")])
+  postcode_polys$greenCovr[which(postcode_polys$PC4 == x)] = mean(postcode_env_join[which(postcode_env_join$PC4 == x), c("greenCovr")])
+  postcode_polys$pubTraDns[which(postcode_polys$PC4 == x)] = mean(postcode_env_join[which(postcode_env_join$PC4 == x), c("pubTraDns")])
+  postcode_polys$RdIntrsDns[which(postcode_polys$PC4 == x)] = mean(postcode_env_join[which(postcode_env_join$PC4 == x), c("RdIntrsDns")])
 }
 
+summary(postcode_polys@data$popDns)
+summary(postcode_polys@data$retaiDns)
+summary(postcode_polys@data$greenCovr)
+summary(postcode_polys@data$pubTraDns)
+summary(postcode_polys@data$RdIntrsDns)
+
+
+
+ODIN_df = merge(ODIN_df, postcode_polys@data, by.x = "put here the columnname for postcode of origin of trip", by.y = "PC4", all.x = T, all.y = F)
+
 
 ###
 
-trip distance you need euclidean distance of the origin postcode centroid to destination postcode centroid
+# trip distance you need euclidean distance of the origin postcode centroid to destination postcode centroid
+postcode_polys
+postcode_centroids = gCentroid(postcode_polys, byid= T, id= postcode_polys$PC4)
+
+###
+#generate affordability based on trip distance and cost as in simulation
 
 
 ###
-generate affordability based on trip distance and cost as in simulation
-
-
-###
-generate tript time based on trip distance and mode speed as in simulation
+#generate tript time based on trip distance and mode speed as in simulation
 
 
 ###
