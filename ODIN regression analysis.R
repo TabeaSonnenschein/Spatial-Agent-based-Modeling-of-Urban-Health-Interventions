@@ -46,10 +46,22 @@ ODIN_df = merge(ODIN_df, postcode_polys@data, by.x = "put here the columnname fo
 
 
 ###
-
-# trip distance you need euclidean distance of the origin postcode centroid to destination postcode centroid
-postcode_polys
+# trip distance you need geodesic euclidean distance of the origin postcode centroid to destination postcode centroid
 postcode_centroids = gCentroid(postcode_polys, byid= T, id= postcode_polys$PC4)
+postcode_centroids_WG84 = spTransform(postcode_centroids, CRSobj = "+proj=longlat +datum=WGS84")
+postcode_centroids_WG84@coords[,0]
+postcode_centroids_WG84$PC4 = postcode_centroids_WG84@coords[,0]
+postcode_centroids_WG84@data$PC4 =  postcode_centroids_WG84@coords[,0]
+
+## you need to change the column names of the origin and destination Postcodes of trips
+ODIN_df[,"trip_distance"] = 0
+for(trip in 0:len(ODIN_df)){
+  ODIN_df[trip,"trip_distance"] = spDists(postcode_centroids_WG84[which(postcode_centroids_WG84$PC4 == ODIN_df[trip, "origin"])], 
+                                          postcode_centroids_WG84[which(postcode_centroids_WG84$PC4 == ODIN_df[trip, "destination"])], 
+                                          longlat = T)
+}
+
+
 
 ###
 #generate affordability based on trip distance and cost as in simulation
@@ -60,5 +72,5 @@ postcode_centroids = gCentroid(postcode_polys, byid= T, id= postcode_polys$PC4)
 
 
 ###
-trip distance BMI and age interaction just create a interaction within the regression (multiply the variables...)
+## trip distance BMI and age interaction just create a interaction within the regression (multiply the variables...)
 
