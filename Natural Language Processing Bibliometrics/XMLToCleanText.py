@@ -2,11 +2,15 @@ import os
 import pandas as pd
 import numpy as np
 import re
+from FindingAndReplacingAbbreviations import FindNReplaceAbbr, FindAbbrev
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults\xml")
 listOfFiles = os.listdir(path='C:/Users/Tabea/Documents/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/CrossrefResults/xml')
 print(listOfFiles)
 
+full_abbr = []
+full_fullnames =[]
+full_doitracking = []
 for file in listOfFiles:
     xml_file = open(os.path.join(os.getcwd(),file),'r', encoding="utf-8").read()
     # print(xml_file[int([m.start() for m in re.finditer('<body', xml_file)][0]):int([m.start() for m in re.finditer('</body>', xml_file)][0])])
@@ -17,7 +21,6 @@ for file in listOfFiles:
     for times in range(0,len(labelnr_starts)):
         labelnr_starts = [m.start() for m in re.finditer('<ce:label>', xml_file)]
         labelnr_ends = [m.start() for m in re.finditer('</ce:label>', xml_file)]
-        print(xml_file[labelnr_starts[0]:(labelnr_ends[0]+11)])
         xml_file = xml_file[:labelnr_starts[0]] + xml_file[(labelnr_ends[0]+11):]
 
     label_starts = [m.start() for m in re.finditer('<', xml_file)]
@@ -27,8 +30,22 @@ for file in listOfFiles:
     file1 = open(
         r'C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults\xml_extractedtxt\\' + file,
         "a", errors="replace")
-
+    fulltext = ""
     for count, value in enumerate(label_ends):
-        file1.writelines(xml_file[(value+1):label_starts[count+1]].replace("\n", "").strip() + " ")
+        # file1.writelines(xml_file[(value+1):label_starts[count+1]].replace("\n", "").strip() + " ")
+        fulltext += xml_file[(value+1):label_starts[count+1]].replace("\n", "").strip() + " "
+    cleantext, abbreviations, fullnames = FindNReplaceAbbr(fulltext)
+    file1.writelines(cleantext)
+    full_abbr.extend(abbreviations)
+    full_fullnames.extend(fullnames)
+    full_doitracking.extend([file] * len(abbreviations))
 
+abbreviation_def_df = pd.DataFrame(
+    {'doi': full_doitracking,
+    'abbrev': full_abbr,
+    'fullname': full_fullnames
+    })
 
+abbreviation_def_df.to_csv(
+    "C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/abbreviation_replacements_xmltxt.csv",
+    index=False)

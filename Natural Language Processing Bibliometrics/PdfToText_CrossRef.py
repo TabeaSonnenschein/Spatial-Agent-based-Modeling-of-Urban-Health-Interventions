@@ -63,10 +63,19 @@ for file in listOfFiles:
                                     wordsbefore = wordninja.split(sentence[:openbrackets])
                                     wordsbefore = wordsbefore[len(wordsbefore)-abbreviationlen-3:]
                                     possible_fullnames = []
-                                    for count, value in enumerate(wordsbefore[:len(wordsbefore)-2]):
-                                        if(value[0].upper() == abbr[0] and (wordsbefore[count+1][0].upper() == abbr[1] or wordsbefore[count+2][0].upper() == abbr[1])):
-                                            fullname = " ".join(wordsbefore[count:])
-                                            possible_fullnames.append(fullname)
+                                    if len(abbr) < 2:
+                                        for count, value in enumerate(wordsbefore[:len(wordsbefore) - 2]):
+                                            if value[0].upper() == abbr[0] and (
+                                                    wordsbefore[count + 1][0].upper() == abbr[1] or
+                                                    wordsbefore[count + 2][0].upper() == abbr[1]):
+                                                fullname = " ".join(wordsbefore[count:])
+                                                possible_fullnames.append(fullname)
+                                    else:
+                                        for count, value in enumerate(wordsbefore[:len(wordsbefore) - 1]):
+                                            if value[0].upper() == abbr[0] and wordsbefore[count + 1][0].upper() == \
+                                                    abbr[1]:
+                                                fullname = " ".join(wordsbefore[count:])
+                                                possible_fullnames.append(fullname)
                                     if(possible_fullnames):
                                         fullnames.append(min(possible_fullnames, key=len))
                                         abbreviations.append(abbr)
@@ -75,8 +84,14 @@ for file in listOfFiles:
                                         print(fullnames[-1])
                                         sentence = "".join([sentence[:openbrackets], sentence[closebrackets+1:]])
                                         print()
-                            for count, value in enumerate(abbreviations):
-                                sentence = sentence.replace(value, fullnames[count])
+
+                            if bool(abbreviations):
+                                order = list(pd.Series(abbreviations).str.len().sort_values().index.values)
+                                print(abbreviations, order)
+                                for index in range(len(abbreviations) - 1, -1, -1):
+                                    sentence = sentence.replace(abbreviations[order.index(index)],
+                                                                        fullnames[order.index(index)])
+
                             wordlist = wordninja.split(sentence)
 
                             stringlength = 0
@@ -105,7 +120,7 @@ for file in listOfFiles:
                             for a, b in finalsliff:
                                 clean_sentence = clean_sentence.replace(a, b).strip()
                                 fullnames = [name.replace(a, b) for name in fullnames]
-                            print(clean_sentence)
+                            # print(clean_sentence)
                             file1.writelines(clean_sentence + " ")
                 else:
                     print(str(file) + " has only words shorter than 5")

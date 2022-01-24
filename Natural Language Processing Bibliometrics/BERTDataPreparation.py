@@ -8,30 +8,32 @@ nltk.download('averaged_perceptron_tagger')
 
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "xml_extractedtxt"))
-# listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "txt"))
+
+folder_orig, folder_dest = "txtclean", "pdftxt_csvs"
+folder_orig, folder_dest = "xml_extractedtxt", "xml_csvs"
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(), folder_orig))
+max_words_in_sentence = 400
 
 print(listOfFiles)
 
 for file in listOfFiles:
     print(file)
-    txt_file = open(os.path.join(os.getcwd(), ("xml_extractedtxt/" + file)), 'r').read()
-    # txt_file = open(os.path.join(os.getcwd(), ("txt/" + file)), 'r').read()
+    txt_file = open(os.path.join(os.getcwd(), (folder_orig + "/" + file)), 'r').read()
     txt_file = txt_file.replace(", ", " , ")
     messy_words = txt_file.split(" ")
     sentences = txt_file.split(". ")
-    def condition(x): return len(x.split(" ")) > 400
+    def condition(x): return len(x.split(" ")) > max_words_in_sentence
     toolongsentence = [idx for idx, element in enumerate(sentences) if condition(element)]
     print(toolongsentence)
     print("nr sentences before: ",  len(sentences))
     added_indxs = 0
     for longsentence in toolongsentence:
         wordsinsentence = sentences[longsentence].split(" ")
-        i = 400
-        sentences[longsentence + added_indxs]= " ".join(wordsinsentence[0:400])
-        while i + 400 < len(wordsinsentence):
-            sentences.insert(longsentence+1+added_indxs, " ".join(wordsinsentence[i+1:i+400]))
-            i += 400
+        i = max_words_in_sentence
+        sentences[longsentence + added_indxs]= " ".join(wordsinsentence[0:max_words_in_sentence])
+        while i + max_words_in_sentence < len(wordsinsentence):
+            sentences.insert(longsentence+1+added_indxs, " ".join(wordsinsentence[i+1:i+max_words_in_sentence]))
+            i += max_words_in_sentence
             added_indxs += 1
         sentences.insert(longsentence+1+added_indxs, " ".join(wordsinsentence[i+1:i+len(wordsinsentence)-1]))
         added_indxs += 1
@@ -59,13 +61,10 @@ for file in listOfFiles:
     ## part-of-speech (POS) tagging
     ## Part - of - speech(POS) tagging is a natural language processing task which consists in labelling words in context
     ## with their grammatical category, such as noun, verb, preposition
-    # text_df["POS"] = nltk.pos_tag( text_df['Word'])
     POS = list(nltk.pos_tag(text_df['Word']))
     POS = pd.DataFrame(data= POS, columns= ["Word", "POS_tag"])
-    # print(POS.iloc[0:30])
     text_df['POS'] = POS["POS_tag"]
     text_df['Tag'] = "O"
 
-    csv = os.path.join(os.getcwd(),  ("xml_csvs/" + (file.replace(".txt", "") + ".csv")))
-    # csv = os.path.join(os.getcwd(), ("pdftxt_csvs/" + (file.replace(".txt", "") + ".csv")))
+    csv = os.path.join(os.getcwd(), (folder_dest + "/" + (file.replace(".txt", "") + ".csv")))
     text_df.to_csv(csv, index=False)
