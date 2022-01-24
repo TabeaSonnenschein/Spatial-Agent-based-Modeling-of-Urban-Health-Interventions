@@ -36,12 +36,12 @@ for file in listOfFiles:
             text = text.encode("ascii", "replace").decode()
             replacements = [("igni?can", "ignifican"), ("n?uen", "nfluen"), ("denti?e", "dentifie"), ("?rst", "first"),
                             ("ci?cation", "cification"), ("raf?c", "raffic"), ("f?cien", "fficien"), ("peci?c", "pecific"),
-                            ("i?e", "ifie"), ("?nanc", "financ"), ("?nish", "finish"), ("?ve", "five"), ("bene?t", "benefit"),
+                            ("i?e", "ifie"), ("?nanc", "financ"), ("?nish", "finish"), ("?ve", "five"), ("bene?t", "benefit"), ("e?ect", "effect"),
                             ("?nd", "find"), ("de?n", "defin"), ("of?c", "offic"), ("?n", "fin"), ("re?ect", "reflect"), ("on?den", "onfiden"),
                             ("?ts", "fits"), ("?tted", "fitted"), ("goodnessof?t","goodnessoffit"), ("?x", "fix"), ("con?rm", "confirm"),
                             ("di?cat", "dificat"), ("if?cult", "ifficult"), ("?ed", "fied"), (" ?t ", " fit "), ("model?t", "modelfit"), ("?tness", "fitness"),
                             ("?es", "fies"), ("n?ict", "nflict"), ("e?cie", "eficien"), ("f?y", "fly"), ("?gur", "figur"), ("?ow", "flow"), ("good?t", "goodfit"),
-                            ("better?t", "betterfit"), ("sacri?c", "sacrific"), ("-", ""), ("pro?le", "profile"), ("\n", "")]
+                            ("better?t", "betterfit"), ("sacri?c", "sacrific"), ("-", ""), ("pro?le", "profile"), ("\n", ""), ("ful?l", "fulfill"), ("?eld", "field")]
             for a, b in replacements:
                 text = text.replace(a, b)
             if len(text.strip()) != 0:
@@ -116,7 +116,7 @@ for file in listOfFiles:
                                           ("in u en ce", "influence"), ("modi fic a t ion", "modification"), ("di e ren", "differen"), ("die ren", "differen"),
                                           ("di cult", "difficult"), (" n ding", " finding"), ("e ect size", "effect size"), ("eec t size", "effect size"), ("coe cie nt", "coefficient"),
                                           ("tra c", "traffic"),("Tra c", "Traffic"),("in s uci ent", "insufficient"), ("elastic i ties", "elasticities"), ("sign i ? cant ly", "significantly"),
-                                          ("i den tied", "identified"), (" lter", " filter")]
+                                          ("i den tied", "identified"), (" lter", " filter"), (" ? s ", "'s "), ("lastic i ties", "lasticities"),  (" ? t ","'t ")]
                             for a, b in finalsliff:
                                 clean_sentence = clean_sentence.replace(a, b).strip()
                                 fullnames = [name.replace(a, b) for name in fullnames]

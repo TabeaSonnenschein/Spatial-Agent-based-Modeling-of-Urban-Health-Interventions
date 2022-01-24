@@ -48,8 +48,11 @@ for file in listOfFiles:
 
     file1 = re.sub(r'(\d+)(\.\s)(\d+)', r'\1.\3', file1.strip().replace("  ", " ").replace("  ", " "))
     file1 = re.sub(r'(\d+)(\. )(\d+)', r'\1.\3', file1)
-    file1 = file1.replace(" %", "%")
-    # file1 = re.sub(r'(\d)(\d\d%)', r'\1 \2', file1)  ## splits percentage numbers that are longer than 2 digits, but this 
+    file1 = file1.replace(" %", "%").replace("i. e.", "id est").replace("e. g.", "for example").replace(" ? s ", "'s ").replace("al. ", "al").replace("AL. ", "al")
+    # file1 = re.sub(r'([A-Z][\w\s])(e\s*t\s*al)', r'\1 et al ', file1)
+    file1 = re.sub(r'([A-Z]\w+)(\s*)(\w+)(\s*)(e\s*t\s*al)', r'\1\3 et al ', file1)
+
+    # file1 = re.sub(r'(\d)(\d\d%)', r'\1 \2', file1)  ## splits percentage numbers that are longer than 2 digits, but this
     # is based on assumption that percentages would be two digit, which is not always true. Therefore I leave it commented.
 
 
