@@ -356,11 +356,11 @@ for file in listOfFiles:
     doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("xml_csvs/" + file)), encoding="latin1")
     d = predict_labels(doc_txt)
     # print(d)
-    # d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
+    d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
 
 listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "pdftxt_csvs"))
 for file in listOfFiles:
     doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("pdftxt_csvs/" + file)), encoding="latin1")
     d = predict_labels(doc_txt)
     print(d)
-    # d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
+    d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)

@@ -10,10 +10,10 @@ nltk.download('averaged_perceptron_tagger')
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
 
 folder_orig, folder_dest = "txtclean", "pdftxt_csvs"
-folder_orig, folder_dest = "xml_extractedtxt", "xml_csvs"
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(), folder_orig))
-max_words_in_sentence = 400
+# folder_orig, folder_dest = "xml_extractedtxt", "xml_csvs"
+max_words_in_sentence = 300
 
+listOfFiles = os.listdir(path=os.path.join(os.getcwd(), folder_orig))
 print(listOfFiles)
 
 for file in listOfFiles:
@@ -42,25 +42,19 @@ for file in listOfFiles:
     text_df = pd.DataFrame(data=word_id, columns=["word_id"])
     text_df['Sentence #'] = ""
     text_df['Word'] = ""
-    # print(text_df)
     index = -1
 
     ## hierarchical sentence, word restructuring
     for count, value in enumerate(sentences):
-        # print(count)
         words = value.strip().split(" ")
         words = list(filter(None, words))
-        # print(len(words))
         text_df['Sentence #'].iloc[(index + 1):(index + len(words) + 2)] = ("Sentence: " + str(count))
         text_df['Word'].iloc[(index + 1):(index + 1 + len(words))] = words
         text_df['Word'].iloc[(index + len(words) + 1)] = "."
-        # print(text_df[['Sentence #', 'Word']].iloc[(index + 1):(index + 3 + len(words))])
         index = index + len(words) + 1
     text_df = text_df.iloc[0:index]
 
-    ## part-of-speech (POS) tagging
-    ## Part - of - speech(POS) tagging is a natural language processing task which consists in labelling words in context
-    ## with their grammatical category, such as noun, verb, preposition
+    ## part-of-speech (POS) tagging: labelling words in context with their grammatical category
     POS = list(nltk.pos_tag(text_df['Word']))
     POS = pd.DataFrame(data= POS, columns= ["Word", "POS_tag"])
     text_df['POS'] = POS["POS_tag"]

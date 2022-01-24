@@ -35,16 +35,24 @@ for file in listOfFiles:
         reference_start = [m.start() for m in re.finditer('Bibliography', file1)]
         if bool(reference_start):
             length_ref = len(reference_start)
-            print(reference_start)
+            # print(reference_start)
             print(file1[reference_start[length_ref - 1]:(reference_start[length_ref - 1] + 80)])
             file1 = file1[0:reference_start[length_ref - 2]]
         else:
             reference_start = [m.start() for m in re.finditer('Acknowledgement', file1)]
             if bool(reference_start):
                 length_ref = len(reference_start)
-                print(reference_start)
+                # print(reference_start)
                 print(file1[reference_start[length_ref - 1]:(reference_start[length_ref - 1] + 80)])
                 file1 = file1[0:reference_start[length_ref - 2]]
+
+    file1 = re.sub(r'(\d+)(\.\s)(\d+)', r'\1.\3', file1.strip().replace("  ", " ").replace("  ", " "))
+    file1 = re.sub(r'(\d+)(\. )(\d+)', r'\1.\3', file1)
+    file1 = file1.replace(" %", "%")
+    # file1 = re.sub(r'(\d)(\d\d%)', r'\1 \2', file1)  ## splits percentage numbers that are longer than 2 digits, but this 
+    # is based on assumption that percentages would be two digit, which is not always true. Therefore I leave it commented.
+
+
     file2 = open(os.path.join(os.getcwd(), ('txtclean/' + file + '.txt')),
         "a", errors="replace")
     file2.writelines(file1)
