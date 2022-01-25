@@ -4,7 +4,7 @@ from tqdm import tqdm, trange
 import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 import transformers
-from transformers import BertForTokenClassification, AdamW, BertTokenizer, BertConfig, get_linear_schedule_with_warmup, AutoTokenizer, AutoModelForTokenClassification
+from transformers import BertForTokenClassification, AdamW, BertTokenizer, BertConfig, get_linear_schedule_with_warmup, AutoTokenizer, AutoModelForTokenClassification, logging
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from seqeval.metrics import f1_score, accuracy_score, classification_report
@@ -13,7 +13,8 @@ import seaborn as sns
 import os
 from itertools import chain
 import pickle
-
+import config
+logging.set_verbosity_warning()
 torch.__version__
 transformers.__version__
 
@@ -28,7 +29,7 @@ bs = 32
 
 ## loading and preparing data
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-data = pd.read_csv("manually_labeled/10.1016_j.healthplace.2020.102337.csv", encoding="latin1").fillna("O")
+data = pd.read_csv("manually_labeled/labeled_articles_joined_IOB.csv", encoding="latin1").fillna("O")
 print(data.head(10))
 
 class SentenceGetter(object):
@@ -53,13 +54,13 @@ class SentenceGetter(object):
 
 
 getter = SentenceGetter(data)
-print(getter)
 
 sentences = [[word[0] for word in sentence] for sentence in getter.sentences]
-print(sentences[1])
+print("Example sentence:", sentences[6])
 
 labels = [[s[2] for s in sentence] for sentence in getter.sentences]
-print(labels)
+print("Example labels:", labels[6])
+print()
 
 tag_values = list(set(data["Tag"].values))
 tag_values.append("PAD")
@@ -67,7 +68,7 @@ open_file = open("tag_values.pkl", "wb")
 pickle.dump(tag_values, open_file)
 open_file.close()
 tag2idx = {t: i for i, t in enumerate(tag_values)}
-print(tag_values)
+print("List of tag values:", tag_values)
 
 ## applying BERT
 # Prepare the sentences and labels
@@ -124,12 +125,6 @@ val_tags = torch.tensor(val_tags)
 tr_masks = torch.tensor(tr_masks)
 val_masks = torch.tensor(val_masks)
 
-# meta_data = {
-#         "enc_pos": enc_pos,
-#         "enc_tag": enc_tag
-#     }
-#
-# joblib.dump(meta_data, "meta.bin")
 
 train_data = TensorDataset(tr_inputs, tr_masks, tr_tags)
 train_sampler = RandomSampler(train_data)
@@ -145,14 +140,12 @@ valid_dataloader = DataLoader(valid_data, sampler=valid_sampler, batch_size=bs)
 model = BertForTokenClassification.from_pretrained(
 # model = AutoModelForTokenClassification.from_pretrained(
     "bert-base-cased",
-#     "bert-base-uncased",
+    # "bert-base-uncased",
     # 'allenai/scibert_scivocab_uncased',
     num_labels=len(tag2idx),
     output_attentions = False,
     output_hidden_states = False
 )
-# model = AutoModel.from_pretrained('allenai/scibert_scivocab_uncased')
-
 
 
 
@@ -179,7 +172,7 @@ optimizer = AdamW(
 )
 
 
-epochs = 50
+epochs = 5
 max_grad_norm = 1.0
 
 # Total number of training steps is number of batches * number of epochs.

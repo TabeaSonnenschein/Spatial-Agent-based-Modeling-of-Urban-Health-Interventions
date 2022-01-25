@@ -4,7 +4,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
 import re
 import nltk
-nltk.download('averaged_perceptron_tagger')
+# nltk.download('averaged_perceptron_tagger')
 
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
@@ -18,7 +18,7 @@ print(listOfFiles)
 
 for file in listOfFiles:
     print(file)
-    txt_file = open(os.path.join(os.getcwd(), (folder_orig + "/" + file)), 'r').read()
+    txt_file = open(os.path.join(os.getcwd(), (folder_orig + "/" + file)), 'r').read().encode('ascii', 'ignore').decode()
     txt_file = txt_file.replace(", ", " , ")
     messy_words = txt_file.split(" ")
     sentences = txt_file.split(". ")

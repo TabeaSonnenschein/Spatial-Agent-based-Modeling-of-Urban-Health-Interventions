@@ -32,10 +32,11 @@ for file in listOfFiles:
         "a", errors="replace")
     fulltext = ""
     for count, value in enumerate(label_ends):
-        # file1.writelines(xml_file[(value+1):label_starts[count+1]].replace("\n", "").strip() + " ")
         fulltext += xml_file[(value+1):label_starts[count+1]].replace("\n", "").strip() + " "
     cleantext, abbreviations, fullnames = FindNReplaceAbbr(fulltext)
-    file1.writelines(cleantext)
+    cleantext = cleantext.replace(" %", "%").replace("i. e.", "id est").replace("e. g.", "for example").replace("al. ", "al").replace("AL. ", "al")
+    cleantext = cleantext.replace("Fig. ", "Figure ").replace("Tab. ", "Table ").replace("p. ", "p")
+    file1.writelines(cleantext.strip())
     full_abbr.extend(abbreviations)
     full_fullnames.extend(fullnames)
     full_doitracking.extend([file] * len(abbreviations))
