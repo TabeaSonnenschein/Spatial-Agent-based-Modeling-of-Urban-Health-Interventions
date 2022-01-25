@@ -72,6 +72,8 @@ if __name__ == "__main__":
             subset = doc.iloc[doc.index[doc["Sentence #"] == value]]
             sentence = " ".join(str(item) for item in subset['Word'])
             tokenized_sentence = config.TOKENIZER.encode(sentence)
+            input_ids = torch.tensor([tokenized_sentence]).cuda()
+            tokens = tokenizer.convert_ids_to_tokens(input_ids.to('cpu').numpy()[0])
             sentence = sentence.split()
             test_dataset = dataset.EntityDataset(
                 texts=[sentence],
@@ -94,7 +96,9 @@ if __name__ == "__main__":
                 pos_tags.append(pred_pos)
             labels.append(sentence)
             sentenceid.append([value] * len(pred_pos))
-            # print(len(sentenceid), len(labels), len(pos_tags), len(tags))
+            print(len(sentence), len(pred_pos), len(pred_tags))
+            print(sentence)
+            print(pred_tags)
         # return pd.DataFrame({'Sentence': flatten(sentenceid), 'Word': flatten(labels), 'Tag': flatten(tags), 'POS': flatten(pos_tags)})
         return pd.DataFrame({'Sentence': flatten(sentenceid), 'Tag': flatten(tags), 'POS': flatten(pos_tags)})
 
