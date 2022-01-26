@@ -11,7 +11,7 @@ import "Transport Air Pollution Exposure Model_calibration.gaml"
   
 global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
-	float affordability_weight <- 0.7;
+	map<string,float> affordability_weight_income <- create_map(["low", "middle", "high"], [0.7, 0.7, 0.7]);
 	float pop_density_weight_walk <- 0.8;
 	float retail_density_weight_walk <- 0.8;
 	float greenCoverage_weight_walk <- 0.8;
@@ -23,12 +23,12 @@ global skills: [RSkill]{
 	float public_Transport_density_weight_bike <- 0.8;
 	float road_intersection_density_weight_bike <- 0.8;
 	float traveltime_weight <- 0.5;
-	map<string,float> tripdistance_weight_age_walk <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 3.33, 11.11, 0.4,0.5]);
-	map<string,float> tripdistance_weight_age_bike <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 3.33, 11.11, 0.4,0.5]);
-	map<string,float> tripdistance_weight_age_car <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 3.33, 11.11, 0.4,0.5]);
-	map<string,float> tripdistance_weight_BMI_walk <- create_map(["normal", "overweight"], [0.3, 3.33]);
-	map<string,float> tripdistance_weight_BMI_bike <- create_map(["normal", "overweight"], [0.3, 3.33]);
-	map<string,float> tripdistance_weight_BMI_car <- create_map(["normal", "overweight"], [0.3, 3.33]);
+	map<string,float> tripdistance_weight_age_walk <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 0.3, 0.3, 0.3, 0.3]);
+	map<string,float> tripdistance_weight_age_bike <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 0.3, 0.3, 0.3, 0.3]);
+	map<string,float> tripdistance_weight_age_car <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [0.3, 0.3, 0.3, 0.3, 0.3]);
+	map<string,float> tripdistance_weight_BMI_walk <- create_map(["normal", "overweight"], [0.3, 0.3]);
+	map<string,float> tripdistance_weight_BMI_bike <- create_map(["normal", "overweight"], [0.3, 0.3]);
+	map<string,float> tripdistance_weight_BMI_car <- create_map(["normal", "overweight"], [0.3, 0.3]);
 	
 	// objective function and metrics
 	int n_diff_modal_choices <- 0;
@@ -71,7 +71,7 @@ global skills: [RSkill]{
     
     //  loading grid with walkability measures
     file rasterfile_walkability <- grid_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
-    csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv", ",", string); 
+    csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures_normalised.csv", ",", string); 
     //	columnnames:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid"
     
     
@@ -90,14 +90,14 @@ global skills: [RSkill]{
 		int csvindex;
 		float pop_density;
 		float retail_density;
-		float greenCoverage ;
+		float greenCoverage;
 		float public_Transport_density;
 		float road_intersection_density;
 		list datalist;
 	}	
 	
 	float seed_value <- int(self) + 1.0;
-	int nb_humans <- 1000;	// make sure it's the same size of the subset ODiN pop!
+	int nb_humans <- 100;	// make sure it's the same size of the subset ODiN pop!
 	
 	csv_file file_subset_ODiN <- csv_file(path_data+"Amsterdam/Calibration/Subset_ODiN.csv", ";", string, true);
 	file pc4_AMS_file <- shape_file(path_data+"Amsterdam/Calibration/AMS-PC4_polygons/AMS-PC4_polygons.shp");	// loading Amsterdam locations for moving the agents
@@ -117,11 +117,14 @@ global skills: [RSkill]{
         create PC4_polygons from: pc4_AMS_file with: [Neighborhood:: read('PC4')];	
         	
 	    // humans for calibration
-	    create Humans from: file_subset_ODiN with:[Agent_ID :: string(read('agent_ID')),
+	    create Humans from: file_subset_ODiN with:[
+	    	Agent_ID :: string(read('agent_ID')),
 	    	Neighborhood :: read('postcode_home'),
 	    	hh_single :: int(read('hh_single')),
 	    	has_child:: int(read('havechild')), 
 	        absolved_edu:: read('absolved_edu'),
+	        car_in_household:: int(read('car_in_household')),
+	        has_driving_license:: int(read('has_driving_license')),
 	        ODIN_locations_str:: string(read('lookup')),
 	        ODIN_modal_choices_str:: string(read('modal_choices')),
 	        BMI:: string(read('BMI')),
@@ -179,6 +182,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string weightgroup; /// "normal", "overweight"
 	int income_household;
 	string incomegroup; /// "low", "middle", "high"
+	int car_in_household;
+	int has_driving_license;
 	
 	/// calibration variables
 	string ODIN_locations_str;
@@ -187,7 +192,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	list<string> ODIN_modal_choices;
 	string current_location;
 	string former_location;		
-	int counter_modal_choice <- -1;	// to iterate through the list of modal choices, retrieving the one matching the current displacement
+	int counter_modal_choice <- 0;	// to iterate through the list of modal choices, retrieving the one matching the current displacement
 	
 	/// destination locations
 	geometry residence;
@@ -331,25 +336,6 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
        	  	}
        	}
        	
-       	// old distance_willing_travel TO DELETE
-       	if(BMI != "moderate_overweight" and BMI != "obese"){
-       		if(age <= 8){
-       			distance_willing_travel <- create_map(["walk", "bike", "car"], [600, 0, 0 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
-       	  	}
-       	  	if(age > 8 and age<= 17){
-       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 0 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
-       	  	}
-       	  	if(age < 50 and age > 17){
-       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1500, 6000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
-       	  	}else if(age >= 50 and age < 70){
-       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1500, 3000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
-       	  	}else if(age >= 70){
-       	  		distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
-       	  	}
-       	}else{
-       	  	distance_willing_travel <- create_map(["walk", "bike", "car"], [1000, 2000, 20000 ]);  //meters, need to derive from ODIN..    				// needs robust methodology
-       	}
-       	
 
        	// assign age group based on actual age
        	if (self.age<=8){
@@ -409,7 +395,6 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				traveldecision <- 1; // flag that a new travel decision has to be made
 			 	route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));	// calculate trip to new location
 			 	trip_distance <- (self.location distance_to destination_activity); // calculate distance to new location
-			 	self.counter_modal_choice <- self.counter_modal_choice + 1;	// increment the modal choice counter for the extraction
 			} else if ((self.former_location='outsideAMS') and (self.current_location != 'outsideAMS')) {	// if the agent returns from outside Amsterdam, I just update with the new location (no trip)
 				self.location <- (PC4_polygons where (each.Neighborhood = self.current_location))[0].shape.location;
 			}	
@@ -433,47 +418,44 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
    	reflex modalchoice when: make_modalchoice = 1 {
 	   	new_route <- 1;
 	   	make_modalchoice <- 0;
-		driving_utility <- (affordability_weight * float(affordability["perc_budget_car"]))
-						+ (traveltime_weight * float(assumed_traveltime["traveltime_car"])) 
-						+ (tripdistance_weight_age_car[agegroup] * tripdistance_weight_BMI_car[weightgroup] * (trip_distance/1000));
-		walking_utility <- (affordability_weight * float(affordability["perc_budget_walk"])) 
+		driving_utility <- (((affordability_weight_income[incomegroup] * (1-tanh(float(affordability["perc_budget_car"]))))
+						+ (traveltime_weight * (1-tanh(float(assumed_traveltime["traveltime_car"])/1000)))
+						+ (tripdistance_weight_age_car[agegroup] * tripdistance_weight_BMI_car[weightgroup] * (1-tanh(trip_distance/1000))))
+						/3);
+																
+		walking_utility <- (((affordability_weight_income[incomegroup] * (1-tanh(float(affordability["perc_budget_walk"])))) 
 						+ (pop_density_weight_walk * float(assumed_quality_infrastructure["pop_density"]))
 						+ (retail_density_weight_walk * float(assumed_quality_infrastructure["retail_density"]))					
 						+ (greenCoverage_weight_walk * float(assumed_quality_infrastructure["greenCoverage"]))
 						+ (public_Transport_density_weight_walk * float(assumed_quality_infrastructure["public_Transport_density"]))
 						+ (road_intersection_density_weight_walk * float(assumed_quality_infrastructure["road_intersection_density"]))
-						+ (traveltime_weight * float(assumed_traveltime["traveltime_walk"]))
-						+ (tripdistance_weight_age_walk[agegroup] * tripdistance_weight_BMI_walk[weightgroup] * (trip_distance/1000));					
-		biking_utility <- (affordability_weight * float(affordability["perc_budget_bike"])) 
+						+ (traveltime_weight * (1-tanh(float(assumed_traveltime["traveltime_walk"])/1000)))
+						+ (tripdistance_weight_age_walk[agegroup] * tripdistance_weight_BMI_walk[weightgroup] * (1-tanh((trip_distance/1000)))))
+						/8);	
+										
+		biking_utility <- (((affordability_weight_income[incomegroup] * (1-tanh(float(affordability["perc_budget_bike"])))) 
 						+ (pop_density_weight_bike * float(assumed_quality_infrastructure["pop_density"]))
 						+ (retail_density_weight_bike * float(assumed_quality_infrastructure["retail_density"]))					
 						+ (greenCoverage_weight_bike * float(assumed_quality_infrastructure["greenCoverage"]))
 						+ (public_Transport_density_weight_bike * float(assumed_quality_infrastructure["public_Transport_density"]))
 						+ (road_intersection_density_weight_bike * float(assumed_quality_infrastructure["road_intersection_density"]))
-						+ (traveltime_weight * float(assumed_traveltime["traveltime_bike"]))
-						+ (tripdistance_weight_age_bike[agegroup] * tripdistance_weight_BMI_bike[weightgroup] * (trip_distance/1000));
-			
-		// filter possible modal choice				
-		if(trip_distance <= distance_willing_travel["walk"]){
-			if(car_owner = 1){
+						+ (traveltime_weight * (1-tanh(float(assumed_traveltime["traveltime_bike"])/1000)))
+						+ (tripdistance_weight_age_bike[agegroup] * tripdistance_weight_BMI_bike[weightgroup] * (1-tanh(trip_distance/1000))))
+						/8);
+		
+		// filter modal choice by age group. Minors cannot drive
+		if(agegroup='minor') {
+			modalchoice <- "walk";
+		} else if (agegroup='youngadult'){
+			modalchoice <- ["walk", "bike"] at ([walking_utility, biking_utility] index_of  max([walking_utility, biking_utility]));			
+		} else {
+			if (self.has_driving_license=1 and self.car_in_household=1) { // see if it has a driving license and a car available
 				modalchoice <- ["car", "walk", "bike"] at ([driving_utility, walking_utility, biking_utility] index_of  max([driving_utility, walking_utility, biking_utility]));	
-			}
-			else{
-				modalchoice <- ["walk", "bike"] at ([walking_utility, biking_utility] index_of  max([walking_utility, biking_utility]));			
-			}
-		} else if(trip_distance <= distance_willing_travel["bike"]){
-			if(car_owner = 1){
-				modalchoice <- ["car","bike"] at ([driving_utility, biking_utility] index_of  max([driving_utility, biking_utility]));	
-			} else{
-				modalchoice <- "bike";	
-			}				
-		} else{
-			if(car_owner = 1){
-			 	modalchoice <- "car";
-			} else{
-				modalchoice <- "bike";	
+			} else {
+				modalchoice <- ["walk", "bike"] at ([walking_utility, biking_utility] index_of  max([walking_utility, biking_utility]));				
 			}
 		}
+		
 		
 		// calibration		
 		if (self.ODIN_modal_choices[counter_modal_choice] in ['walk', 'bike', 'car']) {	// it does not make sense to calibrate on a modal choice not implemented
@@ -537,6 +519,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				//write(confusion_matrix);
 				//write('f1: '+weightedf1);
 			}
+			self.counter_modal_choice <- self.counter_modal_choice + 1;	// increment the modal choice counter for the next trip
 		}
 		
 		//write string(trip_distance) + " " + modalchoice ;
@@ -643,13 +626,12 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 }
 
 experiment HillClimbing type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	parameter 'Affordability:' var: affordability_weight min: 0.0 max: 1.0 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	parameter 'Travel time' var: traveltime_weight min: 0.0 max: 1.0 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	method hill_climbing iter_max: 50 maximize: weightedf1;
 	
 	reflex end_of_runs{
 		ask simulations{
-			add [affordability_weight, traveltime_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
+			add [traveltime_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
 			write(results);
 		}
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/hill_climbing.csv" rewrite:false;
@@ -657,13 +639,12 @@ experiment HillClimbing type: batch repeat: 1 keep_seed: true until: (current_da
 }
 
 experiment SimulatedAnnealing type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	parameter 'Travel time' var: traveltime_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	method annealing temp_init: 100 temp_end: 1 temp_decrease: 0.5 nb_iter_cst_temp: 1 maximize: weightedf1;	
 	
 	reflex end_of_runs{
 		ask simulations{
-			add [affordability_weight, traveltime_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
+			add [traveltime_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
 			write(results);
 		}
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/simulated_annealing.csv" rewrite:false;
@@ -671,13 +652,12 @@ experiment SimulatedAnnealing type: batch repeat: 1 keep_seed: true until: (curr
 }
 
 experiment GenericAlgorithm type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	parameter 'Affordability:' var: affordability_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	parameter 'Travel time' var: traveltime_weight min: 0.5 max: 0.9 unit: 'rate every cycle (1.0 means 100%) ' step: 0.1;
 	method genetic maximize: weightedf1 pop_dim: 2 crossover_prob: 0.7 mutation_prob: 0.1 nb_prelim_gen: 1 max_gen: 20;
 	
 	reflex end_of_runs{
 		ask simulations{
-			add [affordability_weight, traveltime_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
+			add [traveltime_weight, weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))] to: results;
 			write(results);
 		}
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/genetic_algorithm.csv" rewrite:false;
@@ -694,12 +674,15 @@ experiment TransportAirPollutionExposureModel type: gui {
 	 
 	
 	output {
+		
 		layout horizontal([1::6000,0::4000]) tabs: false;
 	
     	display stats type: java2D synchronized: true {
+    		 
 			overlay position: {0, 0} size: {1, 0.05} background: #black  border: #black {
 				draw "Model Time: " + current_date color: #white font: font("SansSerif", 17) at: {40#px, 30#px};
 			}
+			/*
 			chart "Transport Mode distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.5} position: {0.5, 0.5} label_font: font("SansSerif", 12){
  		    	data "walk" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting") color:#green;
 	        	data "bike" value: Humans count (each.modalchoice = "bike" and each.activity = "commuting") color:#blue;
@@ -738,9 +721,11 @@ experiment TransportAirPollutionExposureModel type: gui {
 			graphics GreenSpace refresh: false{
     			draw shape_file_greenspace color: #green;
 			}
+			
+			*/
        		species Humans aspect: base ;
 
-        /* 
+         	/*
         	overlay position: {0, 0, 0} size: {180 #px, 130#px} background: #black rounded: false transparency: 0.0 {
         		float y <- 30#px;
             	loop type over: color_per_type.keys  {   
