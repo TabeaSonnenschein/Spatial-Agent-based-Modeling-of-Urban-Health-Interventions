@@ -11,7 +11,7 @@ os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\C
 
 folder_orig, folder_dest = "txtclean", "pdftxt_csvs"
 # folder_orig, folder_dest = "xml_extractedtxt", "xml_csvs"
-max_words_in_sentence = 300
+max_words_in_sentence = 100
 
 listOfFiles = os.listdir(path=os.path.join(os.getcwd(), folder_orig))
 print(listOfFiles)

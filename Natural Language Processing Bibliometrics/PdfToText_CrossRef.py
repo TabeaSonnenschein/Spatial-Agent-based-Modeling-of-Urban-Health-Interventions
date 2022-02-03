@@ -39,15 +39,16 @@ for file in listOfFiles:
                             ("i?e", "ifie"), ("?nanc", "financ"), ("?nish", "finish"), ("?ve", "five"), ("bene?t", "benefit"), ("e?ect", "effect"),
                             ("?nd", "find"), ("de?n", "defin"), ("of?c", "offic"), ("?n", "fin"), ("re?ect", "reflect"), ("on?den", "onfiden"),
                             ("?ts", "fits"), ("?tted", "fitted"), ("goodnessof?t","goodnessoffit"), ("?x", "fix"), ("con?rm", "confirm"),
-                            ("di?cat", "dificat"), ("if?cult", "ifficult"), ("?ed", "fied"), (" ?t ", " fit "), ("model?t", "modelfit"), ("?tness", "fitness"),
+                            ("di?cat", "dificat"), ("if?cult", "ifficult"), ("?ed", "fied"), ("aren?t","aren't"), ("aren ?t","aren't"),(" ?t ", " fit "), ("model?t", "modelfit"), ("?tness", "fitness"),
                             ("?es", "fies"), ("n?ict", "nflict"), ("e?cie", "eficien"), ("f?y", "fly"), ("?gur", "figur"), ("?ow", "flow"), ("good?t", "goodfit"),
-                            ("better?t", "betterfit"), ("sacri?c", "sacrific"), ("-", ""), ("pro?le", "profile"), ("\n", ""), ("ful?l", "fulfill"), ("?eld", "field")]
+                            ("better?t", "betterfit"), ("sacri?c", "sacrific"), ("-", ""), ("pro?le", "profile"), ("\n", ""), ("ful?l", "fulfill"),
+                            ("?eld", "field"), ("arti?cial", "artificial")]
             for a, b in replacements:
                 text = text.replace(a, b)
             if len(text.strip()) != 0:
                 if len(max(text.split(), key=len)) > 5 and len(re.sub("[^0-9]", "", text)) < len(re.sub("[^a-zA-Z]", "", text)) and len(text.replace(' ',''))/len(text.split()) > 4 and (len(text) - len(re.sub("[^0-9]", "", text)) - len(re.sub("[^a-zA-Z]", "", text))) < len(re.sub("[^a-zA-Z]", "", text)):
                     sentences = text.split(".")
-                    filename = str(file).replace(".pdf", "")
+                    filename = str(file).replace(".pdf", "").replace("doi_", "")
                     file1 = open(
                         r'C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults\txt\doi_' + filename + '.txt',
                         "a", errors="replace")
@@ -55,39 +56,42 @@ for file in listOfFiles:
                         if len(sentence.strip()) != 0:
                             if("(" and ")" in sentence):
                                 # print(sentence)
-                                openbrackets = sentence.find("(")
-                                closebrackets = sentence.find(")")
-                                if sentence[openbrackets+1:closebrackets].isupper() and sentence[openbrackets+1:closebrackets].isalpha() and (len(sentence[openbrackets+1:closebrackets])>1):
-                                    abbr = sentence[openbrackets+1:closebrackets]
-                                    abbreviationlen = len(abbr)
-                                    wordsbefore = wordninja.split(sentence[:openbrackets])
-                                    wordsbefore = wordsbefore[len(wordsbefore)-abbreviationlen-3:]
-                                    possible_fullnames = []
-                                    if len(abbr) < 2:
-                                        for count, value in enumerate(wordsbefore[:len(wordsbefore) - 2]):
-                                            if value[0].upper() == abbr[0] and (
-                                                    wordsbefore[count + 1][0].upper() == abbr[1] or
-                                                    wordsbefore[count + 2][0].upper() == abbr[1]):
-                                                fullname = " ".join(wordsbefore[count:])
-                                                possible_fullnames.append(fullname)
-                                    else:
-                                        for count, value in enumerate(wordsbefore[:len(wordsbefore) - 1]):
-                                            if value[0].upper() == abbr[0] and wordsbefore[count + 1][0].upper() == \
-                                                    abbr[1]:
-                                                fullname = " ".join(wordsbefore[count:])
-                                                possible_fullnames.append(fullname)
-                                    if(possible_fullnames):
-                                        fullnames.append(min(possible_fullnames, key=len))
-                                        abbreviations.append(abbr)
-                                        doi_tracking.append(file)
-                                        print(abbreviations[-1])
-                                        print(fullnames[-1])
-                                        sentence = "".join([sentence[:openbrackets], sentence[closebrackets+1:]])
-                                        print()
+                                openbrackets = [m.start() for m in re.finditer("[(]", sentence)]
+                                closebrackets = [m.start() for m in re.finditer("[)]", sentence)]
+                                # print("open brackets", openbrackets, "closing brackets", closebrackets)
+                                min_length = shortest_length = min(len(openbrackets), len(closebrackets))
+                                for abbr_indx in range(0,min_length):
+                                    if sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","").isupper() and sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","").isalpha() and (len(sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]])>1):
+                                        abbr = sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","")
+                                        abbreviationlen = len(abbr)
+                                        wordsbefore = wordninja.split(sentence[:openbrackets[abbr_indx]])
+                                        wordsbefore = wordsbefore[len(wordsbefore)-abbreviationlen-3:]
+                                        possible_fullnames = []
+                                        if len(abbr) > 2:
+                                            for count, value in enumerate(wordsbefore[:len(wordsbefore) - 2]):
+                                                if value[0].upper() == abbr[0] and (
+                                                        wordsbefore[count + 1][0].upper() == abbr[1] or
+                                                        wordsbefore[count + 2][0].upper() == abbr[1]):
+                                                    fullname = " ".join(wordsbefore[count:])
+                                                    possible_fullnames.append(fullname)
+                                        else:
+                                            for count, value in enumerate(wordsbefore[:len(wordsbefore) - 1]):
+                                                if value[0].upper() == abbr[0] and wordsbefore[count + 1][0].upper() == \
+                                                        abbr[1]:
+                                                    fullname = " ".join(wordsbefore[count:])
+                                                    possible_fullnames.append(fullname)
+                                        if(possible_fullnames):
+                                            fullnames.append(min(possible_fullnames, key=len))
+                                            abbreviations.append(abbr)
+                                            doi_tracking.append(file)
+                                            print(abbreviations[-1])
+                                            print(fullnames[-1])
+                                            sentence = "".join([sentence[:openbrackets[abbr_indx]], sentence[closebrackets[abbr_indx]+1:]])
+                                            print()
 
                             if bool(abbreviations):
                                 order = list(pd.Series(abbreviations).str.len().sort_values().index.values)
-                                print(abbreviations, order)
+                                # print(abbreviations, order)
                                 for index in range(len(abbreviations) - 1, -1, -1):
                                     sentence = sentence.replace(abbreviations[order.index(index)],
                                                                         fullnames[order.index(index)])
@@ -116,7 +120,19 @@ for file in listOfFiles:
                                           ("in u en ce", "influence"), ("modi fic a t ion", "modification"), ("di e ren", "differen"), ("die ren", "differen"),
                                           ("di cult", "difficult"), (" n ding", " finding"), ("e ect size", "effect size"), ("eec t size", "effect size"), ("coe cie nt", "coefficient"),
                                           ("tra c", "traffic"),("Tra c", "Traffic"),("in s uci ent", "insufficient"), ("elastic i ties", "elasticities"), ("sign i ? cant ly", "significantly"),
-                                          ("i den tied", "identified"), (" lter", " filter"), (" ? s ", "'s "), ("lastic i ties", "lasticities"),  (" ? t ","'t ")]
+                                          ("i den tied", "identified"), (" lter", " filter"), (" ? s ", "'s "), ("lastic i ties", "lasticities"),  (" ? t ","'t "), ("in ue nti al", "influential"),
+                                          ("in u enc e", "influence "), ("ign i can", "ignifican"), ("dent i cation", "dentification"), ("xternal i ties", "xternalities"),
+                                          ("coe ci ent", "coefficient"), ("ec i cation", "ecification"), ("class i ed", "classifed"), ("a ttt i tude", "attitude"), (" o or ", "floor "),
+                                          ("gnifican ce", "gnificance"), ("rider ship", "ridership"), (" xter nal", "external"), (" in signific", "  insignific"), ("re ect s", " reflects "), ("re ect ", " reflect"), ("r eec t", "reflect"), ("eec t", "effect"),
+                                          ("multi no mi al", "multinominal "), (" no mi al", " nominal "), ("spec ic", "specific"), (" un weight", " unweight"), (" rst ", " first "), (" oe rsa ", " offers a "),
+                                          (" dieren ces ", " differences "), ("Dieren ces", "Differences"), ("rig our", "rigour"), (" nds ", " finds "), ("Eec t", "Effect"), ("re pli c ability", " replicability"), ("de ned", "defined"),
+                                          (" de ne", " define"), ("uct u at ion", " fluctuation"), ("con rm", "confirm"), (" d is aggregate", " disaggregate"), (" el d ", " field "), (" our is he d ", " flourished "),
+                                          ("effecti ve", "effective"), (" nite ", " finite "), ("general is able", "generalisable"), ("oe ring", "offering"), ("different ly", "differently"), ("indifferent", "in different"),
+                                          ("at t it udin al", "attitudinal"), ("systemic al", "systemical"), (" ve ", " five "), ("die ring", "differing"), ("nul lies", "nullifies"), ("operational is ation", "operationalisation"),
+                                          ("con found", "confound"), ("At t it udin al", "Attitudinal"), ("xe de ect s", "fixed effects"), ("xe de ect", "fixed effect"), (" die r ", " differ "), (" gu re", " Figure"),
+                                          ("walk ability", "walkability"), ("n dings ", " findings "), ("are nf it", "aren't"), ("non - significant", "insignificant"), ("Non - significant", "Insignificant"), ("quant if i cation", "quantification"),
+                                          ("streets cape", "streetscape"), ("Walk ability", "Walkability"), ("operational is ed", "operationalised") , ("co variate s ", "covariates "), (" noor ", " no or "), ("s ? ", "s' "),
+                                          ("fac il it at or s ", "facilitators "), ("fac il it at or", "facilitator"), ("hypothesis ed ", "hypothesised "), ("walk able", "walkable")]
                             for a, b in finalsliff:
                                 clean_sentence = clean_sentence.replace(a, b).strip()
                                 fullnames = [name.replace(a, b) for name in fullnames]

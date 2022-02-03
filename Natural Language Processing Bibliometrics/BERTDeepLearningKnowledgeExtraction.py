@@ -26,10 +26,13 @@ torch.cuda.get_device_name(0)
 print(torch.cuda.get_device_name(0))
 MAX_LEN = 75
 bs = 32
+test_percentage = 0.2
+epochs = 100
 
 ## loading and preparing data
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-data = pd.read_csv("manually_labeled/labeled_articles_joined_IOB.csv", encoding="latin1").fillna("O")
+# data = pd.read_csv("manually_labeled/labeled_articles_joined_IOB.csv", encoding="latin1").fillna("O")
+data = pd.read_csv("manually_labeled/labeled_articles_joined_IO.csv", encoding="latin1").fillna("O")
 print(data.head(10))
 
 class SentenceGetter(object):
@@ -114,9 +117,9 @@ tags = pad_sequences([[tag2idx.get(l) for l in lab] for lab in labels],
 attention_masks = [[float(i != 0.0) for i in ii] for ii in input_ids]
 
 tr_inputs, val_inputs, tr_tags, val_tags = train_test_split(input_ids, tags,
-                                                            random_state=2018, test_size=0.1)
+                                                            random_state=2018, test_size=test_percentage)
 tr_masks, val_masks, _, _ = train_test_split(attention_masks, input_ids,
-                                             random_state=2018, test_size=0.1)
+                                             random_state=2018, test_size=test_percentage)
 
 tr_inputs = torch.tensor(tr_inputs)
 val_inputs = torch.tensor(val_inputs)
@@ -172,7 +175,7 @@ optimizer = AdamW(
 )
 
 
-epochs = 5
+
 max_grad_norm = 1.0
 
 # Total number of training steps is number of batches * number of epochs.
@@ -187,7 +190,7 @@ scheduler = get_linear_schedule_with_warmup(
 
 # Fit BERT for named entity recognition
 ## Store the average loss after each epoch so we can plot them.
-loss_values, validation_loss_values = [], []
+loss_values, validation_loss_values, F1_score_values, accuracy_values = [], [], [], []
 
 for _ in trange(epochs, desc="Epoch"):
     # ========================================
@@ -277,6 +280,8 @@ for _ in trange(epochs, desc="Epoch"):
                                   for l_i in l if tag_values[l_i] != "PAD"]
     print("Validation Accuracy: {}".format(accuracy_score(pred_tags, valid_tags)))
     print("Validation F1-Score: {}".format(f1_score([pred_tags], [valid_tags])))
+    F1_score_values.append(f1_score([pred_tags], [valid_tags]))
+    accuracy_values.append(accuracy_score(pred_tags, valid_tags))
     print()
 
 output_model = ('C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/model_' + str(epochs) + '.bin')
@@ -294,12 +299,17 @@ plt.rcParams["figure.figsize"] = (12,6)
 # Plot the learning curve.
 plt.plot(loss_values, 'b-o', label="training loss")
 plt.plot(validation_loss_values, 'r-o', label="validation loss")
+plt.plot(F1_score_values, 'g-o', label="F1-score")
+plt.plot(accuracy_values, 'm-o', label="validation accuracy")
 
 # Label the plot.
 plt.title("Learning curve")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
-plt.legend()
+# plt.legend(loc='upper right') # legend in upper right corner inside plot
+# plt.legend(bbox_to_anchor=(1.02, 1),  borderaxespad=0) # legend in upper right corner outside plot
+# plt.legend(loc='center right') # legend in center right
+plt.legend(loc='best', bbox_to_anchor=(0.6, 0.6, 0.4, 0.3))
 
 plt.show()
 
@@ -314,9 +324,7 @@ def flatten(listOfLists):
     return list(chain.from_iterable(listOfLists))
 
 def predict_labels(doc):
-    labels = []
-    tags = []
-    sentenceid = []
+    labels, tags, sentenceid = [], [], []
     for count, value in enumerate(dict.fromkeys(doc["Sentence #"])):
         subset = doc.iloc[doc.index[doc["Sentence #"] == value]]
         test_sentence = " ".join(str(item) for item in subset['Word'])
@@ -335,25 +343,31 @@ def predict_labels(doc):
             else:
                 new_labels.append(tag_values[label_idx])
                 new_tokens.append(token)
-        for token, label in zip(new_tokens, new_labels):
-            print("{}\t{}".format(label, token))
+        # for token, label in zip(new_tokens, new_labels):
+            # print("{}\t{}".format(label, token))
         labels.append(new_labels)
         tags.append(new_tokens)
         # sentenceid.append(value.extend([value] * len(new_tokens)))
         sentenceid.append([value] * len(new_tokens))
-    return pd.DataFrame({'Sentence': flatten(sentenceid), 'Word': flatten(labels),'Tag': flatten(tags)})
+    return pd.DataFrame({'Sentence': flatten(sentenceid), 'Tag': flatten(labels),'Word': flatten(tags)})
 
 
 listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "xml_csvs"))
 for file in listOfFiles:
     doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("xml_csvs/" + file)), encoding="latin1")
     d = predict_labels(doc_txt)
+    print(file)
     # print(d)
     d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
 
 listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "pdftxt_csvs"))
+xml_doclist = os.listdir(path=os.path.join(os.getcwd(), "xml_csvs"))
 for file in listOfFiles:
-    doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("pdftxt_csvs/" + file)), encoding="latin1")
-    d = predict_labels(doc_txt)
-    print(d)
-    d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
+    if file in xml_doclist:
+        print("file already labeled")
+    else:
+        doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("pdftxt_csvs/" + file)), encoding="latin1")
+        d = predict_labels(doc_txt)
+        print(file)
+        # print(d)
+        d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)

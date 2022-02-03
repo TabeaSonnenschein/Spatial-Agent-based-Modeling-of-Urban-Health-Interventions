@@ -9,11 +9,34 @@ from math import floor, ceil
 ## apply network distance measures using open source wordnet network
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-variable_df = pd.read_csv("PapersNVariables.csv")
+variable_type = "BehaviorDeterminants"
+variables_df = pd.read_csv("unique_" + variable_type + ".csv")
+variables_df.insert(0, 'orig_name_ID',  ['ON_'+ str(i) for i in range(1,len(variables_df.iloc[:,0])+1)])
+print(variables_df.head())
 
-variable_names = variable_df['BehaviourFactor']
+variable_names = list(variables_df.iloc[:, 1])
+variable_names = [x.lower() for x in variable_names]
+print(variable_names)
 nr_variables = len(variable_names)
-print(variable_names.head())
+
+variables_df['subwords'] = ["; ".join(variable.split()) for variable in variable_names]
+print(variables_df.head())
+subword_list = [variable.split() for variable in variable_names]
+print(subword_list)
+
+variables_df[['shared_subwords_VarN', 'shared_subwords_VarID']] = ''
+for i in range(0,nr_variables):
+    shar_subword_varname, shar_subword_ID = [], []
+    for word in subword_list[i]:
+        for count, value in enumerate(subword_list):
+            if (word in value) and (count != i):
+                shar_subword_varname.append(variable_names[count])
+                shar_subword_ID.append(variables_df['orig_name_ID'].iloc[count])
+    variables_df['shared_subwords_VarN'].iloc[i] = "; ".join(shar_subword_varname)
+    variables_df['shared_subwords_VarID'].iloc[i] = "; ".join(shar_subword_ID)
+
+print(variables_df)
+
 
 # https://www.datacamp.com/community/tutorials/fuzzy-string-python
 def levenshtein_ratio_and_distance(s, t, ratio_calc = False):
@@ -129,18 +152,9 @@ def jaro_distance(s1, s2):
     return (match / len1 + match / len2 +
             (match - t) / match) / 3.0
 
-
-# Driver code
-s1 = "CRATE"
-s2 = "TRACE"
-
-# Prjaro Similarity of two s
-print(round(jaro_distance(s1, s2), 6))
-
 # This code is contributed by mohit kumar 29
 
-# NEVER grow a DataFrame!
-# It is always cheaper to append to a list and create a DataFrame in one go
+
 variable_similarity = []
 for variable in variable_names:
     variable_data = []
@@ -148,19 +162,47 @@ for variable in variable_names:
         variable_data.append(levenshtein_ratio_and_distance(variable, compare_variable))
     variable_similarity.append(variable_data)
 
-print(variable_similarity)
+# print(variable_similarity)
 
 variable_similarity_Levenshtein_df = pd.DataFrame(data=variable_similarity, columns=variable_names)
-#variable_similarity_df.index.values = variable_names
+variable_similarity_Levenshtein_df.insert(0, "variablename", variable_names)
 print(variable_similarity_Levenshtein_df.head())
+csv = os.path.join(os.getcwd(), (variable_type + "_LevenshteinDST.csv"))
+variable_similarity_Levenshtein_df.to_csv(csv, index=False)
 
-variable_similarity = []
-for variable in variable_names:
-    variable_data = []
-    for compare_variable in variable_names:
-        variable_data.append(jaro_distance(variable, compare_variable))
-    variable_similarity.append(variable_data)
 
-variable_similarity_Jaro_df = pd.DataFrame(data=variable_similarity, columns=variable_names)
-#variable_similarity_df.index.values = variable_names
-print(variable_similarity_Jaro_df.head())
+
+variables_df[['similar_VarN_LS', 'similar_VarID_LS','similar_VarIndx_LS', 'similar_Var_LSD']] = ''
+
+for i in range(0,nr_variables):
+    sim_varN, sim_varId, sim_varindx, sim_var_LSD = [], [], [], []
+    if len(variable_similarity_Levenshtein_df.iloc[i, 0]) > 6:
+        max_LSD = 3
+    else:
+        max_LSD = 1
+    for n in range(1, nr_variables+1):
+        if (n != i+1) and variable_similarity_Levenshtein_df.iloc[i,n] <= max_LSD and len(variable_similarity_Levenshtein_df.iloc[i,0])>5:
+            sim_varindx.append(str(n-1))
+            sim_varN.append(variable_names[n-1])
+            sim_varId.append(variables_df['orig_name_ID'].iloc[n-1])
+            sim_var_LSD.append(str(variable_similarity_Levenshtein_df.iloc[i,n]))
+    variables_df['similar_VarN_LS'].iloc[i] = "; ".join(sim_varN)
+    variables_df['similar_VarID_LS'].iloc[i] = "; ".join(sim_varId)
+    variables_df['similar_VarIndx_LS'].iloc[i] = "; ".join(sim_varindx)
+    variables_df['similar_Var_LSD'].iloc[i] = "; ".join(sim_var_LSD)
+
+
+csv = os.path.join(os.getcwd(), (variable_type + "_similarwords_LSD.csv"))
+variables_df.to_csv(csv, index=False)
+
+#
+# variable_similarity = []
+# for variable in variable_names:
+#     variable_data = []
+#     for compare_variable in variable_names:
+#         variable_data.append(jaro_distance(variable, compare_variable))
+#     variable_similarity.append(variable_data)
+#
+# variable_similarity_Jaro_df = pd.DataFrame(data=variable_similarity, columns=variable_names)
+# #variable_similarity_df.index.values = variable_names
+# print(variable_similarity_Jaro_df.head())
