@@ -8,17 +8,22 @@ os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\C
 listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "predict_labeled"))
 ## ST = study, BD = Behavior Determinant, BO = Behavior Choice Option, AT = Association Type, SG = Study Group
 
+# Settings
+# mode = "IOB"
+mode = "IO"
+TagToWordExtension = False
+
 
 def IOB_sequence_tracing(B_indx_list, I_index_list, Words_data):
     tags = []
     for indx in B_indx_list:
-        tag_string = Words_data.iloc[indx]
+        tag_string = str(Words_data.iloc[indx])
         if indx + 1 in I_index_list:
-            tag_string = tag_string + " " + Words_data.iloc[indx + 1]
+            tag_string = tag_string + " " + str(Words_data.iloc[indx + 1])
             nr_concatenated_words = 1
             for x in range(2, len(I_index_list)+1):
                 if all(elem in I_index_list  for elem in range(indx + 1, indx + x+1)):
-                    tag_string = tag_string + " " + Words_data.iloc[indx + x]
+                    tag_string = tag_string + " " + str(Words_data.iloc[indx + x])
                     nr_concatenated_words = x
             I_index_list = [I_index_list.remove(indx + w) for w in range(1,nr_concatenated_words)]
         tags.append(tag_string)
@@ -34,13 +39,13 @@ def IO_sequence_tracing(indx_list, Words_data):
         already_included = 0
         for indx in indx_list:
             if indx > already_included:
-                tag_string = Words_data.iloc[indx]
+                tag_string = str(Words_data.iloc[indx])
                 if indx + 1 in indx_list:
-                    tag_string = tag_string + " " + Words_data.iloc[indx + 1]
+                    tag_string = tag_string + " " + str(Words_data.iloc[indx + 1])
                     already_included = indx + 1
                     for x in range(2, len(indx_list)+1):
                         if all(elem in indx_list  for elem in range(indx + 1, indx + x+1)):
-                            tag_string = tag_string + " " + Words_data.iloc[indx + x]
+                            tag_string = tag_string + " " + str(Words_data.iloc[indx + x])
                             already_included = indx + x
                 tags.append(tag_string)
     else:
@@ -65,7 +70,7 @@ def extendTagsToAllEqualWordSeq(dataframe):
                         dataframe['Tag'].iloc[indx:(indx+len(words))] = label
     return dataframe
 
-TagToWordExtension = False
+
 instance_ST, instance_BD, instance_BO, instance_AT, instance_SG, sentenceid, fullsentence = [], [], [], [], [], [], []
 len_instance_before = 0
 for file in listOfFiles:
@@ -81,27 +86,31 @@ for file in listOfFiles:
     for sentence in sentences:
         sentence_idx_range = np.where(labeled_data['Sentence'] == sentence)[0]
         if any(labeled_data['Tag'].iloc[sentence_idx_range] != 'O'):
+            if mode == "IOB":
+                # if IOB has sufficient quality to distinguish ingroup classification
+                AT_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-assocType")[0])
+                AT_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range]== "I-assocType")[0])
+                BO_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavOption")[0])
+                BO_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption")[0])
+                BD_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavDeterm")[0])
+                BD_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm")[0])
+                SG_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-studygroup")[0])
+                SG_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-studygroup")[0])
+                instance_AT.append(" ; ".join(IOB_sequence_tracing(B_indx_list=AT_indx_B, I_index_list=AT_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+                instance_BO.append(" ; ".join(IOB_sequence_tracing(B_indx_list=BO_indx_B, I_index_list=BO_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+                instance_BD.append(" ; ".join(IOB_sequence_tracing(B_indx_list=BD_indx_B, I_index_list=BD_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+                instance_SG.append(" ; ".join(IOB_sequence_tracing(B_indx_list=SG_indx_B, I_index_list=SG_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
 
-            ## if IOB has sufficient quality to distinguish ingroup classification
-            # AT_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-assocType")[0])
-            # AT_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range]== "I-assocType")[0])
-            # BO_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavOption")[0])
-            # BO_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption")[0])
-            # BD_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavDeterm")[0])
-            # BD_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm")[0])
-            # instance_AT.append(" ; ".join(IOB_sequence_tracing(B_indx_list=AT_indx_B, I_index_list=AT_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
-            # instance_BO.append(" ; ".join(IOB_sequence_tracing(B_indx_list=BO_indx_B, I_index_list=BO_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
-            # instance_BD.append(" ; ".join(IOB_sequence_tracing(B_indx_list=BD_indx_B, I_index_list=BD_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
-
-            ## if IOB has sufficient quality to distinguish ingroup classification
-            AT_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-assocType") | (labeled_data['Tag'].iloc[sentence_idx_range]== "I-assocType"))[0])
-            BO_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavOption") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption"))[0])
-            BD_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavDeterm") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm"))[0])
-            SG_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-studygroup") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-studygroup"))[0])
-            instance_AT.append(" ; ".join(IO_sequence_tracing(indx_list= AT_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
-            instance_BO.append(" ; ".join(IO_sequence_tracing(indx_list=BO_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
-            instance_BD.append(" ; ".join(IO_sequence_tracing(indx_list=BD_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
-            instance_SG.append(" ; ".join(IO_sequence_tracing(indx_list=SG_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+            if mode == "IO":
+                # if IOB has not sufficient quality to distinguish ingroup classification, or IO labeling was used
+                AT_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-assocType") | (labeled_data['Tag'].iloc[sentence_idx_range]== "I-assocType"))[0])
+                BO_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavOption") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption"))[0])
+                BD_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavDeterm") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm"))[0])
+                SG_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-studygroup") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-studygroup"))[0])
+                instance_AT.append(" ; ".join(IO_sequence_tracing(indx_list= AT_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+                instance_BO.append(" ; ".join(IO_sequence_tracing(indx_list=BO_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+                instance_BD.append(" ; ".join(IO_sequence_tracing(indx_list=BD_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+                instance_SG.append(" ; ".join(IO_sequence_tracing(indx_list=SG_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
             sentenceid.append(sentence)
             sentence_txt = " ".join(str(e) for e in labeled_data['Word'].iloc[sentence_idx_range])
             fullsentence.append(sentence_txt)
@@ -111,7 +120,6 @@ for file in listOfFiles:
     # print(instance_AT)
     # print(instance_BO)
     # print(instance_BD)
-    # print(len(instance_AT), len(instance_BO), len(instance_BD), len(instance_ST), len(sentenceid))
 
 
 if TagToWordExtension:
