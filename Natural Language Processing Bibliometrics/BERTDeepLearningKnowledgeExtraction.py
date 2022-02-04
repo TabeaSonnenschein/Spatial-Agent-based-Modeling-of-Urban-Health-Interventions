@@ -28,6 +28,9 @@ MAX_LEN = 75
 bs = 32
 test_percentage = 0.2
 epochs = 100
+pretrained_model = "bert-base-cased"
+# pretrained_model = "bert-base-uncased"
+# 'allenai/scibert_scivocab_uncased'
 
 ## loading and preparing data
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
@@ -75,10 +78,8 @@ print("List of tag values:", tag_values)
 
 ## applying BERT
 # Prepare the sentences and labels
-# tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
-tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=False)
-# tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased', do_lower_case= True)
-# tokenizer = BertTokenizer.from_pretrained('allenai/scibert_scivocab_uncased', do_lower_case= True)
+tokenizer = BertTokenizer.from_pretrained(pretrained_model, do_lower_case=False)
+# tokenizer = AutoTokenizer.from_pretrained(pretrained_model, do_lower_case= True)
 
 
 def tokenize_and_preserve_labels(sentence, text_labels):
@@ -139,12 +140,9 @@ valid_dataloader = DataLoader(valid_data, sampler=valid_sampler, batch_size=bs)
 
 
 # Setup the Bert model for finetuning
-
 model = BertForTokenClassification.from_pretrained(
 # model = AutoModelForTokenClassification.from_pretrained(
-    "bert-base-cased",
-    # "bert-base-uncased",
-    # 'allenai/scibert_scivocab_uncased',
+    pretrained_model,
     num_labels=len(tag2idx),
     output_attentions = False,
     output_hidden_states = False
