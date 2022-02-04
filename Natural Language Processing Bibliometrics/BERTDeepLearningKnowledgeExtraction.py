@@ -25,9 +25,9 @@ n_gpu = torch.cuda.device_count()
 torch.cuda.get_device_name(0)
 print(torch.cuda.get_device_name(0))
 MAX_LEN = 75
-bs = 32
+bs = 45
 test_percentage = 0.2
-epochs = 100
+epochs = 20
 pretrained_model = "bert-base-cased"
 # pretrained_model = "bert-base-uncased"
 # 'allenai/scibert_scivocab_uncased'
@@ -62,10 +62,10 @@ class SentenceGetter(object):
 getter = SentenceGetter(data)
 
 sentences = [[word[0] for word in sentence] for sentence in getter.sentences]
-print("Example sentence:", sentences[6])
+print("Example sentence:", sentences[1])
 
 labels = [[s[2] for s in sentence] for sentence in getter.sentences]
-print("Example labels:", labels[6])
+print("Example labels:", labels[1])
 print()
 
 tag_values = list(set(data["Tag"].values))
@@ -308,7 +308,7 @@ plt.ylabel("Loss")
 # plt.legend(bbox_to_anchor=(1.02, 1),  borderaxespad=0) # legend in upper right corner outside plot
 # plt.legend(loc='center right') # legend in center right
 plt.legend(loc='best', bbox_to_anchor=(0.6, 0.6, 0.4, 0.3))
-
+plt.get_figure().savefig("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_bs"+bs+"_ep"+epochs+".png")
 plt.show()
 
 ## Applying the model to a new sentence

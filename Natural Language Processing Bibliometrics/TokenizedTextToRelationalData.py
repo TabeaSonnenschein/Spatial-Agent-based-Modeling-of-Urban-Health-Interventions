@@ -6,7 +6,9 @@ import numpy as np
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
 listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "predict_labeled"))
-## ST = study, BD = Behavior Determinant, BO = Behavior Choice Option, AT = Association Type, SG = Study Group
+
+############ Abbreviation list
+## ST = study, BD = Behavior Determinant, BO = Behavior Choice Option, AT = Association Type, SG = Study Group, MO = Moderator
 
 # Settings
 # mode = "IOB"
@@ -59,6 +61,7 @@ def extendTagsToAllEqualWordSeq(dataframe):
     for label in labels:
         label_indices = list(np.where(dataframe['Tag'] == label)[0])
         unique_labeled_words = list(dict.fromkeys(IO_sequence_tracing(indx_list=label_indices, Words_data=dataframe['Word'])))
+        unique_labeled_words = unique_labeled_words.replace("[SEP]", "").replace("[CLS]", "")
         for word in unique_labeled_words:
             words = word.split()
             if len(words) == 1:
@@ -70,14 +73,31 @@ def extendTagsToAllEqualWordSeq(dataframe):
                         dataframe['Tag'].iloc[indx:(indx+len(words))] = label
     return dataframe
 
+def extendSpecificTagsToAllEqualWordSeq(dataframe, Tagname):
+    label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
+    unique_labeled_words = list(dict.fromkeys(IO_sequence_tracing(indx_list=label_indices, Words_data=dataframe['Word'])))
+    for word in unique_labeled_words:
+        words = word.split()
+        if len(words) == 1:
+            dataframe['Tag'].iloc[list(np.where((dataframe['Word'] == word) & (dataframe['Tag'] == 'O'))[0])] = Tagname
+        else:
+            first_word_index = list(np.where((dataframe['Word'] == words[0]) & (dataframe['Tag'] == 'O'))[0])
+            for indx in first_word_index:
+                if list(dataframe['Word'].iloc[indx:(indx+len(words))]) == words:
+                    dataframe['Tag'].iloc[indx:(indx+len(words))] = Tagname
+    return dataframe
 
-instance_ST, instance_BD, instance_BO, instance_AT, instance_SG, sentenceid, fullsentence = [], [], [], [], [], [], []
+
+instance_ST, instance_BD, instance_BO, instance_AT, instance_SG, instance_MO, sentenceid, fullsentence = [], [], [], [], [], [], [], []
 len_instance_before = 0
 for file in listOfFiles:
     print("Processing file: ", file)
     labeled_data = pd.read_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), encoding="latin1")
+    labeled_data['Tag'].iloc[list(np.where((labeled_data['Word'] == "[SEP]") | (
+                labeled_data['Word'] == "[CLS]")| (labeled_data['Word'] == "."))[0])] = 'O'
     if TagToWordExtension:
         labeled_data = extendTagsToAllEqualWordSeq(labeled_data)
+    labeled_data = extendSpecificTagsToAllEqualWordSeq(labeled_data, "I-behavOption")
     AT_words = list(np.where((labeled_data['Word'] == 'significant') | (labeled_data['Word'] == 'insignificant') | (labeled_data['Word'] == 'consistent') | (labeled_data['Word'] == 'associated'))[0])
     AT_words.extend(idx-1 for idx in AT_words if labeled_data['Word'].iloc[idx-1] in ["non", "not", "Non", "Not", "no", "No"])
     AT_words.extend(idx-2 for idx in AT_words if labeled_data['Word'].iloc[idx-2] in ["non", "not", "Non", "Not", "no", "No"])
@@ -96,10 +116,13 @@ for file in listOfFiles:
                 BD_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm")[0])
                 SG_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-studygroup")[0])
                 SG_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-studygroup")[0])
+                MO_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-moderator")[0])
+                MO_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-moderator")[0])
                 instance_AT.append(" ; ".join(IOB_sequence_tracing(B_indx_list=AT_indx_B, I_index_list=AT_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_BO.append(" ; ".join(IOB_sequence_tracing(B_indx_list=BO_indx_B, I_index_list=BO_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_BD.append(" ; ".join(IOB_sequence_tracing(B_indx_list=BD_indx_B, I_index_list=BD_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_SG.append(" ; ".join(IOB_sequence_tracing(B_indx_list=SG_indx_B, I_index_list=SG_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+                instance_MO.append(" ; ".join(IOB_sequence_tracing(B_indx_list=MO_indx_B, I_index_list=MO_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
 
             if mode == "IO":
                 # if IOB has not sufficient quality to distinguish ingroup classification, or IO labeling was used
@@ -107,19 +130,19 @@ for file in listOfFiles:
                 BO_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavOption") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption"))[0])
                 BD_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavDeterm") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm"))[0])
                 SG_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-studygroup") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-studygroup"))[0])
+                MO_indx = list(np.where((labeled_data['Tag'].iloc[sentence_idx_range] == "B-moderator") | (labeled_data['Tag'].iloc[sentence_idx_range] == "I-moderator"))[0])
                 instance_AT.append(" ; ".join(IO_sequence_tracing(indx_list= AT_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_BO.append(" ; ".join(IO_sequence_tracing(indx_list=BO_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_BD.append(" ; ".join(IO_sequence_tracing(indx_list=BD_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_SG.append(" ; ".join(IO_sequence_tracing(indx_list=SG_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+                instance_MO.append(" ; ".join(IO_sequence_tracing(indx_list=MO_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
             sentenceid.append(sentence)
             sentence_txt = " ".join(str(e) for e in labeled_data['Word'].iloc[sentence_idx_range])
-            fullsentence.append(sentence_txt)
+            fullsentence.append(sentence_txt.replace("[CLS]", "").replace("[SEP]", ""))
 
     instance_ST.extend([file] * (len(instance_AT)-len_instance_before))
     len_instance_before = len(instance_AT)
-    # print(instance_AT)
-    # print(instance_BO)
-    # print(instance_BD)
+
 
 
 if TagToWordExtension:
@@ -127,7 +150,7 @@ if TagToWordExtension:
 else:
     file_name_suffix = ""
 
-Evidence_instances_df = pd.DataFrame({'DOI': instance_ST, 'Sentence': sentenceid, 'BehaviorOption': instance_BO, 'BehaviorDeterminant': instance_BD, 'AssociationType': instance_AT, 'Studygroup': instance_SG, 'Fullsentence': fullsentence })
+Evidence_instances_df = pd.DataFrame({'DOI': instance_ST, 'Sentence': sentenceid, 'BehaviorOption': instance_BO, 'BehaviorDeterminant': instance_BD, 'AssociationType': instance_AT, 'Studygroup': instance_SG, 'Moderator': instance_MO ,  'Fullsentence': fullsentence })
 print(Evidence_instances_df.head())
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 csv = os.path.join(os.getcwd(), ("Evidence_instances_df"+ file_name_suffix + ".csv"))

@@ -66,5 +66,12 @@ for file in labeled_papers:
         evidence_instances['StudyGroupInAbstract'].iloc[evidence_data_idxs] = " ; ".join(SG_inAbstract)
         print(SG_inAbstract)
 
+evidence_instances['Title'] = [title.replace("Series([], )", "") for title in evidence_instances['Title']]
+
 csv = os.path.join(os.getcwd(), ("Evidence_instances_df.csv"))
 evidence_instances.to_csv(csv, index=False)
+
+
+complete_evidence_Instances = evidence_instances.iloc[list(np.where((evidence_instances['BehaviorDeterminant'].notnull()) & (evidence_instances['AssociationType'].notnull()))[0])]
+csv = os.path.join(os.getcwd(), ("Complete_evidence_Instances.csv"))
+complete_evidence_Instances.to_csv(csv, index=False)

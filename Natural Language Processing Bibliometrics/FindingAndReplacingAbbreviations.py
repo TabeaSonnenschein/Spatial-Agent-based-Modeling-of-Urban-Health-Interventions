@@ -59,8 +59,11 @@ def FindNReplaceAbbr(textdoc):
             print(abbr)
         new_fulltext += sentence + ". "
     if bool(abbreviations):
-        order = list(pd.Series(abbreviations).str.len().sort_values().index.values)
-        print(abbreviations, order)
-        for index in range(len(abbreviations) - 1, -1, -1):
-            new_fulltext = new_fulltext.replace(abbreviations[order.index(index)], fullnames[order.index(index)])
+        sorted_abbr = sorted(abbreviations, reverse=True, key=len)
+        order = [sorted_abbr.index(x) for x in abbreviations]
+        print("order: ", order, "abbrev: ", abbreviations)
+        for index in range(0, len(abbreviations)):
+            if index in order:
+                new_fulltext = new_fulltext.replace(abbreviations[order.index(index)], fullnames[order.index(index)])
     return new_fulltext, abbreviations, fullnames
+

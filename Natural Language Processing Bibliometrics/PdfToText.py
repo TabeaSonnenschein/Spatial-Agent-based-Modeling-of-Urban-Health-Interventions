@@ -88,32 +88,29 @@ for file in listOfFiles:
                                             print(fullnames[-1])
                                             sentence = "".join([sentence[:openbrackets[abbr_indx]], sentence[closebrackets[abbr_indx]+1:]])
                                             print()
+                            abbr_replaced = False
 
                             if bool(abbreviations):
-                                order = list(pd.Series(abbreviations).str.len().sort_values().index.values)
-                                # print(abbreviations, order)
-                                for index in range(len(abbreviations) - 1, -1, -1):
-                                    sentence = sentence.replace(abbreviations[order.index(index)],
-                                                                        fullnames[order.index(index)])
+                                sorted_abbr = sorted(abbreviations, reverse = True, key = len)
+                                order = [sorted_abbr.index(x) for x in abbreviations]
+                                print("order: ", order, "abbrev: ", abbreviations)
+                                for index in range(0, len(abbreviations)):
+                                    if index in order:
+                                        sentence = sentence.replace(abbreviations[order.index(index)], fullnames[order.index(index)])
 
                             wordlist = wordninja.split(sentence)
 
                             stringlength = 0
                             wordidx = 0
                             for count, value in enumerate(sentence.strip().replace("\n", "")):
-                                if value in str("!#$%&'()*+, -./:;<=>?@[\]^_`{|}~"):
-                                    # print("count: " + str(count) + " , value: " + value)
+                                if value in str("!#$%&()*+, -./:;<=>?@[\]^_`{|}~"):
                                     while stringlength < (count) and wordidx <= len(wordlist):
                                         stringlength = len("".join(wordlist[0:wordidx+1]))
-                                        # print(wordlist[0:wordidx+1])
-                                        # print(count, value, stringlength, wordidx)
                                         wordidx += 1
                                     if stringlength == count:
                                         wordlist.insert(wordidx, value)
                                     elif stringlength > (count):
                                         wordlist.insert(wordidx-1, value)
-                                    # if value == "?":
-                                    #     print(sentence)
 
                             clean_sentence = (" ".join(wordlist)) + ". "
                             finalsliff = [("en v iron mental", "environmental"), ("car poole r", "carpooler"), ("sign i cant ly", "significantly"),
@@ -132,7 +129,10 @@ for file in listOfFiles:
                                           ("con found", "confound"), ("At t it udin al", "Attitudinal"), ("xe de ect s", "fixed effects"), ("xe de ect", "fixed effect"), (" die r ", " differ "), (" gu re", " Figure"),
                                           ("walk ability", "walkability"), ("n dings ", " findings "), ("are nf it", "aren't"), ("non - significant", "insignificant"), ("Non - significant", "Insignificant"), ("quant if i cation", "quantification"),
                                           ("streets cape", "streetscape"), ("Walk ability", "Walkability"), ("operational is ed", "operationalised") , ("co variate s ", "covariates "), (" noor ", " no or "), ("s ? ", "s' "),
-                                          ("fac il it at or s ", "facilitators "), ("fac il it at or", "facilitator"), ("hypothesis ed ", "hypothesised "), ("walk able", "walkable")]
+                                          ("fac il it at or s ", "facilitators "), ("fac il it at or", "facilitator"), ("hypothesis ed ", "hypothesised "), ("walk able", "walkable"), ("con ? den ce", "confidence"), (" be nets", " benefits"),
+                                          ("Th ending", "The finding"), ("th ending", "the finding"), ("The sending s", "These findings"), ("the sending s", "these findings"), ("specie d ", "specified"), ("conde n ce", "confidence"), (" nal ", " final "),
+                                          ("aside n tied", "as identified"), ("ide n tied", "identified"), ("in ten t", "intent "), ("lassic ation", "lassification"), ("afixed", "a fixed"), ("aggregate deffect", "aggregated effect"),
+                                          ("ident ies", "identifies"), ("specific ally", "specifically"), (" a ect ", " affect ")]
                             for a, b in finalsliff:
                                 clean_sentence = clean_sentence.replace(a, b).strip()
                                 fullnames = [name.replace(a, b) for name in fullnames]
