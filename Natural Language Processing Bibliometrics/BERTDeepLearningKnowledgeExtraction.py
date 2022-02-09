@@ -18,21 +18,29 @@ logging.set_verbosity_warning()
 torch.__version__
 transformers.__version__
 
-## settings (hardware usage and model parameters)
+## hardware settings
 print(torch.cuda.is_available())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 n_gpu = torch.cuda.device_count()
 torch.cuda.get_device_name(0)
 print(torch.cuda.get_device_name(0))
+
+## model parameters
 MAX_LEN = 75
-bs = 45
+bs = 35     # batch size, the larger batch size the more chance of finding global optimum, but also chance of overfitting to labeled dataset
 test_percentage = 0.2
 epochs = 20
+learning_rate = 4e-5
+epsilon = 1e-8      #Adam’s epsilon for numerical stability.
+weight_decay = 0 # form of regularization to lower the chance of overfitting, default is 0
+nr_articles_labeled = 5
+
 pretrained_model = "bert-base-cased"
 # pretrained_model = "bert-base-uncased"
 # 'allenai/scibert_scivocab_uncased'
-
 ## loading and preparing data
+
+
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
 # data = pd.read_csv("manually_labeled/labeled_articles_joined_IOB.csv", encoding="latin1").fillna("O")
 data = pd.read_csv("manually_labeled/labeled_articles_joined_IO.csv", encoding="latin1").fillna("O")
@@ -168,8 +176,9 @@ else:
 
 optimizer = AdamW(
     optimizer_grouped_parameters,
-    lr=3e-5,
-    eps=1e-8
+    lr=learning_rate,
+    eps=epsilon,
+    weight_decay=weight_decay
 )
 
 
@@ -308,7 +317,8 @@ plt.ylabel("Loss")
 # plt.legend(bbox_to_anchor=(1.02, 1),  borderaxespad=0) # legend in upper right corner outside plot
 # plt.legend(loc='center right') # legend in center right
 plt.legend(loc='best', bbox_to_anchor=(0.6, 0.6, 0.4, 0.3))
-plt.get_figure().savefig("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_bs"+bs+"_ep"+epochs+".png")
+plt.savefig("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_bs"+str(bs)+"_ep"+str(epochs)+ "_lr"+ str(learning_rate)+ "_art"+ str(nr_articles_labeled)+".png",
+            dpi=350)
 plt.show()
 
 ## Applying the model to a new sentence

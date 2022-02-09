@@ -191,3 +191,5 @@ unique_AT = list(dict.fromkeys(unique_AT))
 
 csv = os.path.join(os.getcwd(), ("unique_AssociationTypes.csv"))
 pd.DataFrame(unique_AT).to_csv(csv, index=False)
+
+# complete_evidence_Instances

@@ -132,7 +132,8 @@ for file in listOfFiles:
                                           ("fac il it at or s ", "facilitators "), ("fac il it at or", "facilitator"), ("hypothesis ed ", "hypothesised "), ("walk able", "walkable"), ("con ? den ce", "confidence"), (" be nets", " benefits"),
                                           ("Th ending", "The finding"), ("th ending", "the finding"), ("The sending s", "These findings"), ("the sending s", "these findings"), ("specie d ", "specified"), ("conde n ce", "confidence"), (" nal ", " final "),
                                           ("aside n tied", "as identified"), ("ide n tied", "identified"), ("in ten t", "intent "), ("lassic ation", "lassification"), ("afixed", "a fixed"), ("aggregate deffect", "aggregated effect"),
-                                          ("ident ies", "identifies"), ("specific ally", "specifically"), (" a ect ", " affect ")]
+                                          ("ident ies", "identifies"), ("specific ally", "specifically"), (" a ect ", " affect "), (" gur es ", " Figures "), ("s u er", " suffer"), ("con r med", "confirmed"), ("aec ted", "affected"),
+                                          ("conic ting", "conflicting"), ("rearm", "reaffirm"), ("chau eu ring", "chauffeuring"), (" con text", " context"), ("in ue nti a l", "influential ")]
                             for a, b in finalsliff:
                                 clean_sentence = clean_sentence.replace(a, b).strip()
                                 fullnames = [name.replace(a, b) for name in fullnames]
