@@ -4,9 +4,6 @@ from typing import List, Any
 import pandas as pd
 import numpy as np
 
-os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "predict_labeled"))
-
 ############ Abbreviation list
 ## ST = study, BD = Behavior Determinant, BO = Behavior Choice Option, AT = Association Type, SG = Study Group, MO = Moderator
 
@@ -14,7 +11,13 @@ listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "predict_labeled"))
 # mode = "IOB"
 mode = "IO"
 TagToWordExtension = False
+manual_label = True
 
+os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
+if manual_label == True:
+    listOfFiles = ["labeled_articles_joined_IO - Copy.csv"]
+else:
+    listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "predict_labeled"))
 
 def IOB_sequence_tracing(B_indx_list, I_index_list, Words_data):
     tags = []
@@ -92,7 +95,10 @@ instance_ST, instance_BD, instance_BO, instance_AT, instance_SG, instance_MO, se
 len_instance_before = 0
 for file in listOfFiles:
     print("Processing file: ", file)
-    labeled_data = pd.read_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), encoding="latin1")
+    if manual_label == True:
+        labeled_data = pd.read_csv(os.path.join(os.getcwd(), ("manually_labeled/" + file)), encoding="latin1")
+    else:
+        labeled_data = pd.read_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), encoding="latin1")
     labeled_data['Tag'].iloc[list(np.where((labeled_data['Word'] == "[SEP]") | (
                 labeled_data['Word'] == "[CLS]")| (labeled_data['Word'] == "."))[0])] = 'O'
     if TagToWordExtension:
@@ -144,22 +150,29 @@ for file in listOfFiles:
     len_instance_before = len(instance_AT)
 
 
-
 if TagToWordExtension:
     file_name_suffix = "_enhanced"
 else:
     file_name_suffix = ""
 
+
+if manual_label:
+    file_name_suffix2 = "_ManualLabel"
+else:
+    file_name_suffix2 = ""
+
 Evidence_instances_df = pd.DataFrame({'DOI': instance_ST, 'Sentence': sentenceid, 'BehaviorOption': instance_BO, 'BehaviorDeterminant': instance_BD, 'AssociationType': instance_AT, 'Studygroup': instance_SG, 'Moderator': instance_MO ,  'Fullsentence': fullsentence })
 print(Evidence_instances_df.head())
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-csv = os.path.join(os.getcwd(), ("Evidence_instances_df"+ file_name_suffix + ".csv"))
+csv = os.path.join(os.getcwd(), ("Evidence_instances_df"+ file_name_suffix2 +file_name_suffix + ".csv"))
 Evidence_instances_df.to_csv(csv, index=False)
 
 complete_evidence_Instances = Evidence_instances_df.iloc[list(np.where((Evidence_instances_df['BehaviorDeterminant'] != "") & (Evidence_instances_df['AssociationType'] != ""))[0])]
 print(complete_evidence_Instances.head())
-csv = os.path.join(os.getcwd(), ("Complete_evidence_Instances"+ file_name_suffix + ".csv"))
+csv = os.path.join(os.getcwd(), ("Complete_evidence_Instances"+ file_name_suffix2 +file_name_suffix + ".csv"))
 complete_evidence_Instances.to_csv(csv, index=False)
+
+
 
 BDs, freq_BD = [], []
 for BD_instance in complete_evidence_Instances['BehaviorDeterminant']:
