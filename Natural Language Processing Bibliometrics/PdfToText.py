@@ -59,12 +59,15 @@ for file in listOfFiles:
                                 openbrackets = [m.start() for m in re.finditer("[(]", sentence)]
                                 closebrackets = [m.start() for m in re.finditer("[)]", sentence)]
                                 # print("open brackets", openbrackets, "closing brackets", closebrackets)
-                                min_length = shortest_length = min(len(openbrackets), len(closebrackets))
+                                min_length = min(len(openbrackets), len(closebrackets))
                                 for abbr_indx in range(0,min_length):
                                     if sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","").isupper() or (sentence[openbrackets[abbr_indx]+1:(closebrackets[abbr_indx]-1)].replace(" ","").isupper() and sentence[(closebrackets[abbr_indx]-1):closebrackets[abbr_indx]] == "s"):
                                         if sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","").isalpha() and (len(sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]])>1):
                                             abbr = sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","")
-                                            abbreviationlen = len(abbr)
+                                            if sentence[(closebrackets[abbr_indx] - 1):closebrackets[abbr_indx]] == "s":
+                                                abbreviationlen = len(abbr) - 1
+                                            else:
+                                                abbreviationlen = len(abbr)
                                             wordsbefore = wordninja.split(sentence[:openbrackets[abbr_indx]])
                                             wordsbefore = wordsbefore[len(wordsbefore)-abbreviationlen-3:]
                                             possible_fullnames = []
