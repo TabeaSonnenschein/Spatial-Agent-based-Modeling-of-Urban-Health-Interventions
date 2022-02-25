@@ -13,50 +13,62 @@ global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
 	
 	/// Parameters to calibrate
-	float w_affordability_income_low <- 0.5;
-	float w_affordability_income_middle <- 0.5;
-	float w_affordability_income_high <- 0.5;
-	map<string,float> w_affordability_income <- create_map(["low", "middle", "high"], [w_affordability_income_low, w_affordability_income_middle, w_affordability_income_high]);
-	float w_traveltime <- 0.5;
+	float w_affordability_walk_income_low <- 0.5;
+	float w_affordability_walk_income_middle <- 0.5;
+	float w_affordability_walk_income_high <- 0.5;
+	float w_affordability_bike_income_low <- 0.5;
+	float w_affordability_bike_income_middle <- 0.5;
+	float w_affordability_bike_income_high <- 0.5;
+	float w_affordability_car_income_low <- 0.5;
+	float w_affordability_car_income_middle <- 0.5;
+	float w_affordability_car_income_high <- 0.5;
+	
+	map<string,float> w_affordability_walk <- create_map(["low", "middle", "high"], [w_affordability_walk_income_low, w_affordability_walk_income_middle, w_affordability_walk_income_high]);
+	map<string,float> w_affordability_bike <- create_map(["low", "middle", "high"], [w_affordability_bike_income_low, w_affordability_bike_income_middle, w_affordability_bike_income_high]);
+	map<string,float> w_affordability_car <- create_map(["low", "middle", "high"], [w_affordability_car_income_low, w_affordability_car_income_middle, w_affordability_car_income_high]);
+	
+	float w_time_walk <- 0.5;
+	float w_time_bike <- 0.5;
+	float w_time_car <- 0.5;
 		
 	// age group parameters
-	float w_tripdistance_age_walk_minor <- 0.5;
-	float w_tripdistance_age_walk_teenager <- 0.5;
-	float w_tripdistance_age_walk_youngadult <- 0.5;
-	float w_tripdistance_age_walk_adult <- 0.5;
-	float w_tripdistance_age_walk_senior <- 0.5;
-	float w_tripdistance_age_walk_elderly <- 0.5;
+	float w_distance_age_walk_minor <- 0.5;
+	float w_distance_age_walk_teenager <- 0.5;
+	float w_distance_age_walk_youngadult <- 0.5;
+	float w_distance_age_walk_adult <- 0.5;
+	float w_distance_age_walk_senior <- 0.5;
+	float w_distance_age_walk_elderly <- 0.5;
 	
-	float w_tripdistance_age_bike_minor <- 0.5;
-	float w_tripdistance_age_bike_teenager <- 0.5;
-	float w_tripdistance_age_bike_youngadult <- 0.5;
-	float w_tripdistance_age_bike_adult <- 0.5;
-	float w_tripdistance_age_bike_senior <- 0.5;
-	float w_tripdistance_age_bike_elderly <- 0.5;
+	float w_distance_age_bike_minor <- 0.5;
+	float w_distance_age_bike_teenager <- 0.5;
+	float w_distance_age_bike_youngadult <- 0.5;
+	float w_distance_age_bike_adult <- 0.5;
+	float w_distance_age_bike_senior <- 0.5;
+	float w_distance_age_bike_elderly <- 0.5;
 	
-	float w_tripdistance_age_car_minor <- 0.5;
-	float w_tripdistance_age_car_teenager <- 0.5;
-	float w_tripdistance_age_car_youngadult <- 0.5;
-	float w_tripdistance_age_car_adult <- 0.5;
-	float w_tripdistance_age_car_senior <- 0.5;
-	float w_tripdistance_age_car_elderly <- 0.5;
+	float w_distance_age_car_minor <- 0.5;
+	float w_distance_age_car_teenager <- 0.5;
+	float w_distance_age_car_youngadult <- 0.5;
+	float w_distance_age_car_adult <- 0.5;
+	float w_distance_age_car_senior <- 0.5;
+	float w_distance_age_car_elderly <- 0.5;
 	
 	// BMI group parameters
-	float w_tripdistance_BMI_walk_normal <- 0.5;
-	float w_tripdistance_BMI_walk_overweight <- 0.5;
+	float w_distance_BMI_walk_normal <- 0.5;
+	float w_distance_BMI_walk_overweight <- 0.5;
 	
-	float w_tripdistance_BMI_bike_normal <- 0.5;
-	float w_tripdistance_BMI_bike_overweight <- 0.5;
+	float w_distance_BMI_bike_normal <- 0.5;
+	float w_distance_BMI_bike_overweight <- 0.5;
 	
-	float w_tripdistance_BMI_car_normal <- 0.5;
-	float w_tripdistance_BMI_car_overweight <- 0.5;
+	float w_distance_BMI_car_normal <- 0.5;
+	float w_distance_BMI_car_overweight <- 0.5;
 	
-	map<string,float> w_tripdistance_age_walk <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [w_tripdistance_age_walk_minor, w_tripdistance_age_walk_teenager, w_tripdistance_age_walk_youngadult, w_tripdistance_age_walk_adult, w_tripdistance_age_walk_senior, w_tripdistance_age_walk_elderly]);
-	map<string,float> w_tripdistance_age_bike <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [w_tripdistance_age_walk_minor, w_tripdistance_age_walk_teenager, w_tripdistance_age_walk_youngadult, w_tripdistance_age_walk_adult, w_tripdistance_age_walk_senior, w_tripdistance_age_walk_elderly]);
-	map<string,float> w_tripdistance_age_car <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [w_tripdistance_age_walk_minor, w_tripdistance_age_walk_teenager, w_tripdistance_age_walk_youngadult, w_tripdistance_age_walk_adult, w_tripdistance_age_walk_senior, w_tripdistance_age_walk_elderly]);
-	map<string,float> w_tripdistance_BMI_walk <- create_map(["normal", "overweight"], [w_tripdistance_BMI_walk_normal, w_tripdistance_BMI_walk_overweight]);
-	map<string,float> w_tripdistance_BMI_bike <- create_map(["normal", "overweight"], [w_tripdistance_BMI_bike_normal, w_tripdistance_BMI_bike_overweight]);
-	map<string,float> w_tripdistance_BMI_car <- create_map(["normal", "overweight"], [w_tripdistance_BMI_car_normal, w_tripdistance_BMI_car_overweight]);
+	map<string,float> w_distance_age_walk <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [w_distance_age_walk_minor, w_distance_age_walk_teenager, w_distance_age_walk_youngadult, w_distance_age_walk_adult, w_distance_age_walk_senior, w_distance_age_walk_elderly]);
+	map<string,float> w_distance_age_bike <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [w_distance_age_walk_minor, w_distance_age_walk_teenager, w_distance_age_walk_youngadult, w_distance_age_walk_adult, w_distance_age_walk_senior, w_distance_age_walk_elderly]);
+	map<string,float> w_distance_age_car <- create_map(["minor", "teenager", "youngadult", "adult", "senior", "elderly"], [w_distance_age_walk_minor, w_distance_age_walk_teenager, w_distance_age_walk_youngadult, w_distance_age_walk_adult, w_distance_age_walk_senior, w_distance_age_walk_elderly]);
+	map<string,float> w_distance_BMI_walk <- create_map(["normal", "overweight"], [w_distance_BMI_walk_normal, w_distance_BMI_walk_overweight]);
+	map<string,float> w_distance_BMI_bike <- create_map(["normal", "overweight"], [w_distance_BMI_bike_normal, w_distance_BMI_bike_overweight]);
+	map<string,float> w_distance_BMI_car <- create_map(["normal", "overweight"], [w_distance_BMI_car_normal, w_distance_BMI_car_overweight]);
 	
 	// enviromental parameters
 	float w_pop_density_walk <- 0.5;
@@ -137,7 +149,7 @@ global skills: [RSkill]{
 	}	
 	
 	float seed_value <- int(self) + 1.0;
-	int nb_humans <- 100;	// make sure it's the same size of the subset ODiN pop!
+	int nb_humans <- 1000;	// make sure it's the same size of the subset ODiN pop!
 	
 	csv_file file_subset_ODiN <- csv_file(path_data+"Amsterdam/Calibration/Subset_ODiN.csv", ";", string, true);
 	file pc4_AMS_file <- shape_file(path_data+"Amsterdam/Calibration/AMS-PC4_polygons/AMS-PC4_polygons.shp");	// loading Amsterdam locations for moving the agents
@@ -458,32 +470,34 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
    	reflex modalchoice when: make_modalchoice = 1 {
 	   	new_route <- 1;
 	   	make_modalchoice <- 0;
-		driving_utility <- (((w_affordability_income[incomegroup] * (1-tanh(float(affordability["perc_budget_car"]))))
-						+ (w_traveltime * (1-tanh(float(assumed_traveltime["traveltime_car"])/1000)))
-						+ (w_tripdistance_age_car[agegroup] * w_tripdistance_BMI_car[weightgroup] * (1-tanh(trip_distance/1000))))
-						/3);
 																
-		walking_utility <- (((w_affordability_income[incomegroup] * (1-tanh(float(affordability["perc_budget_walk"])))) 
+		walking_utility <- (((w_affordability_walk[incomegroup] * (1-tanh(float(affordability["perc_budget_walk"])))) 
+						+ (w_time_walk * (1-tanh(float(assumed_traveltime["traveltime_walk"])/1000)))
+						+ (w_distance_age_walk[agegroup] * w_distance_BMI_walk[weightgroup] * (1-tanh((trip_distance/1000)))))
 						+ (w_pop_density_walk * float(assumed_quality_infrastructure["pop_density"]))
 						+ (w_retail_density_walk * float(assumed_quality_infrastructure["retail_density"]))					
 						+ (w_greenCoverage_walk * float(assumed_quality_infrastructure["greenCoverage"]))
 						+ (w_public_Transport_density_walk * float(assumed_quality_infrastructure["public_Transport_density"]))
 						+ (w_road_intersection_density_walk * float(assumed_quality_infrastructure["road_intersection_density"]))
-						+ (w_traveltime * (1-tanh(float(assumed_traveltime["traveltime_walk"])/1000)))
-						+ (w_tripdistance_age_walk[agegroup] * w_tripdistance_BMI_walk[weightgroup] * (1-tanh((trip_distance/1000)))))
 						/8);	
 										
-		biking_utility <- (((w_affordability_income[incomegroup] * (1-tanh(float(affordability["perc_budget_bike"])))) 
+		biking_utility <- (((w_affordability_bike[incomegroup] * (1-tanh(float(affordability["perc_budget_bike"])))) 
+						+ (w_time_bike * (1-tanh(float(assumed_traveltime["traveltime_bike"])/1000)))
+						+ (w_distance_age_bike[agegroup] * w_distance_BMI_bike[weightgroup] * (1-tanh(trip_distance/1000))))
 						+ (w_pop_density_bike * float(assumed_quality_infrastructure["pop_density"]))
 						+ (w_retail_density_bike * float(assumed_quality_infrastructure["retail_density"]))					
 						+ (w_greenCoverage_bike * float(assumed_quality_infrastructure["greenCoverage"]))
 						+ (w_public_Transport_density_bike * float(assumed_quality_infrastructure["public_Transport_density"]))
 						+ (w_road_intersection_density_bike * float(assumed_quality_infrastructure["road_intersection_density"]))
-						+ (w_traveltime * (1-tanh(float(assumed_traveltime["traveltime_bike"])/1000)))
-						+ (w_tripdistance_age_bike[agegroup] * w_tripdistance_BMI_bike[weightgroup] * (1-tanh(trip_distance/1000))))
 						/8);
+						
+		driving_utility <- (((w_affordability_car[incomegroup] * (1-tanh(float(affordability["perc_budget_car"]))))
+						+ (w_time_car * (1-tanh(float(assumed_traveltime["traveltime_car"])/1000)))
+						+ (w_distance_age_car[agegroup] * w_distance_BMI_car[weightgroup] * (1-tanh(trip_distance/1000))))
+						/3);
 		
-		// filter modal choice by age group. Minors cannot drive
+		// filter modal choice by age group. Minors cannot drive. Try without, because cannot distinguish between passengers and drivers
+		/*
 		if(self.age<=8) {
 			modalchoice <- "walk";
 		} else if (self.age>=9 and self.age<=17){
@@ -495,6 +509,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				modalchoice <- ["walk", "bike"] at ([walking_utility, biking_utility] index_of  max([walking_utility, biking_utility]));				
 			}
 		}
+		*/
+		modalchoice <- ["car", "walk", "bike"] at ([driving_utility, walking_utility, biking_utility] index_of  max([driving_utility, walking_utility, biking_utility]));	
 		
 		
 		// calibration		
@@ -512,7 +528,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 					put (confusion_matrix[2, 2]+1) at: {2, 2} in: confusion_matrix;
 					n_sample[2] <- n_sample[2]+1;
 				}
-				write('modal choice correctly predicted');
+				//write('modal choice correctly predicted');
 			} else {
 				// wrong prediction
 				if (modalchoice='walk') {
@@ -540,7 +556,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 						n_sample[1] <- n_sample[1]+1;
 					}
 				}
-				write("wrong modal choice predicted. Predicted: "+modalchoice+". True label: "+self.ODIN_modal_choices[counter_modal_choice]);
+				//write("wrong modal choice predicted. Predicted: "+modalchoice+". True label: "+self.ODIN_modal_choices[counter_modal_choice]);
 				n_diff_modal_choices <- n_diff_modal_choices + 1;
 
 				precision[0] <- confusion_matrix[0, 0]/(confusion_matrix[0, 0]+confusion_matrix[1, 0]+confusion_matrix[2, 0]);
@@ -668,7 +684,66 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     }
 }
 
+/*
 experiment HillClimbing type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+	method hill_climbing iter_max: 100 maximize: weightedf1;
+	reflex end_of_runs{
+		ask simulations{
+			add [
+				"-",
+				weightedf1, f1, (1-(n_diff_modal_choices/n_displacements_calibration)), (machine_time-start_time)
+			] to: results;
+			write(results);
+		}
+		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/all_HC.csv" rewrite:false;
+	}
+}
+*/
+
+experiment SimulatedAnnealing type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+	parameter 'Affordability [walk][income low]' var: w_affordability_walk_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [walk][income middle]' var: w_affordability_walk_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [walk][income high]' var: w_affordability_walk_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [bike][income low]' var: w_affordability_bike_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [bike][income middle]' var: w_affordability_bike_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [bike][income high]' var: w_affordability_bike_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [car][income low]' var: w_affordability_car_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [car][income middle]' var: w_affordability_car_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [car][income high]' var: w_affordability_car_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	
+	parameter 'Travel time [walk]' var: w_time_walk min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel time [bike]' var: w_time_bike min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel time [car]' var: w_time_car min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	
+	parameter 'Travel distance age [walk]' var: w_distance_age_walk_minor min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [walk]' var: w_distance_age_walk_teenager min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [walk]' var: w_distance_age_walk_youngadult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [walk]' var: w_distance_age_walk_adult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [walk]' var: w_distance_age_walk_senior min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [walk]' var: w_distance_age_walk_elderly min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	
+	parameter 'Travel distance age [bike]' var: w_distance_age_bike_minor min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [bike]' var: w_distance_age_bike_teenager min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [bike]' var: w_distance_age_bike_youngadult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [bike]' var: w_distance_age_bike_adult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [bike]' var: w_distance_age_bike_senior min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [bike]' var: w_distance_age_bike_elderly min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+
+	parameter 'Travel distance age [car]' var: w_distance_age_car_minor min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [car]' var: w_distance_age_car_teenager min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [car]' var: w_distance_age_car_youngadult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [car]' var: w_distance_age_car_adult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [car]' var: w_distance_age_car_senior min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance age [car]' var: w_distance_age_car_elderly min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+
+	parameter 'Travel distance BMI [walk]' var: w_distance_BMI_walk_normal min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance BMI [walk]' var: w_distance_BMI_walk_overweight min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+
+	parameter 'Travel distance BMI [bike]' var: w_distance_BMI_bike_normal min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance BMI [bike]' var: w_distance_BMI_bike_overweight min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+
+	parameter 'Travel distance BMI [car]' var: w_distance_BMI_car_normal min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Travel distance BMI [car]' var: w_distance_BMI_car_overweight min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
 
 	parameter 'Population density [walk]' var: w_pop_density_walk min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
 	parameter 'Population density [bike]' var: w_pop_density_bike min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
@@ -684,12 +759,56 @@ experiment HillClimbing type: batch repeat: 1 keep_seed: true until: (current_da
 	
 	parameter 'Road intersection density [walk]' var: w_road_intersection_density_walk min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
 	parameter 'Road intersection density [bike]' var: w_road_intersection_density_bike min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-			
-	method hill_climbing iter_max: 200 maximize: weightedf1;
+
+	method annealing temp_init: 1000 temp_end: 10 temp_decrease: 0.75 nb_iter_cst_temp: 2 maximize: weightedf1;	
 	
 	reflex end_of_runs{
 		ask simulations{
 			add [
+				w_affordability_walk_income_low,
+				w_affordability_walk_income_middle,
+				w_affordability_walk_income_high,
+				w_affordability_bike_income_low,
+				w_affordability_bike_income_middle,
+				w_affordability_bike_income_high,
+				w_affordability_car_income_low,
+				w_affordability_car_income_middle,
+				w_affordability_car_income_high,
+				
+				w_time_walk,
+				w_time_bike,
+				w_time_car,
+	
+				w_distance_age_walk_minor,
+				w_distance_age_walk_teenager,
+				w_distance_age_walk_youngadult,
+				w_distance_age_walk_adult,
+				w_distance_age_walk_senior,
+				w_distance_age_walk_elderly,
+				
+				w_distance_age_bike_minor,
+				w_distance_age_bike_teenager,
+				w_distance_age_bike_youngadult,
+				w_distance_age_bike_adult,
+				w_distance_age_bike_senior,
+				w_distance_age_bike_elderly,
+			
+				w_distance_age_car_minor,
+				w_distance_age_car_teenager,
+				w_distance_age_car_youngadult,
+				w_distance_age_car_adult,
+				w_distance_age_car_senior,
+				w_distance_age_car_elderly,
+			
+				w_distance_BMI_walk_normal,
+				w_distance_BMI_walk_overweight,
+			
+				w_distance_BMI_bike_normal,
+				w_distance_BMI_bike_overweight,
+				
+				w_distance_BMI_car_normal,
+				w_distance_BMI_car_overweight,
+			
 				w_pop_density_walk,
 				w_pop_density_bike,
 				
@@ -705,70 +824,54 @@ experiment HillClimbing type: batch repeat: 1 keep_seed: true until: (current_da
 				w_road_intersection_density_walk,
 				w_road_intersection_density_bike,
 				"-",
-				weightedf1, f1, (1-(n_diff_modal_choices/n_displacements_calibration)), (machine_time-start_time)
-			] to: results;
-			write(results);
-		}
-		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/environmentals_HC.csv" rewrite:false;
-	}
-}
-
-experiment SimulatedAnnealing type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	parameter 'Affordability [income low]' var: w_affordability_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Affordability [income middle]' var: w_affordability_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Affordability [income high]' var: w_affordability_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-
-	method annealing temp_init: 1000 temp_end: 10 temp_decrease: 0.75 nb_iter_cst_temp: 2 maximize: weightedf1;	
-	
-	reflex end_of_runs{
-		ask simulations{
-			add [
-				w_affordability_income_low,
-				w_affordability_income_middle,
-				w_affordability_income_high,
-				"-",
 				weightedf1, f1, (1-(n_diff_modal_choices/n_displacements_calibration)), (machine_time-start_time)			
 			] to: results;
 			write(results);
 		}
-		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/affordability_SA.csv" rewrite:false;
+		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/a-all/all_SA.csv" rewrite:false;
 	}
 }
 
 experiment GenericAlgorithm type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	parameter 'Affordability [income low]' var: w_affordability_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Affordability [income middle]' var: w_affordability_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Affordability [income high]' var: w_affordability_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-
-	method genetic maximize: weightedf1 pop_dim: 4 crossover_prob: 0.7 mutation_prob: 0.1 nb_prelim_gen: 1 max_gen: 20;
+	parameter 'Affordability [walk][income low]' var: w_affordability_walk_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [walk][income middle]' var: w_affordability_walk_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [walk][income high]' var: w_affordability_walk_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [bike][income low]' var: w_affordability_bike_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [bike][income middle]' var: w_affordability_bike_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [bike][income high]' var: w_affordability_bike_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [car][income low]' var: w_affordability_car_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [car][income middle]' var: w_affordability_car_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	parameter 'Affordability [car][income high]' var: w_affordability_car_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
+	
+	method genetic maximize: weightedf1 pop_dim: 20 crossover_prob: 0.7 mutation_prob: 0.1 max_gen: 20;
 	
 	reflex end_of_runs{
 		ask simulations{
 			add [
-				w_affordability_income_low,
-				w_affordability_income_middle,
-				w_affordability_income_high,
+				w_affordability_walk_income_low,
+				w_affordability_walk_income_middle,
+				w_affordability_walk_income_high,
+				w_affordability_bike_income_low,
+				w_affordability_bike_income_middle,
+				w_affordability_bike_income_high,
+				w_affordability_car_income_low,
+				w_affordability_car_income_middle,
+				w_affordability_car_income_high,
+				"-",
 				weightedf1, f1, (1-(n_diff_modal_choices/n_displacements_calibration)), (machine_time-start_time)
 			] to: results;
 			write(results);
 		}
-		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/affordability_GA.csv" rewrite:false;
+		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/1-affordability/affordability_GA.csv" rewrite:false;
 	}
 }
 
 experiment BayesFlow type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	parameter 'Affordability [income low]' var: w_affordability_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Affordability [income middle]' var: w_affordability_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Affordability [income high]' var: w_affordability_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-
 	method bayesflow train_size: 6 batch_size:2  epochs:10;
 	
 	reflex end_of_runs{
 		ask simulations{
 			add [
-				w_affordability_income_low,
-				w_affordability_income_middle,
-				w_affordability_income_high,
 				'-',
 				weightedf1, f1, (1-(n_diff_modal_choices/n_displacements_calibration)), (machine_time-start_time)
 			] to: results;
@@ -778,114 +881,14 @@ experiment BayesFlow type: batch repeat: 1 keep_seed: true until: (current_date.
 	}
 }
 
-/* 
+ 
 experiment Surrogate_XGBoost type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	parameter 'Affordability [income low]' var: w_affordability_income_low min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Affordability [income middle]' var: w_affordability_income_middle min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Affordability [income high]' var: w_affordability_income_high min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	
-	parameter 'Travel time' var: w_traveltime min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	
-	parameter 'Trip distance age [walk]' var: w_tripdistance_age_walk_minor min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [walk]' var: w_tripdistance_age_walk_teenager min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [walk]' var: w_tripdistance_age_walk_youngadult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [walk]' var: w_tripdistance_age_walk_adult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [walk]' var: w_tripdistance_age_walk_senior min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [walk]' var: w_tripdistance_age_walk_elderly min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	
-	parameter 'Trip distance age [bike]' var: w_tripdistance_age_bike_minor min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [bike]' var: w_tripdistance_age_bike_teenager min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [bike]' var: w_tripdistance_age_bike_youngadult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [bike]' var: w_tripdistance_age_bike_adult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [bike]' var: w_tripdistance_age_bike_senior min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [bike]' var: w_tripdistance_age_bike_elderly min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-
-	parameter 'Trip distance age [car]' var: w_tripdistance_age_car_minor min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [car]' var: w_tripdistance_age_car_teenager min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [car]' var: w_tripdistance_age_car_youngadult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [car]' var: w_tripdistance_age_car_adult min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [car]' var: w_tripdistance_age_car_senior min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance age [car]' var: w_tripdistance_age_car_elderly min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-
-	parameter 'Trip distance BMI [walk]' var: w_tripdistance_BMI_walk_normal min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance BMI [walk]' var: w_tripdistance_BMI_walk_overweight min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-
-	parameter 'Trip distance BMI [bike]' var: w_tripdistance_BMI_bike_normal min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance BMI [bike]' var: w_tripdistance_BMI_bike_overweight min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-
-	parameter 'Trip distance BMI [car]' var: w_tripdistance_BMI_car_normal min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Trip distance BMI [car]' var: w_tripdistance_BMI_car_overweight min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-
-	parameter 'Population density [walk]' var: w_pop_density_walk min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Population density [bike]' var: w_pop_density_bike min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	
-	parameter 'Retail density [walk]' var: w_retail_density_walk min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Retail density [bike]' var: w_retail_density_bike min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	
-	parameter 'Green coverage [walk]' var: w_greenCoverage_walk min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Green coverage [bike]' var: w_greenCoverage_bike min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	
-	parameter 'Public transport density [walk]' var: w_public_Transport_density_walk min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Public transport density [bike]' var: w_public_Transport_density_bike min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	
-	parameter 'Road intersection density [walk]' var: w_road_intersection_density_walk min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;
-	parameter 'Road intersection density [bike]' var: w_road_intersection_density_bike min: 0.00 max: 1.00 unit: 'rate every cycle (1.00 means 100%) ' step: 0.01;		
 	
 	method surrogate_XGBoost_ML maximize: weightedf1 budget: 20 pool_size:1000000 train_size:20 mse_threshold: 0.01;
 	
 	reflex end_of_runs{
 		ask simulations{
 			add [
-				w_affordability_income_low,
-				w_affordability_income_middle,
-				w_affordability_income_high,
-				
-				w_traveltime,
-				
-				w_tripdistance_age_walk_minor,
-				w_tripdistance_age_walk_teenager,
-				w_tripdistance_age_walk_youngadult,
-				w_tripdistance_age_walk_adult,
-				w_tripdistance_age_walk_senior,
-				w_tripdistance_age_walk_elderly,
-				
-				w_tripdistance_age_bike_minor,
-				w_tripdistance_age_bike_teenager,
-				w_tripdistance_age_bike_youngadult,
-				w_tripdistance_age_bike_adult,
-				w_tripdistance_age_bike_senior,
-				w_tripdistance_age_bike_elderly,
-			
-				w_tripdistance_age_car_minor,
-				w_tripdistance_age_car_teenager,
-				w_tripdistance_age_car_youngadult,
-				w_tripdistance_age_car_adult,
-				w_tripdistance_age_car_senior,
-				w_tripdistance_age_car_elderly,
-			
-				w_tripdistance_BMI_walk_normal,
-				w_tripdistance_BMI_walk_overweight,
-			
-				w_tripdistance_BMI_bike_normal,
-				w_tripdistance_BMI_bike_overweight,
-				
-				w_tripdistance_BMI_car_normal,
-				w_tripdistance_BMI_car_overweight,
-			
-				w_pop_density_walk,
-				w_pop_density_bike,
-				
-				w_retail_density_walk,
-				w_retail_density_bike,
-				
-				w_greenCoverage_walk,
-				w_greenCoverage_bike,
-				
-				w_public_Transport_density_walk,
-				w_public_Transport_density_bike,
-				
-				w_road_intersection_density_walk,
-				w_road_intersection_density_bike,
 				"-",
 				weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))
 			] to: results;
@@ -895,7 +898,7 @@ experiment Surrogate_XGBoost type: batch repeat: 1 keep_seed: true until: (curre
 	}
 }
 
-*/
+
 
 experiment TransportAirPollutionExposureModel type: gui {
 	/** Insert here the definition of the input and output of the model */
