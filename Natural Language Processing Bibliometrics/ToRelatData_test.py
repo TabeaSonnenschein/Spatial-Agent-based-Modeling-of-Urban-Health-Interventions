@@ -14,8 +14,8 @@ Evidence_instances_df = pd.read_csv(csv, encoding="latin1")
 ## disaggregating evidence of within sentence colocation
 complete_evidence_Instances = Evidence_instances_df.iloc[list(np.where((Evidence_instances_df['BehaviorDeterminant'].notnull()) & (Evidence_instances_df['AssociationType'].notnull()))[0])]
 complete_evidence_Instances = complete_evidence_Instances.fillna(" ")
-complete_evidence_Instances['AssociationType'] = [x.replace("; ( ", " ").replace(" ) ;", " ").replace(" ) ", " ; ").replace(" ( ", " ; ").replace("( ", "").replace(" )", "").replace("(", "").replace(")","") for x in complete_evidence_Instances['AssociationType']]
-complete_evidence_Instances['BehaviorDeterminant'] = [x.replace("; ( ", " ").replace(" ) ;", " ").replace(" ) ", " ; ").replace(" ( ", " ; ").replace("( ", "").replace(" )", "").replace("(", "").replace(")","") for x in complete_evidence_Instances['BehaviorDeterminant']]
+complete_evidence_Instances['AssociationType'] = [x.replace("; ( ", "; ").replace(" ) ;", " ;").replace(" ) ", " ; ").replace(" ( ", " ; ").replace("( ", "").replace(" )", "").replace("(", "").replace(")","").replace("  "," ") for x in complete_evidence_Instances['AssociationType']]
+complete_evidence_Instances['BehaviorDeterminant'] = [x.replace("; ( ", "; ").replace(" ) ;", " ;").replace(" ) ", " ; ").replace(" ( ", " ; ").replace("( ", "").replace(" )", "").replace("(", "").replace(")","").replace("  "," ") for x in complete_evidence_Instances['BehaviorDeterminant']]
 
 BD_disagg, AT_disagg, SENT_disagg, DOI_disagg, sent_ID_disagg, BO_disagg, SG_disagg, MO_disagg  = [], [], [], [], [], [], [], []
 for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
@@ -33,14 +33,9 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
         BD_indices.extend([candidates])
         indx = max(BD_indices)
         print(indx)
-    # print(AT_indices, AT_entities)
-    # print(BD_indices, BD_entities)
-    # print(value)
-    # AT_indices = [value.find(entity) for entity in AT_entities]
-    # BD_indices = [value.find(entity) for entity in BD_entities]
     Nr_added_Instances= 0
     if len(AT_entities) == 1:
-        AT_disagg.extend([AT_entities]* len(BD_entities))
+        AT_disagg.extend((AT_entities)* len(BD_entities))
         BD_disagg.extend(BD_entities)
         Nr_added_Instances = len(BD_entities)
     elif len(BD_entities) == 1:
@@ -87,8 +82,8 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
 complete_evidence_Instances = Evidence_instances_df.iloc[list(np.where((Evidence_instances_df['BehaviorDeterminant'].isnull()) | (Evidence_instances_df['AssociationType'].isnull()))[0])]
 complete_evidence_Instances = complete_evidence_Instances.iloc[list(np.where((complete_evidence_Instances['BehaviorDeterminant'].notnull()) | (complete_evidence_Instances['AssociationType'].notnull()))[0])]
 
-sentences = complete_evidence_Instances['Sentence']
-sentences = [int(ids.replace("Sentence: ", "")) for ids in sentences]
+
+sentences = [int(ids.replace("Sentence: ", "")) for ids in complete_evidence_Instances['Sentence']]
 x = len(sentences)-1
 conseq = [[i,i+1] for i,v in enumerate(sentences) if i != x if v+1 == sentences[i+1]]
 

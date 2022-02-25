@@ -58,12 +58,38 @@ def IO_sequence_tracing(indx_list, Words_data):
             tags.append(Words_data.iloc[indx_list[0]])
     return tags
 
+
+def IO_sequence_tracingopt(indx_list, Words_data):
+    tags = []
+    if len(indx_list) > 1:
+        nested_worldlength = [indx_list]
+        n_long_words = [i for i in indx_list if i + 1 in indx_list]
+        nested_worldlength.append(n_long_words)
+        for n in range(2,15):
+            n_long_words = [i for i in n_long_words if i+n in indx_list]
+            if bool(n_long_words):
+                nested_worldlength.append(n_long_words)
+        for n in range(len(nested_worldlength)-1, 0, -1):
+            for indx in nested_worldlength[n]:
+                tags.append(" ".join(Words_data[indx:(indx+n+1)]))
+            for x in range(0,n):
+                nested_worldlength[x] = [e for e in nested_worldlength[x] if e not in nested_worldlength[n]]
+                for g in range(1, int(n-x+1)):
+                    nested_worldlength[x] = [e for e in nested_worldlength[x] if e not in list(np.asarray(nested_worldlength[n]) + g)]
+        if len(nested_worldlength[0])>0:
+            tags.extend(list(Words_data[nested_worldlength[0]]))
+    else:
+        if bool(indx_list):
+            tags.append(Words_data.iloc[indx_list[0]])
+    return tags
+
+
 def extendTagsToAllEqualWordSeq(dataframe):
     labels = list(dict.fromkeys(dataframe['Tag']))
     labels.remove('O')
     for label in labels:
         label_indices = list(np.where(dataframe['Tag'] == label)[0])
-        unique_labeled_words = list(dict.fromkeys(IO_sequence_tracing(indx_list=label_indices, Words_data=dataframe['Word'])))
+        unique_labeled_words = list(dict.fromkeys(IO_sequence_tracingopt(indx_list=label_indices, Words_data=dataframe['Word'])))
         unique_labeled_words = unique_labeled_words.replace("[SEP]", "").replace("[CLS]", "")
         for word in unique_labeled_words:
             words = word.split()
@@ -78,7 +104,7 @@ def extendTagsToAllEqualWordSeq(dataframe):
 
 def extendSpecificTagsToAllEqualWordSeq(dataframe, Tagname):
     label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
-    unique_labeled_words = list(dict.fromkeys(IO_sequence_tracing(indx_list=label_indices, Words_data=dataframe['Word'])))
+    unique_labeled_words = list(dict.fromkeys(IO_sequence_tracingopt(indx_list=label_indices, Words_data=dataframe['Word'])))
     for word in unique_labeled_words:
         words = word.split()
         if len(words) == 1:
