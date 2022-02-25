@@ -546,7 +546,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 //						+ (w_habit_driver_car * self.habit_car_driver)
 //						+ (w_carpoolinggroup_car * self.shares_car)
 						)
-						/10);
+						/14);
 		
 		// filter modal choice by age group. Minors cannot drive. Try without, because cannot distinguish between passengers and drivers
 		/*
