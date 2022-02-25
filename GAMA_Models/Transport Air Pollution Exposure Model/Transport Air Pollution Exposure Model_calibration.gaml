@@ -76,11 +76,32 @@ global skills: [RSkill]{
 	float w_greenCoverage_walk <- 0.5;
 	float w_public_Transport_density_walk <- 0.5;
 	float w_road_intersection_density_walk <- 0.5;
+	float w_distance_CBD_walk <- 0.5;	
+	float w_accidents_pedestrians_walk <- 0.5;	
 	float w_pop_density_bike <- 0.5;
 	float w_retail_density_bike <- 0.5;
 	float w_greenCoverage_bike <- 0.5;
 	float w_public_Transport_density_bike <- 0.5;
 	float w_road_intersection_density_bike <- 0.5;
+	float w_distance_CBD_bike <- 0.5;	
+	float w_accidents_pedestrians_bike <- 0.5;	
+	float w_highway_length_car <- 0.5;	
+	float w_distance_CBD_car <- 0.5;	
+	
+	// individual parameters
+	float w_carownership_car  <- 0.5;
+	float w_carpoolinggroup_car  <- 0.5;
+	float w_carlicense_car  <- 0.5;
+	float w_habit_driver_car  <- 0.5;	
+	float w_habit_passenger_car  <- 0.5;
+	float w_child_car  <- 0.5;	
+	float w_education_car  <- 0.5;	
+	float w_leisure_walk  <- 0.5;		
+	float w_child_walk	 <- 0.5;	
+	float w_habitbike_walk   <- 0.5;
+	float w_education_bike  <- 0.5;
+	float w_habitbike_bike  <- 0.5;
+	
 	
 	// objective function and metrics
 	int n_diff_modal_choices <- 0;
@@ -124,7 +145,7 @@ global skills: [RSkill]{
     //  loading grid with walkability measures
     file rasterfile_walkability <- grid_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
     csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures_normalised.csv", ",", string); 
-    //	columnnames:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid"
+    //	columnnames:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid", "AccidPedes","HighwLen", "DistCBD"
     
     
 	//  loading routing code
@@ -145,6 +166,9 @@ global skills: [RSkill]{
 		float greenCoverage;
 		float public_Transport_density;
 		float road_intersection_density;
+		float Accidents_Pedestrians;
+		float Distance_CBD;
+		float Highway_Length;
 		list datalist;
 	}	
 	
@@ -188,12 +212,15 @@ global skills: [RSkill]{
     		//write "id gridvalue: " + int(self.grid_value);
     		datalist <- rows_list(walkability_measures) at (int(self.grid_value)-1);
     		//write datalist;
-			pop_density <- float(datalist at 1);
+			pop_density <- float(datalist at 2);
 			//write pop_density;
-			retail_density <-  float(datalist at 2);
-			greenCoverage <-  float(datalist at 3);
-			public_Transport_density <-  float(datalist at 4);
-			road_intersection_density <-  float(datalist at 5);
+			retail_density <-  float(datalist at 3);
+			greenCoverage <-  float(datalist at 4);
+			public_Transport_density <-  float(datalist at 5);
+			road_intersection_density <-  float(datalist at 6);
+			Accidents_Pedestrians <-  float(datalist at 8);
+			Highway_Length <-  float(datalist at 12);
+			Distance_CBD <-  float(datalist at 16);
     	}
     }
     float step <- 10 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
@@ -330,8 +357,9 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	int safety;
 	int norm_abidence;
 	map<string, float> assumed_traveltime  <- create_map(["traveltime_bike", "traveltime_walk", "traveltime_car"], [0.0, 0.0, 0.0]);
-	map<string, float> assumed_quality_infrastructure <- create_map(["pop_density", "retail_density", "greenCoverage", "public_Transport_density", "road_intersection_density"], [0.0, 0.0, 0.0, 0.0, 0.0]);	
-	map<string, float> affordability <- create_map(["perc_budget_bike", "perc_budget_walk", "perc_budget_car"], [0.0, 0.0, 0.0]);
+	map<string, float> assumed_quality_infrastructure <- create_map(["pop_density", "retail_density", "greenCoverage", "public_Transport_density", 
+	"road_intersection_density", "Accidents_Pedestrians", "Highway_Length", "Distance_CBD"], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);	
+	map<string, float> affordability <- create_map(["perc_budget_bike", "perc_budget_walk", "perc_budget_car"], [0.0, 0.0, 0.0]); 
 	float budget <- rnd (800.0 , 5000.0); // Euros per month   								// needs robust methodology
 	
 	/// Transport Behaviour: Behavioural Constraints///
@@ -459,7 +487,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     	ask myself{
 	   		assumed_quality_infrastructure <- (["pop_density"::mean(myself.pop_density), "retail_density"::mean(myself.retail_density), 
 	   			"greenCoverage"::mean(myself.greenCoverage), "public_Transport_density"::mean(myself.public_Transport_density), 
-	   			"road_intersection_density"::mean(myself.road_intersection_density)]);
+	   			"road_intersection_density"::mean(myself.road_intersection_density), "Accidents_Pedestrians"::mean(myself.Accidents_Pedestrians), 
+	   			"Highway_Length"::mean(myself.Highway_Length), "Distance_CBD"::mean(myself.Distance_CBD)]);
 	   		affordability <-["perc_budget_bike":: ((transport_costs["bike"] * (trip_distance/1000) )/((budget/31)-20)), 
 	   		"perc_budget_walk"::((transport_costs["walk"] * (trip_distance/1000) )/((budget/31)-20)),
 	   		"perc_budget_car":: ((transport_costs["car"] * (trip_distance/1000) )/((budget/31)-20))]; 
@@ -473,28 +502,51 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 																
 		walking_utility <- (((w_affordability_walk[incomegroup] * (1-tanh(float(affordability["perc_budget_walk"])))) 
 						+ (w_time_walk * (1-tanh(float(assumed_traveltime["traveltime_walk"])/1000)))
-						+ (w_distance_age_walk[agegroup] * w_distance_BMI_walk[weightgroup] * (1-tanh((trip_distance/1000)))))
+						+ (w_distance_age_walk[agegroup] * w_distance_BMI_walk[weightgroup] * (1-tanh((trip_distance/1000))))
 						+ (w_pop_density_walk * float(assumed_quality_infrastructure["pop_density"]))
 						+ (w_retail_density_walk * float(assumed_quality_infrastructure["retail_density"]))					
 						+ (w_greenCoverage_walk * float(assumed_quality_infrastructure["greenCoverage"]))
 						+ (w_public_Transport_density_walk * float(assumed_quality_infrastructure["public_Transport_density"]))
 						+ (w_road_intersection_density_walk * float(assumed_quality_infrastructure["road_intersection_density"]))
-						/8);	
-										
+						+ (w_accidents_pedestrians_walk * float(assumed_quality_infrastructure["Accidents_Pedestrians"]))
+						+ (w_distance_CBD_walk * float(assumed_quality_infrastructure["Distance_CBD"]))		
+//						+ (w_leisure_walk * leisure) 
+//						+ (w_child_walk* have_child)
+//						+ (w_habitbike_walk* habit_use_bike)
+						)                                                                                        				
+						/13);	
+
 		biking_utility <- (((w_affordability_bike[incomegroup] * (1-tanh(float(affordability["perc_budget_bike"])))) 
 						+ (w_time_bike * (1-tanh(float(assumed_traveltime["traveltime_bike"])/1000)))
-						+ (w_distance_age_bike[agegroup] * w_distance_BMI_bike[weightgroup] * (1-tanh(trip_distance/1000))))
+						+ (w_distance_age_bike[agegroup] * w_distance_BMI_bike[weightgroup] * (1-tanh(trip_distance/1000)))
 						+ (w_pop_density_bike * float(assumed_quality_infrastructure["pop_density"]))
 						+ (w_retail_density_bike * float(assumed_quality_infrastructure["retail_density"]))					
 						+ (w_greenCoverage_bike * float(assumed_quality_infrastructure["greenCoverage"]))
 						+ (w_public_Transport_density_bike * float(assumed_quality_infrastructure["public_Transport_density"]))
 						+ (w_road_intersection_density_bike * float(assumed_quality_infrastructure["road_intersection_density"]))
-						/8);
+						+ (w_accidents_pedestrians_bike * float(assumed_quality_infrastructure["Accidents_Pedestrians"]))
+						+ (w_distance_CBD_bike * float(assumed_quality_infrastructure["Distance_CBD"]))
+//						+ (w_education_bike* absolved_edu)  
+//						+ (w_habitbike_bike* habit_use_bike)
+						)                                                                                        				                       	
+						/12);
 						
 		driving_utility <- (((w_affordability_car[incomegroup] * (1-tanh(float(affordability["perc_budget_car"]))))
 						+ (w_time_car * (1-tanh(float(assumed_traveltime["traveltime_car"])/1000)))
-						+ (w_distance_age_car[agegroup] * w_distance_BMI_car[weightgroup] * (1-tanh(trip_distance/1000))))
-						/3);
+						+ (w_distance_age_car[agegroup] * w_distance_BMI_car[weightgroup] * (1-tanh(trip_distance/1000)))
+						+ (w_highway_length_car * float(assumed_quality_infrastructure["Highway_Length"]))
+						+ (w_distance_CBD_car * float(assumed_quality_infrastructure["Distance_CBD"]))
+						+ (w_highway_length_car * float(assumed_quality_infrastructure["Highway_Length"]))
+						+ (w_distance_CBD_car * float(assumed_quality_infrastructure["Distance_CBD"]))
+						+ (w_carownership_car * self.car_in_household)
+						+ (w_carlicense_car * self.has_driving_license)
+//						+ (w_child_car * self.have_child)   
+//						+ (w_education_car* absolved_edu)     
+//						+ (w_habit_passenger_car * self.habit_car_passenger)
+//						+ (w_habit_driver_car * self.habit_car_driver)
+//						+ (w_carpoolinggroup_car * self.shares_car)
+						)
+						/10);
 		
 		// filter modal choice by age group. Minors cannot drive. Try without, because cannot distinguish between passengers and drivers
 		/*
@@ -865,40 +917,40 @@ experiment GenericAlgorithm type: batch repeat: 1 keep_seed: true until: (curren
 		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/1-affordability/affordability_GA.csv" rewrite:false;
 	}
 }
+//
+//experiment BayesFlow type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+//	method bayesflow train_size: 6 batch_size:2  epochs:10;
+//	
+//	reflex end_of_runs{
+//		ask simulations{
+//			add [
+//				'-',
+//				weightedf1, f1, (1-(n_diff_modal_choices/n_displacements_calibration)), (machine_time-start_time)
+//			] to: results;
+//			write(results);
+//		}
+//		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/affordability_BayesFlow.csv" rewrite:false;
+//	}
+//}
 
-experiment BayesFlow type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	method bayesflow train_size: 6 batch_size:2  epochs:10;
-	
-	reflex end_of_runs{
-		ask simulations{
-			add [
-				'-',
-				weightedf1, f1, (1-(n_diff_modal_choices/n_displacements_calibration)), (machine_time-start_time)
-			] to: results;
-			write(results);
-		}
-		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/affordability_BayesFlow.csv" rewrite:false;
-	}
-}
-
- 
-experiment Surrogate_XGBoost type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
-	
-	method surrogate_XGBoost_ML maximize: weightedf1 budget: 20 pool_size:1000000 train_size:20 mse_threshold: 0.01;
-	
-	reflex end_of_runs{
-		ask simulations{
-			add [
-				"-",
-				weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))
-			] to: results;
-			write(results);
-		}
-		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/all_XGBoost.csv" rewrite:false;
-	}
-}
-
-
+// 
+//experiment Surrogate_XGBoost type: batch repeat: 1 keep_seed: true until: (current_date.hour=23) and (current_date.minute=50) {
+//	
+//	method surrogate_XGBoost_ML maximize: weightedf1 budget: 20 pool_size:1000000 train_size:20 mse_threshold: 0.01;
+//	
+//	reflex end_of_runs{
+//		ask simulations{
+//			add [
+//				"-",
+//				weightedf1, (machine_time-start_time), (1-(n_diff_modal_choices/n_displacements_calibration))
+//			] to: results;
+//			write(results);
+//		}
+//		save results type: csv to: path_data+"/Amsterdam/Calibration/calibration_results/all_XGBoost.csv" rewrite:false;
+//	}
+//}
+//
+//
 
 experiment TransportAirPollutionExposureModel type: gui {
 	/** Insert here the definition of the input and output of the model */
