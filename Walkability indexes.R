@@ -26,9 +26,10 @@
 # Specific walking destinations such as light rail stops and bus stops (Brown et al., 2009)
 # Job density
 
+
 pkgs = c("maptools","rgdal","sp", "sf", "jpeg", "data.table", "purrr", "rgeos" , "leaflet", "RColorBrewer",
-         "ggplot2", "lattice",  "raster",  "spatialEco", "rjson", "jsonlite","EconGeo", 
-         "rstan", "boot",  "concaveman", "data.tree", "DiagrammeR", "networkD3", "rgexf", "tidytree", "exactextractr")
+         "ggplot2", "lattice",  "raster",  "spatialEco", "rjson", "jsonlite","EconGeo", "dplyr",
+         "rstan", "boot",  "concaveman", "data.tree", "DiagrammeR", "networkD3", "rgexf", "tidytree", "exactextractr", "terra")
 sapply(pkgs, require, character.only = T) #load 
 rm(pkgs)
 
@@ -40,14 +41,17 @@ CRS_defin = "+towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725"
 extent = readOGR(dsn=paste(dataFolder, "/SpatialExtent", sep = "" ),layer="Amsterdam Diemen Oude Amstel Extent")
 extent = spTransform(extent, CRSobj = crs)
 city = "Amsterdam"
+raster_size = 200
+setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = ""))
+walkability_grid = readOGR(dsn=getwd(),layer=paste("walkability_grid_",raster_size, sep=""))
+colnames(walkability_grid@data) = c("layer", "unique_id",  "population_density", "retail_density" , "green_coverage_fraction", "public_trans_density"  , "street_intersection_density", "int_id", "Nr_Traffic_accidents", "Nr_Traffic_Pedestrian_Accidents", "Nr_Trees", "averageTrafficVolume", "sumTrafficVolume", "MetersMajorStreets", "Pedestrian_Street_Width",  "Pedestrian_Streets_Length", "len_intersec_bikeroute", "dist_CBD")  
 
 library()
 ########################################
 # Making a grid of size: 100mx100m
 ########################################
 walkability_grid_raster = raster(xmn=extent(extent)[1], xmx=extent(extent)[2], ymn=extent(extent)[3], ymx=extent(extent)[4])
-raster_size = 200
-res(walkability_grid_raster) <- raster_size
+raster::res(walkability_grid_raster) <- raster_size
 projection(walkability_grid_raster) = crs
 ncells = ncell(walkability_grid_raster)
 dim(walkability_grid_raster)
@@ -58,6 +62,7 @@ walkability_grid$int_id = gsub("id_", "", walkability_grid$unique_id)
 as.numeric(walkability_grid$int_id)
 values(walkability_grid_raster) = as.numeric(walkability_grid$int_id)
 
+?raster
 ########################################
 #1 Population density
 ########################################
@@ -150,8 +155,11 @@ summary(walkability_grid$street_intersection_density)
 #######################################
 #5 Green space
 #######################################
-setwd(paste(dataFolder, "/Built Environment/Green Spaces", sep = ""))
+#official parks
 GreenSpaces = readOGR(dsn=paste(dataFolder, "/Built Environment/Green Spaces", sep = "" ),layer="Green Spaces")
+#OSM green spaces
+GreenSpaces = readOGR(dsn=paste(dataFolder, "/Built Environment/Green Spaces", sep = "" ),layer="Green_Spaces_OSM_Amsterdam_dissolved")
+
 GreenSpaces = spTransform(GreenSpaces, CRSobj = crs)
 GreenSpaces = aggregate(GreenSpaces, dissolve = T)
 GreenSpaces_sfc = st_as_sfc(GreenSpaces)
@@ -170,7 +178,6 @@ summary(walkability_grid$green_coverage_fraction)
 #######################################
 #7 Public Transport Density
 #######################################
-setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure/public transport", sep = ""))
 PT_stations = readOGR(dsn=paste(dataFolder, "/Built Environment/Transport Infrastructure/public transport", sep = "" ),layer="Tram_n_Metrostations")
 PT_stations = spTransform(PT_stations, CRSobj = crs)
 PT_stations_gridjoin = point.in.poly(PT_stations, walkability_grid)
@@ -186,6 +193,182 @@ summary(walkability_grid$public_trans_density)
 
 
 
+#######################################
+#8 Traffic Accidents
+#######################################
+setwd(paste(dataFolder, "/Built Environment/Traffic Accidents", sep = ""))
+Traffic_Accidents = readOGR(dsn=paste(dataFolder, "/Built Environment/Traffic Accidents", sep = ""),layer="TrafficAccidentsAmsterdamRegion")
+Traffic_Accidents = spTransform(Traffic_Accidents, CRSobj = crs)
+Traffic_Accidents = crop(Traffic_Accidents, extent(extent))
+writeOGR(Traffic_Accidents, dsn=getwd() ,layer="TrafficAccidentsAmsterdam",driver="ESRI Shapefile")
+
+Traffic_Accidents_gridjoin = point.in.poly(Traffic_Accidents, walkability_grid)
+
+unique(Traffic_Accidents@data$AOL_ID)
+
+walkability_grid$Nr_Traffic_accidents =0
+walkability_grid$Nr_Traffic_Pedestrian_Accidents =0
+for(x in walkability_grid@data$unique_id){
+  walkability_grid$Nr_Traffic_accidents[which(walkability_grid$unique_id == x)] = length(which(Traffic_Accidents_gridjoin$unique_id == x))
+  walkability_grid$Nr_Traffic_Pedestrian_Accidents[which(walkability_grid$unique_id == x)] = length(which(Traffic_Accidents_gridjoin$unique_id == x & Traffic_Accidents_gridjoin$AOL_ID == "Voetganger"))
+}
+
+plot(walkability_grid, col= walkability_grid$Nr_Traffic_accidents)
+summary(walkability_grid$Nr_Traffic_accidents)
+
+plot(walkability_grid, col= walkability_grid$Nr_Traffic_Pedestrian_Accidents)
+summary(walkability_grid$Nr_Traffic_Pedestrian_Accidents)
+
+
+#######################################
+#9 Trees
+#######################################
+setwd(paste(dataFolder, "/Built Environment/Trees", sep = ""))
+Trees = readOGR(dsn=paste(dataFolder, "/Built Environment/Trees", sep = "" ),layer="Amsterdam Trees")
+Trees = spTransform(Trees, CRSobj = crs)
+Trees_gridjoin = point.in.poly(Trees, walkability_grid)
+
+walkability_grid$Nr_Trees =0
+for(x in walkability_grid@data$unique_id){
+  walkability_grid$Nr_Trees[which(walkability_grid$unique_id == x)] = length(which(Trees_gridjoin$unique_id == x))
+}
+
+plot(walkability_grid, col= walkability_grid$Nr_Trees)
+summary(walkability_grid$Nr_Trees)
+
+
+#######################################
+#10 Traffic Volume
+#######################################
+CarStreets = readOGR(dsn=paste(dataFolder, "/Built Environment/Transport Infrastructure/cars", sep = ""),layer="Car Traffic_RDNew")
+CarStreets = spTransform(CarStreets, CRSobj = crs)
+plot(CarStreets)
+CarStreet_gridjoin = intersect(CarStreets, walkability_grid)
+
+
+walkability_grid$averageTrafficVolume =0
+walkability_grid$sumTrafficVolume =0
+for(x in walkability_grid@data$unique_id){
+  walkability_ids = which(CarStreet_gridjoin$unique_id == x)
+  if(length(walkability_ids)>0){
+    walkability_grid$averageTrafficVolume[which(walkability_grid$unique_id == x)] = mean(as.integer(CarStreet_gridjoin$etmaal[walkability_ids]))
+    walkability_grid$sumTrafficVolume[which(walkability_grid$unique_id == x)] = sum(as.integer(CarStreet_gridjoin$etmaal[walkability_ids]))
+  }
+}
+
+plot(walkability_grid, col= walkability_grid$averageTrafficVolume)
+summary(walkability_grid$averageTrafficVolume)
+
+plot(walkability_grid, col= walkability_grid$sumTrafficVolume)
+summary(walkability_grid$sumTrafficVolume)
+
+#######################################
+#11 Urban Highway Length
+#######################################
+CarStreets = CarStreets[which(CarStreets$etmaal != 0),]
+CarStreets_sf= st_as_sf(CarStreets)
+walkability_grid_sf = st_as_sf(walkability_grid)
+intersection <- st_intersection(walkability_grid_sf, CarStreets_sf) %>% 
+  mutate(lenght = st_length(.)) %>% 
+  st_drop_geometry() # complicates things in joins later on
+
+
+walkability_grid$MetersMajorStreets =0
+for(x in walkability_grid$unique_id){
+  walkability_grid$MetersMajorStreets[which(walkability_grid$unique_id == x)] = sum(intersection$lenght[which(intersection$unique_id == x)])
+}
+
+plot(walkability_grid, col= walkability_grid$MetersMajorStreets)
+summary(walkability_grid$MetersMajorStreets)
+
+
+#######################################
+#12 Pedestrian Pathway Width
+#######################################
+setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure/pedestrian", sep = ""))
+Pedestrian_streets = readOGR(dsn=paste(dataFolder, "/Built Environment/Transport Infrastructure/pedestrian", sep = "" ),layer="Pedestrian Network_Amsterdam")
+Pedestrian_streets = spTransform(Pedestrian_streets, CRSobj = crs)
+
+Pedestrian_streets_sf= st_as_sf(Pedestrian_streets)
+inter <- st_intersects(Pedestrian_streets_sf,Pedestrian_streets_sf, sparse = TRUE)
+Pedestrian_streets_sf <- Pedestrian_streets_sf[lengths(inter)>2,] #select lines intersecting with more than themselves
+Pedestrian_streets_new = as_Spatial(Pedestrian_streets_sf)
+writeOGR(Pedestrian_streets_new, dsn=getwd() ,layer="Pedestrian_Network_Amsterdam_clean",driver="ESRI Shapefile")
+
+walkability_grid_sf = st_as_sf(walkability_grid)
+Pedestrian_streets_gridjoin = st_intersection(Pedestrian_streets_sf, walkability_grid_sf)
+
+walkability_grid$Pedestrian_Street_Width =0
+for(x in walkability_grid@data$unique_id){
+  walkability_grid$Pedestrian_Street_Width[which(walkability_grid$unique_id == x)] = mean(na.omit(Pedestrian_streets_gridjoin$gewogen_ge[which(Pedestrian_streets_gridjoin$unique_id == x)]))
+  }
+
+
+plot(walkability_grid, col= walkability_grid$Pedestrian_Street_Width)
+summary(walkability_grid$Pedestrian_Street_Width)
+
+
+#######################################
+#13 Pedestrian Pathway length
+#######################################
+
+intersection <- st_intersection(walkability_grid_sf, Pedestrian_streets_sf) %>% 
+  mutate(lenght = st_length(.)) %>% 
+  st_drop_geometry() # complicates things in joins later on
+
+walkability_grid$Pedestrian_Streets_Length = 0
+for(x in walkability_grid$unique_id){
+  walkability_grid$Pedestrian_Streets_Length[which(walkability_grid$unique_id == x)] = sum(intersection$lenght[which(intersection$unique_id == x)])
+}
+
+plot(walkability_grid, col= walkability_grid$Pedestrian_Streets_Length)
+summary(walkability_grid$Pedestrian_Streets_Length)
+
+#######################################
+#14 Bikelane Length
+#######################################
+setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure/bike", sep = ""))
+Bike_lanes = readOGR(dsn=paste(dataFolder, "/Built Environment/Transport Infrastructure/bike", sep = "" ),layer="Fietsknooppuntnetwerken_Amsterdam")
+Bike_lanes = spTransform(Bike_lanes, CRSobj = crs)
+
+Bike_lanes_sf= st_as_sf(Bike_lanes)
+walkability_grid_sf = st_as_sf(walkability_grid)
+
+intersection <- st_intersection(walkability_grid_sf, Bike_lanes_sf) %>% 
+  mutate(lenght = st_length(.)) %>% 
+  st_drop_geometry() # complicates things in joins later on
+
+walkability_grid$len_intersec_bikeroute = 0
+for(x in walkability_grid@data$unique_id){
+  walkability_grid$len_intersec_bikeroute[which(walkability_grid$unique_id == x)] = sum(intersection$lenght[which(intersection$unique_id == x)])
+}
+
+plot(walkability_grid, col= walkability_grid$len_intersec_bikeroute)
+summary(walkability_grid$len_intersec_bikeroute)
+
+
+#######################################
+#15 Distance to CBD
+#######################################
+
+walkability_grid_centroids = gCentroid(walkability_grid, byid= T, id= walkability_grid$unique_id)
+walkability_grid_centroids = spTransform(walkability_grid_centroids, CRSobj = CRS("+proj=longlat +datum=WGS84") )
+CBD = walkability_grid_centroids[which(walkability_grid$retail_density == max(walkability_grid$retail_density))]
+
+plot(walkability_grid)
+plot(CBD, add= T)
+plot(postcode_polys, add = T)
+
+walkability_grid$dist_CBD = 0
+x = as.data.frame(spDists(walkability_grid_centroids, CBD, longlat = T))
+walkability_grid$dist_CBD = x$V1
+
+plot(walkability_grid, col= walkability_grid$dist_CBD)
+summary(walkability_grid$dist_CBD)
+
+
+
+
 
 #####################################
 # Saving the grid data
@@ -194,16 +377,26 @@ summary(walkability_grid$public_trans_density)
 setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = ""))
 
 colnames(walkability_grid@data)
-c("layer", "unique_id",  "population_density", "retail_density" , "green_coverage_fraction", "public_trans_density"  , "street_intersection_density", "int_id")   
-colnames(walkability_grid@data) = c("layer", "unqId",  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid")   
+c("layer", "unique_id",  "population_density", "retail_density" , "green_coverage_fraction", "public_trans_density"  , "street_intersection_density", "int_id", "Nr_Traffic_accidents", "Nr_Traffic_Pedestrian_Accidents", "Nr_Trees", "averageTrafficVolume", "sumTrafficVolume", "MetersMajorStreets", "Pedestrian_Street_Width",  "Pedestrian_Streets_Length", "len_intersec_bikeroute", "dist_CBD")   
+colnames(walkability_grid@data) =c("layer", "unqId",  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid", "TrafAccid", "AccidPedes", "NrTrees", "MeanTraffV", "SumTraffVo", "HighwLen", "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD")   
 
-writeOGR(walkability_grid, dsn=getwd() ,layer= "walkability_grid",driver="ESRI Shapefile")
+walkability_grid@data = walkability_grid@data[c("unqId", "Intid", "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "TrafAccid", "AccidPedes", "NrTrees", "MeanTraffV", "SumTraffVo", "HighwLen", "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD")]
+
+writeOGR(walkability_grid, dsn=getwd() ,layer= paste("walkability_grid_",raster_size, sep=""),driver="ESRI Shapefile")
 writeRaster(walkability_grid_raster, "walkability_grid.tif", format = "GTiff", overwrite = T)
 walkability_measures = as.data.frame(walkability_grid)
 walkability_measures= subset(walkability_measures, select= -c(layer))
 write.csv(walkability_measures, "walkability_measures.csv", row.names = F, quote=FALSE)
 
-walkability_grid = readOGR(dsn=getwd(),layer="walkability_grid")
+walkability_grid = readOGR(dsn=getwd(),layer=paste("walkability_grid_",raster_size, sep=""))
+colnames(walkability_grid@data) = c("unqId", "Intid", "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "TrafAccid", "AccidPedes", "NrTrees", "MeanTraffV", "SumTraffVo", "HighwLen", "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD")
+colnames(walkability_grid@data) = c("unique_id",  "int_id", "population_density", "retail_density" , "green_coverage_fraction", "public_trans_density"  , "street_intersection_density",  "Nr_Traffic_accidents", "Nr_Traffic_Pedestrian_Accidents", "Nr_Trees", "averageTrafficVolume", "sumTrafficVolume", "MetersMajorStreets", "Pedestrian_Street_Width",  "Pedestrian_Streets_Length", "len_intersec_bikeroute", "dist_CBD")  
+
+summary(walkability_grid$popDns)
+summary(walkability_grid$greenCovr)
+summary(walkability_grid$retaiDns)
+summary(walkability_grid$pubTraDns)
+summary(walkability_grid$RdIntrsDns)
 
 
 

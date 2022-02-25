@@ -8,6 +8,7 @@ from transformers import BertForTokenClassification, AdamW, BertTokenizer, BertC
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from seqeval.metrics import f1_score, accuracy_score, classification_report
+from sklearn.metrics import f1_score as f1sc
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
@@ -29,7 +30,7 @@ print(torch.cuda.get_device_name(0))
 MAX_LEN = 75
 bs = 35     # batch size, the larger batch size the more chance of finding global optimum, but also chance of overfitting to labeled dataset
 test_percentage = 0.2
-epochs = 20
+epochs = 5
 learning_rate = 4e-5
 epsilon = 1e-8      #Adam’s epsilon for numerical stability.
 weight_decay = 0 # form of regularization to lower the chance of overfitting, default is 0
@@ -83,6 +84,10 @@ pickle.dump(tag_values, open_file)
 open_file.close()
 tag2idx = {t: i for i, t in enumerate(tag_values)}
 print("List of tag values:", tag_values)
+
+unique_labels = list(set(data["Tag"].values))
+unique_labels.remove("O")
+print("uniq Tags:", unique_labels)
 
 ## applying BERT
 # Prepare the sentences and labels
@@ -197,7 +202,7 @@ scheduler = get_linear_schedule_with_warmup(
 
 # Fit BERT for named entity recognition
 ## Store the average loss after each epoch so we can plot them.
-loss_values, validation_loss_values, F1_score_values, accuracy_values = [], [], [], []
+loss_values, validation_loss_values, F1_score_values, accuracy_values, F1_per_class = [], [], [], [], []
 
 for _ in trange(epochs, desc="Epoch"):
     # ========================================
@@ -286,14 +291,20 @@ for _ in trange(epochs, desc="Epoch"):
     valid_tags = [tag_values[l_i] for l in true_labels
                                   for l_i in l if tag_values[l_i] != "PAD"]
     print("Validation Accuracy: {}".format(accuracy_score(pred_tags, valid_tags)))
-    print("Validation F1-Score: {}".format(f1_score([pred_tags], [valid_tags])))
-    F1_score_values.append(f1_score([pred_tags], [valid_tags]))
+    # print("Validation F1-Score: {}".format(f1_score([pred_tags], [valid_tags])))
+    # F1_score_values.append(f1_score([pred_tags], [valid_tags]))
+    f1_scores_perclass = f1sc(y_true=valid_tags,y_pred=pred_tags, average=None, labels=unique_labels)
+    f1_weighted_mean = f1sc(y_true=valid_tags,y_pred=pred_tags, average='weighted', labels=unique_labels)
+    F1_per_class.append(f1_scores_perclass)
+    F1_score_values.append(f1_weighted_mean)
+    print("Validation F1-Score: {}".format(f1_weighted_mean))
+    f1_scores_with_labels = {label: score for label, score in zip(unique_labels, f1_scores_perclass)}
+    print(f1_scores_with_labels)
     accuracy_values.append(accuracy_score(pred_tags, valid_tags))
     print()
 
 output_model = ('C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/model_' + str(epochs) + '.bin')
 torch.save(model.state_dict(),output_model)
-
 
 # Visualize the training loss
 # Use plot styling from seaborn.
@@ -303,20 +314,25 @@ sns.set(style='darkgrid')
 sns.set(font_scale=1.5)
 plt.rcParams["figure.figsize"] = (12,6)
 
+
 # Plot the learning curve.
-plt.plot(loss_values, 'b-o', label="training loss")
-plt.plot(validation_loss_values, 'r-o', label="validation loss")
-plt.plot(F1_score_values, 'g-o', label="F1-score")
-plt.plot(accuracy_values, 'm-o', label="validation accuracy")
+colorset = ["#663300", "#004C99", "#FF8000", "#009999", "#FF33FF"]
+for count,value in enumerate(unique_labels):
+    plt.plot([x[count] for x in F1_per_class], "--o",color=colorset[count], label=("F1-"+ value.replace("I-","")))
+plt.plot(F1_score_values, "--^", color="#009900", linewidth=3, markersize = 13,label="F1-score weighted total")
+plt.plot(loss_values, color="#0000FF", linewidth=2.5, label="training loss")
+plt.plot(validation_loss_values, color="#CC0000", linewidth=2.5, label="validation loss")
+plt.plot(accuracy_values, color="#6600CC", linewidth=2.5, label="validation accuracy")
 
 # Label the plot.
 plt.title("Learning curve")
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 # plt.legend(loc='upper right') # legend in upper right corner inside plot
-# plt.legend(bbox_to_anchor=(1.02, 1),  borderaxespad=0) # legend in upper right corner outside plot
+plt.legend(bbox_to_anchor=(1.02, 1),  borderaxespad=0) # legend in upper right corner outside plot
 # plt.legend(loc='center right') # legend in center right
-plt.legend(loc='best', bbox_to_anchor=(0.6, 0.6, 0.4, 0.3))
+# plt.legend(loc='best', bbox_to_anchor=(0.6, 0.6, 0.4, 0.3))
+plt.tight_layout()
 plt.savefig("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_bs"+str(bs)+"_ep"+str(epochs)+ "_lr"+ str(learning_rate)+ "_art"+ str(nr_articles_labeled)+".png",
             dpi=350)
 plt.show()

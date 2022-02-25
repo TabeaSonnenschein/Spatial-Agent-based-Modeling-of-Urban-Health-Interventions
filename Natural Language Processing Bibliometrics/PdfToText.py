@@ -59,35 +59,39 @@ for file in listOfFiles:
                                 openbrackets = [m.start() for m in re.finditer("[(]", sentence)]
                                 closebrackets = [m.start() for m in re.finditer("[)]", sentence)]
                                 # print("open brackets", openbrackets, "closing brackets", closebrackets)
-                                min_length = shortest_length = min(len(openbrackets), len(closebrackets))
+                                min_length = min(len(openbrackets), len(closebrackets))
                                 for abbr_indx in range(0,min_length):
-                                    if sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","").isupper() and sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","").isalpha() and (len(sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]])>1):
-                                        abbr = sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","")
-                                        abbreviationlen = len(abbr)
-                                        wordsbefore = wordninja.split(sentence[:openbrackets[abbr_indx]])
-                                        wordsbefore = wordsbefore[len(wordsbefore)-abbreviationlen-3:]
-                                        possible_fullnames = []
-                                        if len(abbr) > 2:
-                                            for count, value in enumerate(wordsbefore[:len(wordsbefore) - 2]):
-                                                if value[0].upper() == abbr[0] and (
-                                                        wordsbefore[count + 1][0].upper() == abbr[1] or
-                                                        wordsbefore[count + 2][0].upper() == abbr[1]):
-                                                    fullname = " ".join(wordsbefore[count:])
-                                                    possible_fullnames.append(fullname)
-                                        else:
-                                            for count, value in enumerate(wordsbefore[:len(wordsbefore) - 1]):
-                                                if value[0].upper() == abbr[0] and wordsbefore[count + 1][0].upper() == \
-                                                        abbr[1]:
-                                                    fullname = " ".join(wordsbefore[count:])
-                                                    possible_fullnames.append(fullname)
-                                        if(possible_fullnames):
-                                            fullnames.append(min(possible_fullnames, key=len))
-                                            abbreviations.append(abbr)
-                                            doi_tracking.append(file)
-                                            print(abbreviations[-1])
-                                            print(fullnames[-1])
-                                            sentence = "".join([sentence[:openbrackets[abbr_indx]], sentence[closebrackets[abbr_indx]+1:]])
-                                            print()
+                                    if sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","").isupper() or (sentence[openbrackets[abbr_indx]+1:(closebrackets[abbr_indx]-1)].replace(" ","").isupper() and sentence[(closebrackets[abbr_indx]-1):closebrackets[abbr_indx]] == "s"):
+                                        if sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","").isalpha() and (len(sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]])>1):
+                                            abbr = sentence[openbrackets[abbr_indx]+1:closebrackets[abbr_indx]].replace(" ","")
+                                            if sentence[(closebrackets[abbr_indx] - 1):closebrackets[abbr_indx]] == "s":
+                                                abbreviationlen = len(abbr) - 1
+                                            else:
+                                                abbreviationlen = len(abbr)
+                                            wordsbefore = wordninja.split(sentence[:openbrackets[abbr_indx]])
+                                            wordsbefore = wordsbefore[len(wordsbefore)-abbreviationlen-3:]
+                                            possible_fullnames = []
+                                            if len(abbr) > 2:
+                                                for count, value in enumerate(wordsbefore[:len(wordsbefore) - 2]):
+                                                    if value[0].upper() == abbr[0] and (
+                                                            wordsbefore[count + 1][0].upper() == abbr[1] or
+                                                            wordsbefore[count + 2][0].upper() == abbr[1]):
+                                                        fullname = " ".join(wordsbefore[count:])
+                                                        possible_fullnames.append(fullname)
+                                            else:
+                                                for count, value in enumerate(wordsbefore[:len(wordsbefore) - 1]):
+                                                    if value[0].upper() == abbr[0] and wordsbefore[count + 1][0].upper() == \
+                                                            abbr[1]:
+                                                        fullname = " ".join(wordsbefore[count:])
+                                                        possible_fullnames.append(fullname)
+                                            if(possible_fullnames):
+                                                fullnames.append(min(possible_fullnames, key=len))
+                                                abbreviations.append(abbr)
+                                                doi_tracking.append(file)
+                                                print(abbreviations[-1])
+                                                print(fullnames[-1])
+                                                sentence = "".join([sentence[:openbrackets[abbr_indx]], sentence[closebrackets[abbr_indx]+1:]])
+                                                print()
                             abbr_replaced = False
 
                             if bool(abbreviations):
@@ -133,7 +137,7 @@ for file in listOfFiles:
                                           ("Th ending", "The finding"), ("th ending", "the finding"), ("The sending s", "These findings"), ("the sending s", "these findings"), ("specie d ", "specified"), ("conde n ce", "confidence"), (" nal ", " final "),
                                           ("aside n tied", "as identified"), ("ide n tied", "identified"), ("in ten t", "intent "), ("lassic ation", "lassification"), ("afixed", "a fixed"), ("aggregate deffect", "aggregated effect"),
                                           ("ident ies", "identifies"), ("specific ally", "specifically"), (" a ect ", " affect "), (" gur es ", " Figures "), ("s u er", " suffer"), ("con r med", "confirmed"), ("aec ted", "affected"),
-                                          ("conic ting", "conflicting"), ("rearm", "reaffirm"), ("chau eu ring", "chauffeuring"), (" con text", " context"), ("in ue nti a l", "influential ")]
+                                          ("conic ting", "conflicting"), ("rearm", "reaffirm"), ("chau eu ring", "chauffeuring"), (" con text", " context"), ("in ue nti a l", "influential "), ("classic ation", "classification")]
                             for a, b in finalsliff:
                                 clean_sentence = clean_sentence.replace(a, b).strip()
                                 fullnames = [name.replace(a, b) for name in fullnames]
