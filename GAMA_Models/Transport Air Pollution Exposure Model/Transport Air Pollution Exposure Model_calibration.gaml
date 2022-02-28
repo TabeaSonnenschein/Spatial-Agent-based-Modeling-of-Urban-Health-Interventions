@@ -510,7 +510,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 //						+ (w_precip_bike* precipitation)
 //						+ (w_income_bike* income)
 						)                                                                                        				                       	
-						/12);
+						/11);
 						
 		driving_utility <- (((w_time_car * (1-tanh(float(assumed_traveltime["traveltime_car"])/1000)))
 						+ (w_distance_car * (1-tanh(trip_distance/1000)))
@@ -528,7 +528,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 //						+ (w_precip_car* precipitation)
 //						+ (w_income_car* income)
 						)
-						/14);
+						/15);
 		
 		// filter modal choice by age group. Minors cannot drive. Try without, because cannot distinguish between passengers and drivers
 		/*
