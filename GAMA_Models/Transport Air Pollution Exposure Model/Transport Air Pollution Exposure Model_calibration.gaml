@@ -87,6 +87,9 @@ global skills: [RSkill]{
 	float w_accidents_pedestrians_bike <- 0.5;	
 	float w_highway_length_car <- 0.5;	
 	float w_distance_CBD_car <- 0.5;	
+	float w_precip_car <- 0.5;
+	float w_precip_bike <- 0.5;
+	float w_precip_walk <- 0.5;
 	
 	// individual parameters
 	float w_carownership_car  <- 0.5;
@@ -101,6 +104,7 @@ global skills: [RSkill]{
 	float w_habitbike_walk   <- 0.5;
 	float w_education_bike  <- 0.5;
 	float w_habitbike_bike  <- 0.5;
+	
 	
 	
 	// objective function and metrics
@@ -513,6 +517,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 //						+ (w_leisure_walk * leisure) 
 //						+ (w_child_walk* have_child)
 //						+ (w_habitbike_walk* habit_use_bike)
+//						+ (w_precip_walk* precipitation)
 						)                                                                                        				
 						/13);	
 
@@ -528,6 +533,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 						+ (w_distance_CBD_bike * float(assumed_quality_infrastructure["Distance_CBD"]))
 //						+ (w_education_bike* absolved_edu)  
 //						+ (w_habitbike_bike* habit_use_bike)
+//						+ (w_precip_bike* precipitation)
 						)                                                                                        				                       	
 						/12);
 						
@@ -545,6 +551,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 //						+ (w_habit_passenger_car * self.habit_car_passenger)
 //						+ (w_habit_driver_car * self.habit_car_driver)
 //						+ (w_carpoolinggroup_car * self.shares_car)
+//						+ (w_precip_car* precipitation)
 						)
 						/14);
 		
