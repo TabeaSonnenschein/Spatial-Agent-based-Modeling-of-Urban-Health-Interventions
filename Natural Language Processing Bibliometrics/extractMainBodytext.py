@@ -49,7 +49,7 @@ for file in listOfFiles:
     file1 = re.sub(r'(\d+)(\.\s)(\d+)', r'\1.\3', file1.strip().replace("  ", " ").replace("  ", " "))
     file1 = re.sub(r'(\d+)(\. )(\d+)', r'\1.\3', file1)
     file1 = file1.replace(" %", "%").replace("i. e.", "id est").replace("e. g.", "for example").replace(" ? s ", "'s ").replace("al. ", "al").replace("AL. ", "al").replace("(", " ( ").replace(")", " ) ")
-    file1 = file1.replace("Fig. ", "Figure ").replace("Tab. ", "Table ").replace("p. ", "p").replace(" vs. ", " versus ").replace("pp.", "pp").replace("Vol.", "Vol").replace("No.", "No")
+    file1 = file1.replace("Fig. ", "Figure ").replace("Tab. ", "Table ").replace("p. ", "p").replace(" vs. ", " versus ").replace("pp.", "pp").replace("Vol.", "Vol").replace("No.", "No").replace("U.S.", "US").replace("U. S.", "US")
     # file1 = re.sub(r'([A-Z][\w\s])(e\s*t\s*al)', r'\1 et al ', file1)
     file1 = re.sub(r'([A-Z]\w*)([\s*])([a-z]+)([\s*])(e[\s*]t[\s*]al)', r'\1\3 et al ', file1)
     file1 = re.sub(r'([1-9]+)(\s\?\s)([1-9]+)', r'\1-\3', file1)

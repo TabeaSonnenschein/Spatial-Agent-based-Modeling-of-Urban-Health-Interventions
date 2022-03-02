@@ -46,7 +46,7 @@ setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = "")
 walkability_grid = readOGR(dsn=getwd(),layer=paste("walkability_grid_",raster_size, sep=""))
 colnames(walkability_grid@data) = c("layer", "unique_id",  "population_density", "retail_density" , "green_coverage_fraction", "public_trans_density"  , "street_intersection_density", "int_id", "Nr_Traffic_accidents", "Nr_Traffic_Pedestrian_Accidents", "Nr_Trees", "averageTrafficVolume", "sumTrafficVolume", "MetersMajorStreets", "Pedestrian_Street_Width",  "Pedestrian_Streets_Length", "len_intersec_bikeroute", "dist_CBD")  
 csv = as.data.frame(walkability_grid)
-write.csv(csv, "walkability_measures.csv" )
+write.csv(csv, "walkability_measures2.csv" )
 library()
 ########################################
 # Making a grid of size: 100mx100m

@@ -29,8 +29,8 @@ print(torch.cuda.get_device_name(0))
 ## model parameters
 MAX_LEN = 75
 bs = 35     # batch size, the larger batch size the more chance of finding global optimum, but also chance of overfitting to labeled dataset
-test_percentage = 0.2
-epochs = 5
+test_percentage = 0.1
+epochs = 10
 learning_rate = 4e-5
 epsilon = 1e-8      #Adam’s epsilon for numerical stability.
 weight_decay = 0 # form of regularization to lower the chance of overfitting, default is 0

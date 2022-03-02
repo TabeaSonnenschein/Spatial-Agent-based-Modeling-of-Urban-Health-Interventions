@@ -8,6 +8,7 @@ which(annots$Word == "Discussion")
 Results_section = annots[2183:3270, ]
 cohen.kappa(annots[, c("Tabea_Tag", "Simon_Tag")])
 
+
 nr_diff_tot = length(which(annots$Tabea_Tag != annots$Simon_Tag))
 perc_overlap = (length(annots$Tabea_Tag)-nr_diff_tot)/length(annots$Tabea_Tag)
 Non_overlap_subset = annots[which(annots$Tabea_Tag != annots$Simon_Tag),]
@@ -15,6 +16,7 @@ Non_overlap_subset = annots[which(annots$Tabea_Tag != annots$Simon_Tag),]
 nr_diff_tot_results = length(which(Results_section$Tabea_Tag != Results_section$Simon_Tag))
 perc_overlap_results = (length(Results_section$Tabea_Tag)-nr_diff_tot_results)/length(Results_section$Tabea_Tag)
 Non_overlap_subset_results = Results_section[which(Results_section$Tabea_Tag != Results_section$Simon_Tag),]
+cohen.kappa(Results_section[, c("Tabea_Tag", "Simon_Tag")])
 # Union of intersection
 # Behavior Options
 Nr_BO_Tabea = length(which(annots$Tabea_Tag == "I-behavOption"))
