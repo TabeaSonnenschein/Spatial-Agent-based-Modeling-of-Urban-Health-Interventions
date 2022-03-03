@@ -126,12 +126,14 @@ def addPOS(dataframe):
 def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
     for Tagname in Tagnames:
         label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
-        x = list(np.where(dataframe['Tag'].iloc[label_indices+1] == 'O')[0])
-        y = [indx for indx, elem in enumerate(dataframe['POS'].iloc[label_indices[x] + 1]) if elem in ["NN", "NNS", "JJ", "JJR", "JJS"]]
-        dataframe['Tag'].iloc[label_indices[x][y] + 1] = Tagname
-        x = list(np.where(dataframe['Tag'].iloc[label_indices-1] == 'O')[0])
-        y = [indx for indx, elem in enumerate(dataframe['POS'].iloc[label_indices[x] - 1]) if elem in ["NN", "NNS", "JJ", "JJR", "JJS"]]
-        dataframe['Tag'].iloc[label_indices[x][y] - 1] = Tagname
+        label_indices_post = [i+1 for i in label_indices]
+        label_indices_pre= [i-1 for i in label_indices]
+        x = list(np.where(dataframe['Tag'].iloc[label_indices_post] == 'O')[0])
+        y = [indx for indx, elem in enumerate(dataframe['POS'].iloc[label_indices_post[x]]) if elem in ["NN", "NNS", "JJ", "JJR", "JJS"]]
+        dataframe['Tag'].iloc[label_indices_post[x][y]] = Tagname
+        x = list(np.where(dataframe['Tag'].iloc[label_indices_pre] == 'O')[0])
+        y = [indx for indx, elem in enumerate(dataframe['POS'].iloc[label_indices_pre[x]]) if elem in ["NN", "NNS", "JJ", "JJR", "JJS"]]
+        dataframe['Tag'].iloc[label_indices_pre[x][y]] = Tagname
     return dataframe
 
 instance_ST, instance_BD, instance_BO, instance_AT, instance_SG, instance_MO, sentenceid, fullsentence = [], [], [], [], [], [], [], []
