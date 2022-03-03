@@ -129,10 +129,10 @@ def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
         label_indices_post = [i+1 for i in label_indices]
         label_indices_pre= [i-1 for i in label_indices]
         x = list(np.where(dataframe['Tag'].iloc[label_indices_post] == 'O')[0])
-        y = [indx for indx, elem in enumerate(dataframe['POS'].iloc[label_indices_post[x]]) if elem in ["NN", "NNS", "JJ", "JJR", "JJS"]]
+        y = [label_indices_post[i] for i in x if dataframe['POS'].iloc[label_indices_post[i]] in ["NN", "NNS", "JJ", "JJR", "JJS"]]
         dataframe['Tag'].iloc[label_indices_post[x][y]] = Tagname
         x = list(np.where(dataframe['Tag'].iloc[label_indices_pre] == 'O')[0])
-        y = [indx for indx, elem in enumerate(dataframe['POS'].iloc[label_indices_pre[x]]) if elem in ["NN", "NNS", "JJ", "JJR", "JJS"]]
+        y = [label_indices_post[i] for i in x if dataframe['POS'].iloc[label_indices_pre[i]] in ["NN", "NNS", "JJ", "JJR", "JJS"]]
         dataframe['Tag'].iloc[label_indices_pre[x][y]] = Tagname
     return dataframe
 
