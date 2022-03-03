@@ -3,7 +3,7 @@ from typing import List, Any
 
 import pandas as pd
 import numpy as np
-
+import nltk
 ############ Abbreviation list
 ## ST = study, BD = Behavior Determinant, BO = Behavior Choice Option, AT = Association Type, SG = Study Group, MO = Moderator
 
@@ -116,6 +116,23 @@ def extendSpecificTagsToAllEqualWordSeq(dataframe, Tagname):
                     dataframe['Tag'].iloc[indx:(indx+len(words))] = Tagname
     return dataframe
 
+
+def addPOS(dataframe):
+    POS = list(nltk.pos_tag([str(word) for word in dataframe['Word']]))
+    POS = pd.DataFrame(data=POS, columns=["Word", "POS_tag"])
+    dataframe['POS'] = POS["POS_tag"]
+    return dataframe
+
+def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
+    for Tagname in Tagnames:
+        label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
+        x = list(np.where(dataframe['Tag'].iloc[label_indices+1] == 'O')[0])
+        y = [indx for indx, elem in enumerate(dataframe['POS'].iloc[label_indices[x] + 1]) if elem in ["NN", "NNS", "JJ", "JJR", "JJS"]]
+        dataframe['Tag'].iloc[label_indices[x][y] + 1] = Tagname
+        x = list(np.where(dataframe['Tag'].iloc[label_indices-1] == 'O')[0])
+        y = [indx for indx, elem in enumerate(dataframe['POS'].iloc[label_indices[x] - 1]) if elem in ["NN", "NNS", "JJ", "JJR", "JJS"]]
+        dataframe['Tag'].iloc[label_indices[x][y] - 1] = Tagname
+    return dataframe
 
 instance_ST, instance_BD, instance_BO, instance_AT, instance_SG, instance_MO, sentenceid, fullsentence = [], [], [], [], [], [], [], []
 len_instance_before = 0
