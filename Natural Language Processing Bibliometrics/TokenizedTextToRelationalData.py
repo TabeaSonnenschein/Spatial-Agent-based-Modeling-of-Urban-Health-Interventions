@@ -142,8 +142,10 @@ for file in listOfFiles:
         labeled_data = pd.read_csv(os.path.join(os.getcwd(), ("manually_labeled/" + file)), encoding="latin1")
     else:
         labeled_data = pd.read_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), encoding="latin1")
-    labeled_data['Tag'].iloc[list(np.where((labeled_data['Word'] == "[SEP]") | (
-                labeled_data['Word'] == "[CLS]")| (labeled_data['Word'] == "."))[0])] = 'O'
+    labeled_data = labeled_data.iloc[list(np.where((labeled_data['Word'] != "[SEP]") & (labeled_data['Word'] != "[CLS]"))[0]),:]
+    labeled_data['Tag'].iloc[list(np.where(labeled_data['Word'] == ".")[0])] = 'O'
+    labeled_data = addPOS(labeled_data)
+    dataframe = extendVariableNamesToNeighboringAdjectNouns(labeled_data, ["I-behavDeterm"])
     if TagToWordExtension:
         labeled_data = extendTagsToAllEqualWordSeq(labeled_data)
     labeled_data = extendSpecificTagsToAllEqualWordSeq(labeled_data, "I-behavOption")
