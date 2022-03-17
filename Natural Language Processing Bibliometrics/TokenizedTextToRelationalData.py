@@ -133,15 +133,15 @@ def addPOS(dataframe):
 
 def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
     for Tagname in Tagnames:
-        for turn in [1,2,3]:
+        for turn in [1,2,3,4]:
             label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
             label_indices_post = [i+1 for i in label_indices]
             label_indices_pre = [i-1 for i in label_indices]
             x = list(np.where(dataframe['Tag'].iloc[label_indices_post] == 'O')[0])
             f = list(np.where(dataframe['Tag'].iloc[label_indices_pre] == 'O')[0])
             if Tagname == "I-behavDeterm":
-                y = [i for i in label_indices_post if (dataframe['POS'].iloc[i] in ["NN", "NNS", "JJ", "JJS"]) or (dataframe['Word'].iloc[i] in ["of", "over", "/"])]
-                g = [i for i in label_indices_pre if ((dataframe['POS'].iloc[i] in ["NN", "NNS", "JJ", "JJS", "VBN", "JJR"]) or (dataframe['Word'].iloc[i] in ["of", "over", "/"])) and (dataframe['Word'].iloc[i] != "s")]
+                y = [i for i in label_indices_post if (dataframe['POS'].iloc[i] in ["NN", "NNS", "JJ", "JJS"]) or (dataframe['Word'].iloc[i] in ["of", "over", "/", "the"])]
+                g = [i for i in label_indices_pre if ((dataframe['POS'].iloc[i] in ["NN", "NNS", "JJ", "JJS", "VBN", "JJR"]) or (dataframe['Word'].iloc[i] in ["of", "over", "/", "the"])) and (dataframe['Word'].iloc[i] != "s")]
             else:
                 y = [label_indices_post[i] for i in x if (dataframe['POS'].iloc[label_indices_post[i]] in ["NN", "NNS", "JJ", "JJS"])]
                 g = [label_indices_pre[i] for i in f if (dataframe['POS'].iloc[label_indices_pre[i]] in ["NN", "NNS", "JJ", "JJS"]) and (dataframe['Word'].iloc[label_indices_pre[i]] != "s")]
@@ -180,6 +180,11 @@ for file in listOfFiles:
             labeled_data['Word'] == 'association') | (
             labeled_data['Word'] == 'significantly') | (
             labeled_data['Word'] == 'insignificantly') | (
+            labeled_data['Word'] == 'related') | (
+            labeled_data['Word'] == 'relationships') | (
+            labeled_data['Word'] == 'relationship') | (
+            labeled_data['Word'] == 'influence') | (
+            labeled_data['Word'] == 'mixed') | (
             labeled_data['Word'] == 'positive') | (
             labeled_data['Word'] == 'Positive') | (
             labeled_data['Word'] == 'negative') | (
@@ -191,6 +196,10 @@ for file in listOfFiles:
         idx - 1 for idx in AT_words if labeled_data['Word'].iloc[idx - 1] in ["non", "not", "Non", "Not", "no", "No", "nil"])
     x.extend(idx - 2 for idx in AT_words if
              labeled_data['Word'].iloc[idx - 2] in ["non", "not", "Non", "Not", "no", "No", "Lack", "lack", "nil"])
+    labeled_data['Tag'].iloc[x] = 'I-assocType'
+    AT_words = list(np.where(labeled_data['Tag'] == 'I-assocType')[0])
+    x = [x+1 for x in AT_words if (x+2 in AT_words) and (labeled_data['Word'].iloc[x+1] in ["of", ",", "and", "for", "to", "a", "the"])]
+    x.extend((x+2 for x in AT_words if (x+3 in AT_words) and (labeled_data['Word'].iloc[x+1] in ["of", ",", "and", "for", "to", "a", "the"]) and (labeled_data['Word'].iloc[x+2] in ["of", ",", "and", "for", "to", "a", "the"])))
     labeled_data['Tag'].iloc[x] = 'I-assocType'
     dataframe = extendVariableNamesToNeighboringAdjectNouns(labeled_data, ["I-behavDeterm", "I-behavOption", "I-moderator"])
     if TagToWordExtension:
