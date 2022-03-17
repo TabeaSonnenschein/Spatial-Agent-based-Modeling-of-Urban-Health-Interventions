@@ -21,6 +21,11 @@ BD_disagg, AT_disagg, SENT_disagg, DOI_disagg, sent_ID_disagg, BO_disagg, SG_dis
 for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     AT_entities = complete_evidence_Instances['AssociationType'].iloc[count].split(" ; ")
     BD_entities = complete_evidence_Instances['BehaviorDeterminant'].iloc[count].split(" ; ")
+    BO_entities = complete_evidence_Instances['BehaviorOption'].iloc[count].split(" ; ")
+    BO_entities = list(dict.fromkeys(BO_entities))
+    words = value.split()
+    split_prepos = [m.start() for x in ["whereas", "while", "unlike", "although", "though"] for m in re.finditer((x), value)]
+    print("split prepos", split_prepos)
     AT_indices, BD_indices = [], []
     indx = -1
     for entity in AT_entities:
@@ -47,7 +52,23 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
         AT_disagg.extend([" ".join(AT_entities)] * len(BD_entities))
         Nr_added_Instances = len(BD_entities)
     else:
-        if AT_indices[0] < BD_indices[0] and max(AT_indices) < max(BD_indices):
+        if (bool(split_prepos)) and (min(BD_indices)< min(split_prepos)> min(AT_indices)):
+            indx =-1
+            for prepos in split_prepos:
+                subBDs_idx = [i for i, v in enumerate(BD_indices) if prepos > v > indx]
+                subATs_idx = [i for i, v in enumerate(AT_indices)  if prepos > v > indx]
+                print("SUBAT", subATs_idx)
+                BD_disagg.extend((BD_entities[i] for i in subBDs_idx))
+                subATs = " ".join([AT_entities[i] for i in subATs_idx])
+                AT_disagg.extend([subATs] * len(subBDs_idx))
+                indx = prepos
+            subBDs_idx = [i for i, v in enumerate(BD_indices) if indx < v]
+            subATs_idx = [i for i, v in enumerate(AT_indices) if indx < v]
+            BD_disagg.extend((BD_entities[i] for i in subBDs_idx))
+            subATs = " ".join([AT_entities[i] for i in subATs_idx])
+            AT_disagg.extend([subATs] * len(subBDs_idx))
+            Nr_added_Instances = len(BD_entities)
+        elif AT_indices[0] < BD_indices[0] and max(AT_indices) < max(BD_indices):
             AT_indices.append(10000)
             Covered_ATs, Covered_BDs = -1, -1
             while Covered_ATs < (len(AT_indices)-2):
@@ -69,10 +90,16 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
                 AT_disagg.extend([subATs]*len(subBDs_idx))
                 Covered_ATs, Covered_BDs = max(subATs_idx), max(subBDs_idx)
             Nr_added_Instances = len(BD_entities)
+            # makes use of prepositions "whereas", "while", "unlike", "although", "though"
+        else:
+            AT_disagg.extend([complete_evidence_Instances['AssociationType'].iloc[count]])
+            print("ATs", [complete_evidence_Instances['AssociationType'].iloc[count]])
+            BD_disagg.extend([complete_evidence_Instances['BehaviorDeterminant'].iloc[count]])
+            Nr_added_Instances = 1
     SENT_disagg.extend([value]*Nr_added_Instances)
     DOI_disagg.extend([complete_evidence_Instances['DOI'].iloc[count]]*Nr_added_Instances)
     sent_ID_disagg.extend([complete_evidence_Instances['Sentence'].iloc[count]]*Nr_added_Instances)
-    BO_disagg.extend([complete_evidence_Instances['BehaviorOption'].iloc[count]]*Nr_added_Instances)
+    BO_disagg.extend([" ; ".join(BO_entities)]*Nr_added_Instances)
     SG_disagg.extend([complete_evidence_Instances['Studygroup'].iloc[count]]*Nr_added_Instances)
     MO_disagg.extend([complete_evidence_Instances['Moderator'].iloc[count]]*Nr_added_Instances)
     print(BD_entities,len(BD_disagg), len(AT_disagg), len(SENT_disagg))
@@ -117,3 +144,4 @@ print(len(SENT_disagg), len(BD_disagg), len(AT_disagg))
 disaggregated_evidence_instances = pd.DataFrame({'DOI': DOI_disagg, 'Sentence': sent_ID_disagg, 'BehaviorOption': BO_disagg, 'BehaviorDeterminant': BD_disagg, 'AssociationType': AT_disagg, 'Studygroup': SG_disagg, 'Moderator': MO_disagg ,  'Fullsentence': SENT_disagg })
 disaggregated_evidence_instances.to_csv("disaggregated_evidence_instances.csv", index=False)
 # #
+print("Nr of unique articles contributing evidence: ",len(set(disaggregated_evidence_instances['DOI'])))

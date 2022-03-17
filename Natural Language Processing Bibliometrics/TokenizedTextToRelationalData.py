@@ -36,6 +36,7 @@ def IOB_sequence_tracing(B_indx_list, I_index_list, Words_data):
     if bool(I_index_list):
         for I_indx in I_index_list:
             tags.append(Words_data.iloc[I_indx])
+    [tags.remove(el) for el in ["-", "the", "a", "s"] if el in tags]
     return tags
 
 def IO_sequence_tracing(indx_list, Words_data):
@@ -56,6 +57,7 @@ def IO_sequence_tracing(indx_list, Words_data):
     else:
         if bool(indx_list):
             tags.append(Words_data.iloc[indx_list[0]])
+    [tags.remove(el) for el in ["-", "the", "a", "s"] if el in tags]
     return tags
 
 
@@ -81,6 +83,8 @@ def IO_sequence_tracingopt(indx_list, Words_data):
     else:
         if bool(indx_list):
             tags.append(Words_data.iloc[indx_list[0]])
+    # print(tags)
+    [tags.remove(el) for el in ["-", "the", "a", "s"] if el in tags]
     return tags
 
 
@@ -105,6 +109,7 @@ def extendTagsToAllEqualWordSeq(dataframe):
 def extendSpecificTagsToAllEqualWordSeq(dataframe, Tagname):
     label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
     unique_labeled_words = list(dict.fromkeys(IO_sequence_tracingopt(indx_list=label_indices, Words_data=dataframe['Word'])))
+    [unique_labeled_words.remove(el) for el in ["-", "the", "a"] if el in unique_labeled_words]
     for word in unique_labeled_words:
         words = word.split()
         if len(words) == 1:
@@ -121,22 +126,39 @@ def addPOS(dataframe):
     POS = list(nltk.pos_tag([str(word) for word in dataframe['Word']]))
     POS = pd.DataFrame(data=POS, columns=["Word", "POS_tag"])
     dataframe['POS'] = POS["POS_tag"]
+    dataframe['POS'].iloc[list(np.where((dataframe['Word'] == "[SEP]") | (dataframe['Word'] == "[CLS]"))[0])] = 'PAD'
+    dataframe['POS'].iloc[list(np.where((dataframe['Word'] == "[") | (dataframe['Word'] == "]")| (dataframe['Word'] == "(") | (dataframe['Word'] == ")"))[0])] = '.'
+    dataframe['POS'].iloc[list(np.where((dataframe['Word'] == "whereas") | (dataframe['Word'] == "while")| (dataframe['Word'] == "unlike") | (dataframe['Word'] == "although")|(dataframe['Word'] == "though")| (dataframe['Word'] == "such"))[0])] = 'IN'
     return dataframe
 
 def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
     for Tagname in Tagnames:
-        label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
-        label_indices_post = [i+1 for i in label_indices]
-        label_indices_pre= [i-1 for i in label_indices]
-        x = list(np.where(dataframe['Tag'].iloc[label_indices_post] == 'O')[0])
-        y = [label_indices_post[i] for i in x if dataframe['POS'].iloc[label_indices_post[i]] in ["NN", "NNS", "JJ", "JJR", "JJS"]]
-        dataframe['Tag'].iloc[label_indices_post[x][y]] = Tagname
-        x = list(np.where(dataframe['Tag'].iloc[label_indices_pre] == 'O')[0])
-        y = [label_indices_post[i] for i in x if dataframe['POS'].iloc[label_indices_pre[i]] in ["NN", "NNS", "JJ", "JJR", "JJS"]]
-        dataframe['Tag'].iloc[label_indices_pre[x][y]] = Tagname
+        for turn in [1,2,3]:
+            label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
+            label_indices_post = [i+1 for i in label_indices]
+            label_indices_pre = [i-1 for i in label_indices]
+            x = list(np.where(dataframe['Tag'].iloc[label_indices_post] == 'O')[0])
+            f = list(np.where(dataframe['Tag'].iloc[label_indices_pre] == 'O')[0])
+            if Tagname == "I-behavDeterm":
+                y = [i for i in label_indices_post if (dataframe['POS'].iloc[i] in ["NN", "NNS", "JJ", "JJS"]) or (dataframe['Word'].iloc[i] in ["of", "over", "/"])]
+                g = [i for i in label_indices_pre if ((dataframe['POS'].iloc[i] in ["NN", "NNS", "JJ", "JJS", "VBN", "JJR"]) or (dataframe['Word'].iloc[i] in ["of", "over", "/"])) and (dataframe['Word'].iloc[i] != "s")]
+            else:
+                y = [label_indices_post[i] for i in x if (dataframe['POS'].iloc[label_indices_post[i]] in ["NN", "NNS", "JJ", "JJS"])]
+                g = [label_indices_pre[i] for i in f if (dataframe['POS'].iloc[label_indices_pre[i]] in ["NN", "NNS", "JJ", "JJS"]) and (dataframe['Word'].iloc[label_indices_pre[i]] != "s")]
+            dataframe['Tag'].iloc[y] = Tagname
+            dataframe['Tag'].iloc[g] = Tagname
+            label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
+            open_hyphens = [i-1 for i in label_indices if (dataframe['Word'].iloc[i] == '-') and (i-1 not in label_indices)]
+            dataframe['Tag'].iloc[open_hyphens] = Tagname
+            open_hyphens = [i+1 for i in label_indices if (dataframe['Word'].iloc[i] == '-') and (i+1 not in label_indices)]
+            dataframe['Tag'].iloc[open_hyphens] = Tagname
+            open_slash = [i-1 for i in label_indices if (dataframe['Word'].iloc[i] == '/') and (i-1 not in label_indices)]
+            dataframe['Tag'].iloc[open_slash] = Tagname
+            open_slash = [i+1 for i in label_indices if (dataframe['Word'].iloc[i] == '/') and (i+1 not in label_indices)]
+            dataframe['Tag'].iloc[open_slash] = Tagname
     return dataframe
 
-instance_ST, instance_BD, instance_BO, instance_AT, instance_SG, instance_MO, sentenceid, fullsentence = [], [], [], [], [], [], [], []
+instance_ST, instance_BD, instance_BO, instance_AT, instance_SG, instance_MO, sentenceid, fullsentence, AT_POS, BO_POS, BD_POS, sentence_POS = [], [], [], [], [], [], [], [], [], [], [], []
 len_instance_before = 0
 for file in listOfFiles:
     print("Processing file: ", file)
@@ -144,20 +166,40 @@ for file in listOfFiles:
         labeled_data = pd.read_csv(os.path.join(os.getcwd(), ("manually_labeled/" + file)), encoding="latin1")
     else:
         labeled_data = pd.read_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), encoding="latin1")
-    labeled_data = labeled_data.iloc[list(np.where((labeled_data['Word'] != "[SEP]") & (labeled_data['Word'] != "[CLS]"))[0]),:]
-    labeled_data['Tag'].iloc[list(np.where(labeled_data['Word'] == ".")[0])] = 'O'
+    # labeled_data = labeled_data.iloc[list(np.where((labeled_data['Word'] != "[SEP]") & (labeled_data['Word'] != "[CLS]"))[0])]
+    labeled_data['Tag'].iloc[list(np.where((labeled_data['Word'] == "[SEP]") | (labeled_data['Word'] == "[CLS]") | (labeled_data['Word'] == ".") | (labeled_data['Word'] == "s")| (labeled_data['Word'] == "'"))[0])] = 'O'
     labeled_data = addPOS(labeled_data)
-    dataframe = extendVariableNamesToNeighboringAdjectNouns(labeled_data, ["I-behavDeterm"])
+    AT_words = list(np.where((labeled_data['Word'] == 'significant') | (
+            labeled_data['Word'] == 'insignificant') | (
+            labeled_data['Word'] == 'consistent') | (
+            labeled_data['Word'] == 'associated') | (
+            labeled_data['Word'] == 'inconsistent') | (
+            labeled_data['Word'] == 'Associations') | (
+            labeled_data['Word'] == 'associations') | (
+            labeled_data['Word'] == 'Association') | (
+            labeled_data['Word'] == 'association') | (
+            labeled_data['Word'] == 'significantly') | (
+            labeled_data['Word'] == 'insignificantly') | (
+            labeled_data['Word'] == 'positive') | (
+            labeled_data['Word'] == 'Positive') | (
+            labeled_data['Word'] == 'negative') | (
+            labeled_data['Word'] == 'Negative'))[0])
+    labeled_data['Tag'].iloc[AT_words] = 'I-assocType'
+    AT_words = list(np.where(labeled_data['Tag'] == 'I-assocType')[0])
+    x = []
+    x.extend(
+        idx - 1 for idx in AT_words if labeled_data['Word'].iloc[idx - 1] in ["non", "not", "Non", "Not", "no", "No", "nil"])
+    x.extend(idx - 2 for idx in AT_words if
+             labeled_data['Word'].iloc[idx - 2] in ["non", "not", "Non", "Not", "no", "No", "Lack", "lack", "nil"])
+    labeled_data['Tag'].iloc[x] = 'I-assocType'
+    dataframe = extendVariableNamesToNeighboringAdjectNouns(labeled_data, ["I-behavDeterm", "I-behavOption", "I-moderator"])
     if TagToWordExtension:
         labeled_data = extendTagsToAllEqualWordSeq(labeled_data)
     labeled_data = extendSpecificTagsToAllEqualWordSeq(labeled_data, "I-behavOption")
-    AT_words = list(np.where((labeled_data['Word'] == 'significant') | (labeled_data['Word'] == 'insignificant') | (labeled_data['Word'] == 'consistent') | (labeled_data['Word'] == 'associated')| (labeled_data['Word'] == 'inconsistent') )[0])
-    AT_words.extend(idx-1 for idx in AT_words if labeled_data['Word'].iloc[idx-1] in ["non", "not", "Non", "Not", "no", "No"])
-    AT_words.extend(idx-2 for idx in AT_words if labeled_data['Word'].iloc[idx-2] in ["non", "not", "Non", "Not", "no", "No"])
-    labeled_data['Tag'].iloc[AT_words] = 'I-assocType'
     sentences = list(dict.fromkeys(labeled_data['Sentence']))
     for sentence in sentences:
         sentence_idx_range = np.where(labeled_data['Sentence'] == sentence)[0]
+        sent_POS = labeled_data['POS'].iloc[sentence_idx_range]
         if any(labeled_data['Tag'].iloc[sentence_idx_range] != 'O'):
             if mode == "IOB":
                 # if IOB has sufficient quality to distinguish ingroup classification
@@ -189,7 +231,11 @@ for file in listOfFiles:
                 instance_BD.append(" ; ".join(IO_sequence_tracing(indx_list=BD_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_SG.append(" ; ".join(IO_sequence_tracing(indx_list=SG_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_MO.append(" ; ".join(IO_sequence_tracing(indx_list=MO_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
+                AT_POS.append(" ; ".join(sent_POS.iloc[AT_indx]))
+                BO_POS.append(" ; ".join(sent_POS.iloc[BO_indx]))
+                BD_POS.append(" ; ".join(sent_POS.iloc[BD_indx]))
             sentenceid.append(sentence)
+            sentence_POS.append(" ; ".join(sent_POS[1:-1]))
             sentence_txt = " ".join(str(e) for e in labeled_data['Word'].iloc[sentence_idx_range])
             fullsentence.append(sentence_txt.replace("[CLS]", "").replace("[SEP]", ""))
 
@@ -208,7 +254,7 @@ if manual_label:
 else:
     file_name_suffix2 = ""
 
-Evidence_instances_df = pd.DataFrame({'DOI': instance_ST, 'Sentence': sentenceid, 'BehaviorOption': instance_BO, 'BehaviorDeterminant': instance_BD, 'AssociationType': instance_AT, 'Studygroup': instance_SG, 'Moderator': instance_MO ,  'Fullsentence': fullsentence })
+Evidence_instances_df = pd.DataFrame({'DOI': instance_ST, 'Sentence': sentenceid, 'BehaviorOption': instance_BO, 'BehaviorDeterminant': instance_BD, 'AssociationType': instance_AT, 'Studygroup': instance_SG, 'Moderator': instance_MO ,  'Fullsentence': fullsentence, 'BO_POS': BO_POS, 'BD_POS': BD_POS, 'AT_POS': AT_POS, 'sentence_POS': sentence_POS })
 print(Evidence_instances_df.head())
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 csv = os.path.join(os.getcwd(), ("Evidence_instances_df"+ file_name_suffix2 +file_name_suffix + ".csv"))

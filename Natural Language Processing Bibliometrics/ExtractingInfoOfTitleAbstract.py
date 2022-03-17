@@ -5,7 +5,7 @@ from itertools import chain
 
 pd.options.display.max_colwidth = 100000
 
-os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
+os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper\modalchoice literature search")
 article_data = pd.read_csv("metareview_details.csv")
 # print(article_data.columns)
 article_data['filename'] = [( doi.replace("/", "_")) for doi in article_data['doi']]
@@ -13,7 +13,7 @@ article_data['filename'] = [( doi.replace("/", "_")) for doi in article_data['do
 # print(article_data['filename'] )
 
 
-
+os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 evidence_instances = pd.read_csv("Evidence_instances_df.csv")
 evidence_instances['filename'] = [doi.replace(".csv", "").replace("doi_", "") for doi in evidence_instances['DOI']]
 labeled_papers = list(dict.fromkeys(evidence_instances['filename']))
