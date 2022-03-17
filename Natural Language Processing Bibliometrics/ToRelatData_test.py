@@ -34,18 +34,23 @@ def classif_assoc_syntact_encoding(sent_wordlist, sent_POSlist, AT_word_idx):
             class_AT_idx.append(subAT)
     if ("NNS" in AT_POS) or ("NN" in AT_POS):
         AT_NN = [AT_word_idx[x] for x in [i for i, x in enumerate(AT_POS) if x in ["NN", "NNS"]]]
-        syntact_class.append("noun")
-        nr_class.append(len(AT_NN))
-        class_AT_idx.append(AT_NN)
-        # subAT, indx = [], 0
-        # if len(AT_NN) == 1:
-        #     "JJ"
-        # for value, count in enumerate(AT_NN):
-        #     if (any([True for i in ["VB", "VBZ", "VBP"] if i in POS_sentence[indx:value]])):
-        #         subAT.append(nn)
-        #         syntact_class.append("noun_verb_before")
-        #         indx = nn
-        #     ["between", "with]
+        if ("(" in sent_wordlist) and (")" in sent_wordlist):
+            opening = sent_wordlist.index("(")
+            closing = sent_wordlist.index(")")
+            within_brackets = [i for i in AT_NN if opening < i < closing]
+            if bool(within_brackets):
+                syntact_class.append("noun_in_brackets")
+                nr_class.append(len(within_brackets))
+                class_AT_idx.append(within_brackets)
+            if len(within_brackets)!= len(AT_NN):
+                syntact_class.append("noun")
+                [AT_NN.remove(i) for i in within_brackets]
+                nr_class.append(len(AT_NN))
+                class_AT_idx.append(AT_NN)
+        else:
+            syntact_class.append("noun")
+            nr_class.append(len(AT_NN))
+            class_AT_idx.append(AT_NN)
     return syntact_class, nr_class, class_AT_idx
 
 
@@ -135,40 +140,18 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
         Nr_added_Instances = (len(BD_entities)*len(subBOs))
         BO_added = 1
     elif len(BD_entities) == 1:
-        # if (len(BO_entities) > 1) and (BO_joined == False):
-        #     AT_VBN = AT_word_idx[complete_evidence_Instances['AT_POS'].iloc[count].index("VBN")]
-        #     if bool(AT_VBN) and (any([True for i in ["VB", "VBZ", "VBP"] if i in POS_sentence[:AT_VBN]])):
-        #         if AT_indices[0] < min(BD_indices):
-        #             subBOs_idx = [i for i in BO_indices if i < AT_indices[0]]
-        #             if len(subBOs_idx) <2:
-        #                 subBOs = [BO_entities[0]]
-        #             else:
-        #                 between_words = value[BO_indices[0]:BO_indices[len(subBOs_idx)-1]]
-        #                 for entity in BO_entities[0:(len(subBOs_idx)-1)]:
-        #                     between_words = between_words.replace(entity, "")
-        #                 between_words = between_words.split()
-        #                 print(between_words)
-        #                 if all([True for word in between_words if word in ["and", ",", "the", "as", "well"]]):
-        #                     subBOs = BO_entities[0:len(subBOs_idx)]
-        #             print("SMALLER", subBOs_idx, subBOs)
-        #         elif AT_indices[0] > max(BD_indices):
-        #             subBOs_idx = [i for i in BO_indices if i > AT_indices[0]]
-        #             if len(subBOs_idx) < 2:
-        #                 subBOs = [BO_entities[-1]]
-        #             else:
-        #                 between_words = value[BO_indices[-(len(subBOs_idx))]:BO_indices[-1]]
-        #                 for entity in BO_entities[-(len(subBOs_idx)):]:
-        #                     between_words = between_words.replace(entity, "")
-        #                 between_words = between_words.split()
-        #                 print(between_words)
-        #                 if all([True for word in between_words if word in ["and", ",", "the", "as", "well"]]):
-        #                     subBOs = BO_entities[-(len(subBOs_idx)):]
-        #             print("BIGGER", subBOs_idx, subBOs)
-        # else:
-        #     subBOs = BO_entities
-        BD_disagg.extend(BD_entities)
-        AT_disagg.extend([", ".join(AT_entities)])
-        Nr_added_Instances = len(BD_entities)
+        if BO_joined == True:
+            subBOs = BO_entities
+            BD_disagg.extend([BD_entities] * len(subBOs))
+            AT_disagg.extend([", ".join(AT_entities)] * len(subBOs))
+            Nr_added_Instances = (len(BD_entities) * len(subBOs))
+            for BO in subBOs:
+                BO_disagg.extend([BO] * len(BD_entities))
+            BO_added = 1
+        else:
+            BD_disagg.extend(BD_entities)
+            AT_disagg.extend([", ".join(AT_entities)])
+            Nr_added_Instances = len(BD_entities)
     elif (max(AT_indices) < min(BD_indices)) | (min(AT_indices) > max(BD_indices)):
         BD_disagg.extend(BD_entities)
         AT_disagg.extend([", ".join(AT_entities)] * len(BD_entities))

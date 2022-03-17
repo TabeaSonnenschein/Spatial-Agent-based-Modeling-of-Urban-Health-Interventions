@@ -180,7 +180,6 @@ for file in listOfFiles:
             labeled_data['Word'] == 'association') | (
             labeled_data['Word'] == 'significantly') | (
             labeled_data['Word'] == 'insignificantly') | (
-            labeled_data['Word'] == 'related') | (
             labeled_data['Word'] == 'relationships') | (
             labeled_data['Word'] == 'relationship') | (
             labeled_data['Word'] == 'influence') | (
@@ -189,6 +188,8 @@ for file in listOfFiles:
             labeled_data['Word'] == 'Positive') | (
             labeled_data['Word'] == 'negative') | (
             labeled_data['Word'] == 'Negative'))[0])
+    labeled_data['Tag'].iloc[AT_words] = 'I-assocType'
+    AT_words = list(np.where((labeled_data['Word'] == 'related') & (labeled_data['POS'] == "VBN")))
     labeled_data['Tag'].iloc[AT_words] = 'I-assocType'
     AT_words = list(np.where(labeled_data['Tag'] == 'I-assocType')[0])
     x = []
