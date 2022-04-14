@@ -141,7 +141,7 @@ def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
             f = list(np.where(dataframe['Tag'].iloc[label_indices_pre] == 'O')[0])
             if Tagname == "I-behavDeterm":
                 y = [i for i in label_indices_post if (dataframe['POS'].iloc[i] in ["NN", "NNS", "JJ", "JJS"]) or (dataframe['Word'].iloc[i] in ["of", "over", "/", "the"])]
-                g = [i for i in label_indices_pre if ((dataframe['POS'].iloc[i] in ["NN", "NNS", "JJ", "JJS", "VBN", "JJR"]) or (dataframe['Word'].iloc[i] in ["of", "over", "/", "the"])) and (dataframe['Word'].iloc[i] != "s")]
+                g = [i for i in label_indices_pre if ((dataframe['POS'].iloc[i] in ["NN", "NNS", "JJ", "JJS", "VBN", "JJR", "VBD"]) or (dataframe['Word'].iloc[i] in ["of", "over", "/", "the", "-"])) and (dataframe['Word'].iloc[i] != "s")]
             else:
                 y = [label_indices_post[i] for i in x if (dataframe['POS'].iloc[label_indices_post[i]] in ["NN", "NNS", "JJ", "JJS"])]
                 g = [label_indices_pre[i] for i in f if (dataframe['POS'].iloc[label_indices_pre[i]] in ["NN", "NNS", "JJ", "JJS"]) and (dataframe['Word'].iloc[label_indices_pre[i]] != "s")]
