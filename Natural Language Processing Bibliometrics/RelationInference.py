@@ -34,7 +34,7 @@ def find_indices_words_in_sentence(entity_list, fullsentence):
     indx = -1
     entity_indices = []
     for entity in entity_list:
-        candidates = [(m.start()+1) for m in re.finditer((" " + entity + " "), fullsentence) if (m.start()+1) > indx][0]
+        candidates = [(m.start()+1) for m in re.finditer((" " + entity + " "), (" " + fullsentence + " ")) if (m.start()+1) > indx][0]
         entity_indices.extend([candidates])
         indx = max(entity_indices)
     return entity_indices
@@ -60,6 +60,23 @@ def entities_in_same_subtree_list_as_evidence_instance(entity_list, subtree_list
             sublist.extend([el for el in entity_list if el in list])
     return sublist
 
+def divide_words_by_split_proposition(split_prepos, word_indices):
+    nested_list = []
+    indx = -1
+    for prepos in split_prepos:
+        nested_list.append([i for i, v in enumerate(word_indices) if prepos > v > indx])
+        indx = prepos
+    nested_list.append([i for i, v in enumerate(word_indices) if indx < v])
+    return nested_list
+
+def evidence_instance_appending(ATs, BDs, BOs, SGs, MOs):
+    AT_extension, BD_extension, BO_extension, SG_extension, MO_extension = [],[],[],[],[]
+    AT_extension.extend([ATs] * len(BDs) * len(BOs) * len(SGs) * len(MOs))
+    BD_extension.extend((BDs) * len(BOs) * len(SGs) * len(MOs))
+    BO_extension.extend((repeat_each_item_n_times_in_list(BOs, len(BDs))) * len(SGs) * len(MOs))
+    SG_extension.extend((repeat_each_item_n_times_in_list(SGs, (len(BDs)*len(BOs)))) * len(MOs))
+    MO_extension.extend((repeat_each_item_n_times_in_list(MOs, (len(BDs)*len(BOs)*len(SGs)))))
+    return AT_extension, BD_extension, BO_extension, SG_extension, MO_extension
 
 ## disaggregating evidence of within sentence colocation
 complete_evidence_Instances = Evidence_instances_df.iloc[list(np.where((Evidence_instances_df['BehaviorDeterminant'].notnull()) & (Evidence_instances_df['AssociationType'].notnull()))[0])]
@@ -90,11 +107,24 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     POS_sentence = complete_evidence_Instances['sentence_POS'].iloc[count].split(" ; ")
     AT_indices = find_indices_words_in_sentence(AT_entities, value)
     BD_indices = find_indices_words_in_sentence(BD_entities, value)
-    BO_indices = find_indices_words_in_sentence(BO_entities, value)
+    if BO_entities != [" "]:
+        BO_indices = find_indices_words_in_sentence(BO_entities, value)
+    else:
+        BO_indices = []
+    if SG_entities != [" "]:
+        SG_indices = find_indices_words_in_sentence(SG_entities, value)
+    else:
+        SG_indices = []
+    if MO_entities != [" "]:
+        MO_indices = find_indices_words_in_sentence(MO_entities, value)
+    else:
+        MO_indices = []
+
 
     ## String based identification
     split_prepos = [m.start() for x in ["whereas", "while", "unlike", "although", "though"] for m in re.finditer((x), value)]
     BO_joined = test_BO_joined_evidence_instance(BO_words=BO_entities, full_sentence=value, BO_indices=BO_indices)
+    print(BO_joined)
 
     ## printing data
     print("-" * 70)
@@ -141,39 +171,55 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
         if BO_joined == True:
             subBOs = BO_entities
         else:
-            subBOs = entities_in_same_subtree_list_as_evidence_instance(BO_entities, items_in_subtree_groups, list(chain.from_iterable(AT_entities,BD_entities)))
+            subBOs = entities_in_same_subtree_list_as_evidence_instance(BO_entities, items_in_subtree_groups, list(chain.from_iterable([AT_entities,BD_entities])))
         AT_disagg.extend([", ".join(AT_entities)] * len(BD_entities)*len(subBOs))
         BD_disagg.extend((BD_entities)*len(subBOs))
         BO_disagg.extend(repeat_each_item_n_times_in_list(subBOs, len(BD_entities)))
         Nr_added_Instances = (len(BD_entities)*len(subBOs))
-
-    # # if there is only one behavior determinant
-    # elif len(BD_entities) == 1:
-    #     if BO_joined == True:
-    #         subBOs = BO_entities
-    #     else:
-    #         subBOs = entities_in_same_subtree_list_as_evidence_instance(BO_entities, items_in_subtree_groups, BD_entities)
-    #     BD_disagg.extend([BD_entities] * len(subBOs))
-    #     AT_disagg.extend([", ".join(AT_entities)] * len(subBOs))
-    #     BO_disagg.extend(repeat_each_item_n_times_in_list(subBOs, len(BD_entities)))
-    #     Nr_added_Instances = (len(BD_entities) * len(subBOs))
-
+        print("evidence instance:", subBOs, AT_entities, BD_entities)
 
     # if all association types are before all behavior determinant or vice versa
     elif (max(AT_indices) < min(BD_indices)) | (min(AT_indices) > max(BD_indices)):
-        print()
+        print("all association types are before all behavior determinant or vice versa")
 
 
     else:
         # if there is a split proposition that is breaking up evidence instances
         if (bool(split_prepos)) and (min(BD_indices) < min(split_prepos) > min(AT_indices)):
-            print()
+            print("there is a split proposition that is breaking up evidence instances")
+            subBDs_idx = divide_words_by_split_proposition(split_prepos=split_prepos, word_indices=BD_indices)
+            subATs_idx = divide_words_by_split_proposition(split_prepos=split_prepos, word_indices=AT_indices)
+            subBOs_idx = divide_words_by_split_proposition(split_prepos=split_prepos, word_indices=BO_indices)
+            subSGs_idx = divide_words_by_split_proposition(split_prepos=split_prepos, word_indices=SG_indices)
+            subMOs_idx = divide_words_by_split_proposition(split_prepos=split_prepos, word_indices=MO_indices)
+            for x in range(0, len(subBOs_idx)):
+                subBDs = [BD_entities[i] for i in subBDs_idx[x]]
+                subATs = " ".join([AT_entities[i] for i in subATs_idx[x]])
+                subBOs = [BO_entities[i] for i in subBOs_idx[x]]
+                subSGs = [SG_entities[i] for i in subSGs_idx[x]]
+                subMOs = [MO_entities[i] for i in subMOs_idx[x]]
+                subBDs = (" " if len(subBDs) == 0 else subBDs)
+                subATs = (" " if len(subATs) == 0 else subATs)
+                subBOs = (" " if len(subBOs) == 0 else subBOs)
+                subSGs = (" " if len(subSGs) == 0 else subSGs)
+                subMOs = (" " if len(subMOs) == 0 else subMOs)
+                AT_extension, BD_extension, BO_extension, SG_extension, MO_extension = evidence_instance_appending(subATs, subBDs, subBOs, subSGs, subMOs)
+                print(AT_extension, BD_extension, BO_extension, SG_extension, MO_extension)
+                AT_disagg.extend(AT_extension)
+                BD_disagg.extend(BD_extension)
+                BO_disagg.extend(BO_extension)
+                SG_disagg.extend(SG_extension)
+                MO_disagg.extend(MO_extension)
+                print("evidence instance:",  subATs, subBDs, subBOs, subSGs, subMOs)
+                Nr_added_Instances += (len(subBDs)*len(subBOs)*len(subSGs)*len(subMOs))
+                print(Nr_added_Instances, len(AT_disagg), len(BD_disagg))
+
 
         elif AT_indices[0] < BD_indices[0] and max(AT_indices) < max(BD_indices):
-            print()
+            print("AT_indices[0] < BD_indices[0] and max(AT_indices) < max(BD_indices)")
 
         elif AT_indices[0] > BD_indices[0] and max(AT_indices) > max(BD_indices):
-            print()
+            print("AT_indices[0] > BD_indices[0] and max(AT_indices) > max(BD_indices)")
 
         else:
             AT_disagg.extend([complete_evidence_Instances['AssociationType'].iloc[count]])
