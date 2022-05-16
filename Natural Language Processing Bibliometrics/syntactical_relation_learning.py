@@ -68,7 +68,8 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     #print(NR_poss_relat)
 
     ## String based identification
-    split_prepos = [m.start() for x in ["whereas", "while", "unlike", "although", "though"] for m in re.finditer((x), value)]
+    split_prepos = [m.start() for x in ["whereas", "while", "unlike", "although"] for m in re.finditer((x), value)]
+    split_prepos.extend(["NaN"])
     BO_joined = test_BO_joined_evidence_instance(BO_words=BO_entities, full_sentence=value, BO_indices=BO_indices)
 
     #######################
@@ -101,9 +102,9 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
 
     ### filling target list
     # variable names
-    BO_entities.extend(" ")
-    MO_entities.extend(" ")
-    SG_entities.extend(" ")
+    BO_entities.extend("NaN")
+    MO_entities.extend("NaN")
+    SG_entities.extend("NaN")
     AT_extension_name, BD_extension_name, BO_extension_name, SG_extension_name, MO_extension_name = evidence_instance_appending(AT_entities, BD_entities, BO_entities, SG_entities, MO_entities)
     AT_disagg.extend(AT_extension_name)
     BD_disagg.extend(BD_extension_name)
@@ -116,8 +117,8 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     MO_indices.extend(" ")
     SG_indices.extend(" ")
     AT_extension_indx, BD_extension_indx, BO_extension_indx, SG_extension_indx, MO_extension_indx = evidence_instance_appending(AT_indices, BD_indices, BO_indices, SG_indices, MO_indices)
-    BD_indice_disagg.extend(AT_extension_indx)
-    AT_indice_disagg.extend(BD_extension_indx)
+    BD_indice_disagg.extend(BD_extension_indx)
+    AT_indice_disagg.extend(AT_extension_indx)
     BO_indice_disagg.extend(BO_extension_indx)
     MO_indice_disagg.extend(SG_extension_indx)
     SG_indice_disagg.extend(MO_extension_indx)
@@ -134,7 +135,7 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
         print(same_tree)
 
     # sentence level variables
-    split_prepos_indice_disagg.extend([split_prepos] * NR_poss_relat)
+    split_prepos_indice_disagg.extend([split_prepos[0]] * NR_poss_relat)
     SENT_disagg.extend([value] * NR_poss_relat)
     DOI_disagg.extend([complete_evidence_Instances['DOI'].iloc[count]] * NR_poss_relat)
     sent_ID_disagg.extend([complete_evidence_Instances['Sentence'].iloc[count]] * NR_poss_relat)
@@ -145,3 +146,17 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     print(len(BD_indice_disagg), len(AT_indice_disagg), len(BO_indice_disagg), len(MO_indice_disagg),
           len(SG_indice_disagg), len(split_prepos_indice_disagg))
     print(len(same_dependTree))
+
+
+
+
+possible_evidence_instances = pd.DataFrame({'DOI': DOI_disagg, 'Sentence': sent_ID_disagg, 'Fullsentence': SENT_disagg,
+                                                 'BehaviorOption': BO_disagg, 'BehaviorDeterminant': BD_disagg,
+                                                 'AssociationType': AT_disagg, 'Studygroup': SG_disagg, 'Moderator': MO_disagg ,
+                                                 'BD_indice': BD_indice_disagg, 'AT_indice': AT_indice_disagg,
+                                                 'BO_indice': BO_indice_disagg, 'SG_indice': SG_indice_disagg,
+                                                 'MO_indice': MO_indice_disagg, 'Split_Propos_indice': split_prepos_indice_disagg,
+                                                 'same_dependTree': same_dependTree})
+possible_evidence_instances.to_csv("possible_evidence_instances.csv", index=False)
+# #
+print("Nr of unique articles contributing evidence: ",len(set(possible_evidence_instances['DOI'])))
