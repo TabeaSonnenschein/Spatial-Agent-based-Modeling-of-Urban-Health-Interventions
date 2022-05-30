@@ -33,6 +33,41 @@ def check_if_in_wordlist_and_append(list_of_lists, wordlist):
         output_list.extend([el for el in list if el in wordlist])
     return output_list
 
+
+def combinations(items):
+    comblist = []
+    for i in range(0,len(items)):
+        comblist.append(items[i])
+        for x in range((i+2), (len(items)+1)):
+            comblist.append(items[i:x])
+            if (i+1) < x < len(items):
+                comblist.append([items[i], items[x]])
+                if x < (len(items)-1):
+                    comblist.append(([items[i]] + items[x:]))
+    return comblist
+
+def combinations_NANlists(items):
+    if items != ["NaN"]:
+        items.remove("NaN")
+        comblist = combinations(items)
+        comblist.extend("NaN")
+    else:
+        comblist = items
+    return comblist
+
+def combinations_alllists(items):
+    comblist = []
+    for i in range(0,len(items)):
+        comblist.append([items[i]])
+        for x in range((i+2), (len(items)+1)):
+            comblist.append(items[i:x])
+            if (i+1) < x < len(items):
+                comblist.append([items[i], items[x]])
+                if x < (len(items)-1):
+                    comblist.append(([items[i]] + items[x:]))
+    return comblist
+
+
 def evidence_instance_appending_singleAT(ATs, BDs, BOs, SGs, MOs):
     AT_extension, BD_extension, BO_extension, SG_extension, MO_extension = [],[],[],[],[]
     AT_extension.extend([ATs] * len(BDs) * len(BOs) * len(SGs) * len(MOs))
@@ -42,7 +77,7 @@ def evidence_instance_appending_singleAT(ATs, BDs, BOs, SGs, MOs):
     MO_extension.extend((repeat_each_item_n_times_in_list(MOs, (len(BDs)*len(BOs)*len(SGs)))))
     return AT_extension, BD_extension, BO_extension, SG_extension, MO_extension
 
-def evidence_instance_appending(ATs, BDs, BOs, SGs, MOs):
+def evidence_instance_appending_singleSG(ATs, BDs, BOs, SGs, MOs):
     AT_extension, BD_extension, BO_extension, SG_extension, MO_extension = [],[],[],[],[]
     AT_combinations = combinations(ATs)
     AT_extension.extend((AT_combinations) * len(BDs) * len(BOs) * len(SGs) * len(MOs))
@@ -53,24 +88,17 @@ def evidence_instance_appending(ATs, BDs, BOs, SGs, MOs):
     Nr_added = len(AT_combinations) * len(BDs) * len(BOs) * len(SGs) * len(MOs)
     return AT_extension, BD_extension, BO_extension, SG_extension, MO_extension, Nr_added
 
-
-def combinations(items):
-    comblist = []
-    for i in range(0,len(items)):
-        comblist.append(items[i])
-        for x in range((i+2), (len(items)+1)):
-            comblist.append(items[i:x])
-    return comblist
-
-def combinations_alllists(items):
-    comblist = []
-    for i in range(0,len(items)):
-        comblist.append([items[i]])
-        for x in range((i+2), (len(items)+1)):
-            comblist.append(items[i:x])
-    return comblist
-
-
+def evidence_instance_appending(ATs, BDs, BOs, SGs, MOs):
+    AT_extension, BD_extension, BO_extension, SG_extension, MO_extension = [],[],[],[],[]
+    AT_combinations = combinations(ATs)
+    SG_combinations = combinations_NANlists(SGs)
+    AT_extension.extend((AT_combinations) * len(BDs) * len(BOs) * len(SG_combinations) * len(MOs))
+    BD_extension.extend((repeat_each_item_n_times_in_list(BDs, len(AT_combinations))) * len(BOs) * len(SG_combinations) * len(MOs))
+    BO_extension.extend((repeat_each_item_n_times_in_list(BOs, (len(BDs)*len(AT_combinations)))) * len(SG_combinations) * len(MOs))
+    SG_extension.extend((repeat_each_item_n_times_in_list((SG_combinations), (len(BDs)*len(BOs)*len(AT_combinations)))) * len(MOs))
+    MO_extension.extend((repeat_each_item_n_times_in_list(MOs, (len(BDs)*len(BOs)*len(SG_combinations)*len(AT_combinations)))))
+    Nr_added = len(AT_combinations) * len(BDs) * len(BOs) * len(SG_combinations) * len(MOs)
+    return AT_extension, BD_extension, BO_extension, SG_extension, MO_extension, Nr_added
 
 # checks if multiple behavior options are mentioned in one evidence instance
 def test_BO_joined_evidence_instance(BO_words, full_sentence, BO_indices):
