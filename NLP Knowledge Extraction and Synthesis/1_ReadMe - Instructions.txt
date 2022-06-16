@@ -1,0 +1,24 @@
+The purpose of the method is to extract and synthesise knowledge about behavior determinants and their statistical associations to behavior choice options from a body of scientific literature automatically and feed the resulting knowledge into a "Behavior Choice Determinants Ontology". This document walks the user through the order and purpose of the scripts. 
+
+Author: Tabea Sonnenschein
+Date: 16/06/2022
+
+1) download bibliometrics of articles identified by the querying of the scientific database (e.g. Web of Science)
+
+2) use script "2_CrossRef_XML_mining.py" to apply the Crossref and Elsevier API to download XML of articles that have it and Pdf links for the rest. 
+
+3) after downloading all pdf's, use "3_PdfToText.py" to extract the text from the Pdf documents and substitute bbreviations with the full names of what they represents.
+
+4) use "4_ExtractMainBodyText.py" to cut out references and other type of text that is not the main body text that contains the information we are looking for. The Pdf extracted text is ready now.
+
+5) use "5_XMLToCleanText.py" to extract the text out of the XML documents and replace the abbreviations with the full names of what they represents. The XML extracted text is ready  now.
+
+6) use "6_BERTDataPreparation.py" to read the prepared text data for all unique articles, whereby a XML extracted text of a document is prioritized over a Pdf extracted text (as it has higher quality). The text is then transformed into a dataframe of ordered words with a doi (document id) column and a sentence id (column). Additionally a Part of Speech tagger is applied to classify the words into grammatical functions. A Tag column is added with the default value of "O" (outside). This column can be used to tag a set of articles for training the Named entity recognition model on.
+
+7) after having labeled a set of articles, use "7_BERTDeepLearningKnowledgeExtraction.py" to train the BERT named entity recognition model with the labeled variables and predict the labels for the remaining yet unlabeled articles (the majority). The script also will produce a model performance graph and a weighted F1 score, as well as F1 scores for all labels seperately, to assess the quality of the prediction.
+
+8) use "8_TokenizedTextToRelationalData.py" to restructure the predicted labels in a dataframe of lists of association types, behavior options, behavior determinants, studygroups and moderators per sentence. Hereby the words that are labeled with the same label consequtively become one variable/entity/phrase. Information on the DOI, fullstence and sentence id are maintained.
+
+9) use "9_syntactical_relation_learning_preparation.py" to read the sentence aggregated lists of labels per class and create a dataset of every combination of association types, behavior options, behavior determinants, studygroups and moderators within a sentence. This new dataframe is the total set of all possible evidence relations within the labeled sentences, but only some of them are true. The script adds syntactical feautures of the sentence that will be the basis for predicting in step 10 whether the variable combination has a true evidence relation or not. The step also adds a Tag column that will be set to the default 0 (no true evidence relation). Use this column to put a 1 in the rows where the variable combination is actually a true evidence relationship.
+
+10) use "10_syntactical_relation_learning_model.py" to apply a machine learning model to the syntactical feauture created in the previous step and infer the evidence relation truthfulness of the variable combinations.

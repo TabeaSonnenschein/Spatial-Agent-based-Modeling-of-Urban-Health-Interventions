@@ -14,7 +14,7 @@ import seaborn as sns
 import os
 from itertools import chain
 import pickle
-import config
+import utils.BERTconfig
 logging.set_verbosity_warning()
 torch.__version__
 transformers.__version__

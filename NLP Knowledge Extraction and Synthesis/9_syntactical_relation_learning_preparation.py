@@ -9,7 +9,7 @@ import deplacy
 from spacy.lang.en.examples import sentences
 en = spacy.load('en_core_web_sm')
 from spacy import displacy
-from utils_Syntact_Learn import *
+from utils.utils_Syntact_Learn import *
 import networkx as nx
 
 
