@@ -50,7 +50,8 @@ def combinations_NANlists(items):
     if items != ["NaN"]:
         items.remove("NaN")
         comblist = combinations(items)
-        comblist.extend("NaN")
+        comblist.extend(["NaN"])
+        items.extend(["NaN"])
     else:
         comblist = items
     return comblist
@@ -115,18 +116,22 @@ def test_BO_joined_evidence_instance(BO_words, full_sentence, BO_indices):
         return 1
 
 
-def check_if_varcombi_same_dependency_subtree(AT, BD, BO, SG, MO, subtrees):
+def check_if_varcombi_same_dependency_subtree(varlist_varcombi, totalsentence_varlist, subtrees):
     joined_instance = 0
+    missing_var = "NaN"
+    remaining_var = [i for i in totalsentence_varlist if (i not in varlist_varcombi) and (i != "NaN")]
+    variables = [x for x in varlist_varcombi if x != "NaN"]
     for a in range(0, len(subtrees)):
-        variables = [x for x in list(chain.from_iterable([[AT], [BD], [BO], [SG], [MO]])) if x != "NaN"]
-        # print(variables)
-        # print(subtrees[a])
         if all([True if x in subtrees[a] else False for x in variables]):
             joined_instance += 1
+            if any([True if x in subtrees[a] else False for x in remaining_var]):
+                missing_var = "1"
+            else:
+                missing_var = "0"
     if joined_instance > 0:
-        return "1"
+        return "1", missing_var
     else:
-        return "0"
+        return "0", missing_var
 
 
 # Load spacy's dependency tree into a networkx graph
@@ -145,7 +150,10 @@ def getShortestPathbetweenPhrases(listA, listB, graph):
         words_inlistA = list(chain.from_iterable([phrase.split(" ") for phrase in listA]))
     else:
         words_inlistA = listA.split(" ")
-    words_inlistB = listB.split(" ")
+    if not isinstance(listB, str):
+        words_inlistB = list(chain.from_iterable([phrase.split(" ") for phrase in listB]))
+    else:
+        words_inlistB = listB.split(" ")
     for f in range(0, len(words_inlistA)):
         for x in range(0, len(words_inlistB)):
             try:
@@ -168,3 +176,9 @@ def print_summary_of_length_ofLists(list_oflists):
     print("Median value: ", median, "appears", x.count(median), "times")
     outliers = [count for count, value in enumerate(x) if value != median]
     print("outliers are", outliers)
+
+def ifnotlist_makelist(object):
+    if not isinstance(object, list):
+        return [object]
+    else:
+        return object

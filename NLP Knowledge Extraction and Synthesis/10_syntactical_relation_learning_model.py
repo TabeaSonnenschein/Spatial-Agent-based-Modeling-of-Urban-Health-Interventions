@@ -22,10 +22,8 @@ from matplotlib import pyplot
 
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-csv = os.path.join(os.getcwd(), ("possible_evidence_instances_training_data_1000.csv"))
+csv = os.path.join(os.getcwd(), ("possible_evidence_instances_training_data_2000.csv"))
 traindata = pd.read_csv(csv)
-# replace Nan by -100
-traindata.replace({'NaN': -100}, regex=True, inplace=True)
 
 print(traindata.iloc[:,9:].head())
 
@@ -74,9 +72,9 @@ print('F1 Score: %.3f (%.3f)' % ( mean(n_scores), std(n_scores)))
 
 # fit the model on the whole dataset
 model = RandomForestClassifier()
-model.fit(X_train, y_train)
-prediction = model.predict(X_test)
-report = classification_report(y_test, prediction)
+model.fit(X_train.values, y_train.values)
+prediction = model.predict(X_test.values)
+report = classification_report(y_test.values, prediction)
 print(report)
 #
 # print("Multi-layer Perceptron")
@@ -122,27 +120,27 @@ print(report)
 
 # #
 # # # # make predictions on rest of evidence instances
-# csv = os.path.join(os.getcwd(), ("possible_evidence_instances.csv"))
-# preddata = pd.read_csv(csv)
-# preddata.replace({'NaN': -100}, regex=True, inplace=True)
-# print(preddata.iloc[:500,9:].head())
-#
-# predictions =[]
-# for i in range(0, len(preddata)):
-#     predictions.extend(model.predict([preddata.iloc[i,9:]]))
-# preddata["Evidence_Truth"] = predictions
-# print(predictions[0:1000])
-#
-# preddata.to_csv("predicted_evidence_instances_all.csv", index=False)
-#
-# trueevidenceintances = preddata.iloc[list(np.where(preddata["Evidence_Truth"] == 1)[0])]
-# trueevidenceintances.to_csv("predicted_evidence_instances_true.csv", index=False)
-# print(len(trueevidenceintances))
-# #
-#
-#
-#
-#
-#
+csv = os.path.join(os.getcwd(), ("possible_evidence_instances4.csv"))
+preddata = pd.read_csv(csv)
+preddata.replace({'NaN': -100}, regex=True, inplace=True)
+print(preddata.iloc[:500,9:].head())
+
+
+predictions =[]
+for i in range(0, len(preddata)):
+    predictions.extend(model.predict([preddata.iloc[i,9:]]))
+    if i % 1000 == 0:
+        print("Completed instance: ", i)
+
+preddata["Evidence_Truth"] = predictions
+print(predictions[0:1000])
+
+preddata.to_csv("predicted_evidence_instances_all.csv", index=False)
+
+trueevidenceintances = preddata.iloc[list(np.where(preddata["Evidence_Truth"] == 1)[0])]
+print("Nr of true relation predictions:", len(trueevidenceintances))
+trueevidenceintances.drop_duplicates()
+print("Nr of true relation predictions (unique):",len(trueevidenceintances))
+trueevidenceintances.to_csv("predicted_evidence_instances_true.csv", index=False)
 
 

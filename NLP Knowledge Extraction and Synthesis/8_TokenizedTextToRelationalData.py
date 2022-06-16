@@ -158,6 +158,32 @@ def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
             dataframe['Tag'].iloc[open_slash] = Tagname
     return dataframe
 
+def extendAssociationTypesToNeighboringAdjectNegatives(dataframe):
+    for turn in [1,2,3]:
+        label_indices = list(np.where(dataframe['Tag'] == 'I-assocType')[0])
+        label_indices_post = [i+1 for i in label_indices]
+        label_indices_pre = [i-1 for i in label_indices]
+        x = list(np.where(dataframe['Tag'].iloc[label_indices_post] == 'O')[0])
+        f = list(np.where(dataframe['Tag'].iloc[label_indices_pre] == 'O')[0])
+        g = [label_indices_pre[i] for i in f if (dataframe['Word'].iloc[label_indices_pre[i]] in ["non", "not", "Non", "Not", "no", "No", "nil", "relationship", "relationships", "effect", "impact"]) or (dataframe['POS'].iloc[label_indices_pre[i]] in ["JJ", "JJS", "JJR"])]
+        y = [label_indices_post[i] for i in x if (dataframe['Word'].iloc[label_indices_post[i]] in ["no", "not", "No", "Not", "nil", "relationship", "relationships", "effect", "impact"]) or (dataframe['POS'].iloc[label_indices_post[i]] in ["JJ", "JJS", "JJR"])]
+        dataframe['Tag'].iloc[y] = 'I-assocType'
+        dataframe['Tag'].iloc[g] = 'I-assocType'
+        label_indices_post = [i + 2 for i in label_indices]
+        label_indices_pre = [i - 2 for i in label_indices]
+        x = list(np.where(dataframe['Tag'].iloc[label_indices_post] == 'O')[0])
+        f = list(np.where(dataframe['Tag'].iloc[label_indices_pre] == 'O')[0])
+        g = [label_indices_pre[i] for i in f if (dataframe['Word'].iloc[label_indices_pre[i]] in ["non", "not", "Non", "Not", "no", "No", "Lack", "lack", "nil", "relationship", "relationships", "effect", "impact"]) or (
+                dataframe['POS'].iloc[label_indices_pre[i]] in ["JJ", "JJS", "JJR"])]
+        y = [label_indices_post[i] for i in x if (dataframe['Word'].iloc[label_indices_post[i]] in ["no", "not", "No", "Not", "nil", "relationship", "relationships", "effect", "impact"])]
+        dataframe['Tag'].iloc[y] = 'I-assocType'
+        dataframe['Tag'].iloc[g] = 'I-assocType'
+        label_indices = list(np.where(dataframe['Tag'] == 'I-assocType')[0])
+        assoc_sent = [count for count, value in enumerate(dataframe['Sentence']) if (value in list(set(dataframe['Sentence'].iloc[label_indices]))) and dataframe['Tag'].iloc[count] == "O"]
+        y = [i for i in assoc_sent if str(dataframe['Word'].iloc[i]).lower() in ["evidence", "not", "no", "nil", "relationship", "relationships", "effect", "influence", "impact", "positive", "negative", "mixed", "high"]]
+        dataframe['Tag'].iloc[y] = 'I-assocType'
+    return dataframe
+
 instance_ST, instance_BD, instance_BO, instance_AT, instance_SG, instance_MO, sentenceid, fullsentence, AT_POS, BO_POS, BD_POS, sentence_POS = [], [], [], [], [], [], [], [], [], [], [], []
 len_instance_before = 0
 for file in listOfFiles:
@@ -172,6 +198,7 @@ for file in listOfFiles:
     AT_words = list(np.where((labeled_data['Word'] == 'significant') | (
             labeled_data['Word'] == 'insignificant') | (
             labeled_data['Word'] == 'consistent') | (
+            labeled_data['Word'] == 'Consistent') | (
             labeled_data['Word'] == 'associated') | (
             labeled_data['Word'] == 'inconsistent') | (
             labeled_data['Word'] == 'Associations') | (
@@ -180,29 +207,28 @@ for file in listOfFiles:
             labeled_data['Word'] == 'association') | (
             labeled_data['Word'] == 'significantly') | (
             labeled_data['Word'] == 'insignificantly') | (
-            labeled_data['Word'] == 'relationships') | (
-            labeled_data['Word'] == 'relationship') | (
-            labeled_data['Word'] == 'influence') | (
-            labeled_data['Word'] == 'mixed') | (
-            labeled_data['Word'] == 'positive') | (
-            labeled_data['Word'] == 'Positive') | (
-            labeled_data['Word'] == 'negative') | (
-            labeled_data['Word'] == 'Negative'))[0])
+            # labeled_data['Word'] == 'relationships') | (
+            # labeled_data['Word'] == 'relationship') | (
+            # labeled_data['Word'] == 'mixed') | (
+            # labeled_data['Word'] == 'positive') | (
+            # labeled_data['Word'] == 'Positive') | (
+            # labeled_data['Word'] == 'negative') | (
+            # labeled_data['Word'] == 'Negative') | (
+            labeled_data['Word'] == 'influence'))[0])
     labeled_data['Tag'].iloc[AT_words] = 'I-assocType'
-    AT_words = list(np.where((labeled_data['Word'] == 'related') & (labeled_data['POS'] == "VBN")))
-    labeled_data['Tag'].iloc[AT_words] = 'I-assocType'
+    # AT_words = list(np.where((labeled_data['Word'] == 'related') & (labeled_data['POS'] == "VBN")))
+    # labeled_data['Tag'].iloc[AT_words] = 'I-assocType'
     AT_words = list(np.where(labeled_data['Tag'] == 'I-assocType')[0])
     x = []
-    x.extend(
-        idx - 1 for idx in AT_words if labeled_data['Word'].iloc[idx - 1] in ["non", "not", "Non", "Not", "no", "No", "nil"])
-    x.extend(idx - 2 for idx in AT_words if
-             labeled_data['Word'].iloc[idx - 2] in ["non", "not", "Non", "Not", "no", "No", "Lack", "lack", "nil"])
+    x.extend(idx - 1 for idx in AT_words if labeled_data['Word'].iloc[idx - 1] in ["non", "not", "Non", "Not", "no", "No", "nil"])
+    x.extend(idx - 2 for idx in AT_words if labeled_data['Word'].iloc[idx - 2] in ["non", "not", "Non", "Not", "no", "No", "Lack", "lack", "nil"])
     labeled_data['Tag'].iloc[x] = 'I-assocType'
     AT_words = list(np.where(labeled_data['Tag'] == 'I-assocType')[0])
     x = [x+1 for x in AT_words if (x+2 in AT_words) and (labeled_data['Word'].iloc[x+1] in ["of", ",", "and", "for", "to", "a", "the"])]
     x.extend((x+2 for x in AT_words if (x+3 in AT_words) and (labeled_data['Word'].iloc[x+1] in ["of", ",", "and", "for", "to", "a", "the"]) and (labeled_data['Word'].iloc[x+2] in ["of", ",", "and", "for", "to", "a", "the"])))
     labeled_data['Tag'].iloc[x] = 'I-assocType'
     dataframe = extendVariableNamesToNeighboringAdjectNouns(labeled_data, ["I-behavDeterm", "I-behavOption", "I-moderator"])
+    dataframe = extendAssociationTypesToNeighboringAdjectNegatives(labeled_data)
     if TagToWordExtension:
         labeled_data = extendTagsToAllEqualWordSeq(labeled_data)
     labeled_data = extendSpecificTagsToAllEqualWordSeq(labeled_data, "I-behavOption")
@@ -266,6 +292,8 @@ else:
 
 Evidence_instances_df = pd.DataFrame({'DOI': instance_ST, 'Sentence': sentenceid, 'BehaviorOption': instance_BO, 'BehaviorDeterminant': instance_BD, 'AssociationType': instance_AT, 'Studygroup': instance_SG, 'Moderator': instance_MO ,  'Fullsentence': fullsentence, 'BO_POS': BO_POS, 'BD_POS': BD_POS, 'AT_POS': AT_POS, 'sentence_POS': sentence_POS })
 print(Evidence_instances_df.head())
+
+
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 csv = os.path.join(os.getcwd(), ("Evidence_instances_df"+ file_name_suffix2 +file_name_suffix + ".csv"))
 Evidence_instances_df.to_csv(csv, index=False)

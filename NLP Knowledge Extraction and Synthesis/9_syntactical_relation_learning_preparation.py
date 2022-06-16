@@ -20,6 +20,7 @@ import networkx as nx
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 # csv = os.path.join(os.getcwd(), ("Evidence_instances_df_ManualLabel.csv"))
 csv = os.path.join(os.getcwd(), ("Evidence_instances_df.csv"))
+# csv = os.path.join(os.getcwd(), ("Evidence_instances_df_training_data.csv"))
 Evidence_instances_df = pd.read_csv(csv)
 # columnnames: 'DOI','Sentence','BehaviorOption','BehaviorDeterminant','AssociationType',
 #              'Studygroup','Moderator',Fullsentence','BO_POS','BD_POS',AT_POS','sentence_POS'
@@ -50,8 +51,10 @@ SENT_disagg, DOI_disagg, sent_ID_disagg = [], [], []
 # Indices
 BD_idx_disagg, AT_idx_disagg, BO_idx_disagg, MO_idx_disagg, SG_idx_disagg, split_prepos_idx_disagg = [], [], [], [], [], []
 all_before_or_after_split_propos, index_dist_ATmin_BD, index_dist_ATmax_BD, index_dist_ATmin_BO, index_dist_ATmax_BO = [], [], [], [], []
-index_dist_ATmin_MO, index_dist_ATmax_MO, index_dist_ATmin_SG,  index_dist_ATmax_SG = [], [], [], []
+index_dist_ATmin_MO, index_dist_ATmax_MO, index_dist_ATmin_SGmin, index_dist_ATmin_SGmax, index_dist_ATmax_SGmin, index_dist_ATmax_SGmax = [], [], [], [], [], []
 semicolon_idx, all_before_or_after_semicolon = [], []
+
+minimum_AT_idx, maximum_AT_idx, minimum_SG_idx, maximum_SG_idx = [],[], [],[]
 
 max_sent_ATidx, min_sent_ATidx, max_sent_BDidx, min_sent_BDidx, max_sent_BOidx, min_sent_BOidx = [], [], [], [], [], []
 max_sent_MOidx, min_sent_MOidx, max_sent_SGidx, min_sent_SGidx= [], [], [], []
@@ -64,16 +67,16 @@ Nr_verbs, earliestverb_indx, latestverb_indx = [], [], []
 
 # Association Type properties
 Verb_in_AT_inst, Noun_in_AT_inst, Adj_Adv_in_AT_inst, Comp_Adj_Adv_in_AT_inst, Verb_outside_AT_inst, Noun_outside_AT_inst, Adj_Adv_outside_AT_inst = [], [], [], [], [], [], []
-Nr_ATs_in_instance, Multi_AT_Indice_gap, minimum_AT_idx, maximum_AT_idx = [], [], [], []
+Nr_ATs_in_instance, Multi_AT_Indice_gap = [], []
 some_AT_in_brackets, all_AT_in_brackets= [], []
 multiAT_shortestPathLen_min, multiAT_shortestPathLen_max = [], []
 
 # combinatory variable properties
-same_dependTree = []
+same_dependTree, missing_var_in_same_dependTree = [], []
 AT_BD_minshortpath, AT_BD_maxshortpath, AT_BD_sumshortpath, AT_BO_minshortpath, AT_BO_maxshortpath, AT_BO_sumshortpath = [], [], [], [], [], []
 AT_SG_minshortpath, AT_SG_maxshortpath, AT_SG_sumshortpath, AT_MO_minshortpath, AT_MO_maxshortpath, AT_MO_sumshortpath =  [], [], [], [], [], []
 verb_between_ATmin_BD, verb_between_ATmax_BD, verb_between_ATmin_BO, verb_between_ATmax_BO = [], [], [], []
-verb_between_ATmin_MO, verb_between_ATmax_MO, verb_between_ATmin_SG, verb_between_ATmax_SG = [], [], [], []
+verb_between_ATmin_MO, verb_between_ATmax_MO, verb_between_ATmin_SGmin, verb_between_ATmax_SGmin, verb_between_ATmin_SGmax, verb_between_ATmax_SGmax = [], [], [], [], [], []
 
 #others
 joined_BO_instances = []
@@ -151,11 +154,11 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     BD_idx_disagg.extend(BD_extension_indx)
     AT_idx_disagg.extend(AT_extension_indx)
     BO_idx_disagg.extend(BO_extension_indx)
-    MO_idx_disagg.extend(SG_extension_indx)
-    SG_idx_disagg.extend(MO_extension_indx)
+    MO_idx_disagg.extend(MO_extension_indx )
+    SG_idx_disagg.extend(SG_extension_indx)
 
-    AT_repetition = len(BD_entities) * len(BO_entities) * len(SG_entities) * len(MO_entities)
     ATindicelist = combinations_alllists(AT_indices)
+    AT_repetition = int(NR_poss_relat/len(ATindicelist))
     Nr_ATs_in_instance.extend([len(x) for x in ATindicelist] * AT_repetition)
     minimum_AT_idx.extend([min(x) for x in ATindicelist] * AT_repetition)
     maximum_AT_idx.extend([max(x) for x in ATindicelist] * AT_repetition)
@@ -164,10 +167,12 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     # combinatory syntactical properties
     # part of same subtree + shortest path between all options
     for i in range(0, len(AT_extension_name)):
-        same_tree = check_if_varcombi_same_dependency_subtree(AT_extension_name[i], BD_extension_name[i],
-                                                  BO_extension_name[i], SG_extension_name[i],
-                                                  MO_extension_name[i], items_in_subtree_groups)
+        same_tree, missing_var_sametree = check_if_varcombi_same_dependency_subtree(list(chain.from_iterable([ifnotlist_makelist(AT_extension_name[i]), ifnotlist_makelist(BD_extension_name[i]),
+                                                  ifnotlist_makelist(BO_extension_name[i]), ifnotlist_makelist(SG_extension_name[i]),
+                                                  ifnotlist_makelist(MO_extension_name[i])])), list(chain.from_iterable([BO_entities, SG_entities,
+                                                  MO_entities])), items_in_subtree_groups)
         same_dependTree.extend(same_tree)
+        missing_var_in_same_dependTree.extend([missing_var_sametree])
         minSP, maxSP, sumSP = getShortestPathbetweenPhrases(AT_extension_name[i], BD_extension_name[i], graph)
         AT_BD_minshortpath.extend(minSP)
         AT_BD_maxshortpath.extend(maxSP)
@@ -219,7 +224,7 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     AT_extension_indx_alllists = ATindicelist*AT_repetition
     for i in range(0, len(AT_extension_name)):
         indices = list(chain.from_iterable([AT_extension_indx_alllists[i], [BD_extension_indx[i]],
-                                            [BO_extension_indx[i]], [SG_extension_indx[i]], [MO_extension_indx[i]]]))
+                                            [BO_extension_indx[i]], ifnotlist_makelist(SG_extension_indx[i]), [MO_extension_indx[i]]]))
         if split_prepos[0] != 'NaN':
             if all(True if x == 'NaN' or x > split_prepos[0] else False for x in indices) or all(True if x == 'NaN'  or x < split_prepos[0] else False for x in indices ):
                 all_before_or_after_split_propos.extend(["1"])
@@ -239,7 +244,7 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
         index_dist_ATmax_BD.extend([max(AT_extension_indx_alllists[i]) - BD_extension_indx[i]])
         verb_between_ATmin_BD.extend(["1" if any(True for x in verb_indx if min(AT_extension_indx_alllists[i])> x <BD_extension_indx[i]
                                                  or min(AT_extension_indx_alllists[i])< x >BD_extension_indx[i]) else "0"])
-        verb_between_ATmax_BD.extend(["1" if any(True for x in verb_indx if min(AT_extension_indx_alllists[i])> x <BD_extension_indx[i]
+        verb_between_ATmax_BD.extend(["1" if any(True for x in verb_indx if max(AT_extension_indx_alllists[i])> x <BD_extension_indx[i]
                                                  or max(AT_extension_indx_alllists[i])< x >BD_extension_indx[i]) else "0"])
         if BO_extension_indx[i] != "NaN":
             index_dist_ATmin_BO.extend([min(AT_extension_indx_alllists[i]) - BO_extension_indx[i]])
@@ -249,7 +254,7 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
                                                          i] or min(AT_extension_indx_alllists[i]) < x >
                                                      BO_extension_indx[i]) else "0"])
             verb_between_ATmax_BO.extend(["1" if any(True for x in verb_indx if
-                                                     min(AT_extension_indx_alllists[i]) > x < BO_extension_indx[
+                                                     max(AT_extension_indx_alllists[i]) > x < BO_extension_indx[
                                                          i] or max(AT_extension_indx_alllists[i]) < x >
                                                      BO_extension_indx[i]) else "0"])
         else:
@@ -265,7 +270,7 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
                                                          i] or min(AT_extension_indx_alllists[i]) < x >
                                                      MO_extension_indx[i]) else "0"])
             verb_between_ATmax_MO.extend(["1" if any(True for x in verb_indx if
-                                                     min(AT_extension_indx_alllists[i]) > x < MO_extension_indx[
+                                                     max(AT_extension_indx_alllists[i]) > x < MO_extension_indx[
                                                          i] or max(AT_extension_indx_alllists[i]) < x >
                                                      MO_extension_indx[i]) else "0"])
         else:
@@ -274,22 +279,41 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
             verb_between_ATmin_MO.extend(["NaN"])
             verb_between_ATmax_MO.extend(["NaN"])
         if SG_extension_indx[i] != "NaN":
-            index_dist_ATmin_SG.extend([min(AT_extension_indx_alllists[i]) - SG_extension_indx[i]])
-            index_dist_ATmax_SG.extend([max(AT_extension_indx_alllists[i]) - SG_extension_indx[i]])
-            verb_between_ATmin_SG.extend(["1" if any(True for x in verb_indx if
-                                                     min(AT_extension_indx_alllists[i]) > x < SG_extension_indx[
-                                                         i] or min(AT_extension_indx_alllists[i]) < x >
-                                                     SG_extension_indx[i]) else "0"])
-            verb_between_ATmax_SG.extend(["1" if any(True for x in verb_indx if
-                                                     min(AT_extension_indx_alllists[i]) > x < SG_extension_indx[
-                                                         i] or max(AT_extension_indx_alllists[i]) < x >
-                                                     SG_extension_indx[i]) else "0"])
+            index_dist_ATmin_SGmin.extend([min(AT_extension_indx_alllists[i]) - min(ifnotlist_makelist(SG_extension_indx[i]))])
+            index_dist_ATmax_SGmin.extend([max(AT_extension_indx_alllists[i]) - min(ifnotlist_makelist(SG_extension_indx[i]))])
+            index_dist_ATmin_SGmax.extend(
+                [min(AT_extension_indx_alllists[i]) - max(ifnotlist_makelist(SG_extension_indx[i]))])
+            index_dist_ATmax_SGmax.extend(
+                [max(AT_extension_indx_alllists[i]) - max(ifnotlist_makelist(SG_extension_indx[i]))])
+            verb_between_ATmin_SGmin.extend(["1" if any(True for x in verb_indx if
+                                                     min(AT_extension_indx_alllists[i]) > x < min(ifnotlist_makelist(SG_extension_indx[i]))
+                                                     or min(AT_extension_indx_alllists[i]) < x >
+                                                     min(ifnotlist_makelist(SG_extension_indx[i]))) else "0"])
+            verb_between_ATmax_SGmin.extend(["1" if any(True for x in verb_indx if
+                                                     max(AT_extension_indx_alllists[i]) > x < min(ifnotlist_makelist(SG_extension_indx[i]))
+                                                     or max(AT_extension_indx_alllists[i]) < x >
+                                                     min(ifnotlist_makelist(SG_extension_indx[i]))) else "0"])
+            verb_between_ATmin_SGmax.extend(["1" if any(True for x in verb_indx if
+                                                     min(AT_extension_indx_alllists[i]) > x < max(ifnotlist_makelist(SG_extension_indx[i]))
+                                                     or min(AT_extension_indx_alllists[i]) < x >
+                                                     max(ifnotlist_makelist(SG_extension_indx[i]))) else "0"])
+            verb_between_ATmax_SGmax.extend(["1" if any(True for x in verb_indx if
+                                                     max(AT_extension_indx_alllists[i]) > x < max(ifnotlist_makelist(SG_extension_indx[i]))
+                                                     or max(AT_extension_indx_alllists[i]) < x >
+                                                     max(ifnotlist_makelist(SG_extension_indx[i]))) else "0"])
+            minimum_SG_idx.extend([min(ifnotlist_makelist(SG_extension_indx[i]))])
+            maximum_SG_idx.extend([max(ifnotlist_makelist(SG_extension_indx[i]))])
         else:
-            index_dist_ATmin_SG.extend(["NaN"])
-            index_dist_ATmax_SG.extend(["NaN"])
-            verb_between_ATmin_SG.extend(["NaN"])
-            verb_between_ATmax_SG.extend(["NaN"])
-
+            index_dist_ATmin_SGmin.extend(["NaN"])
+            index_dist_ATmax_SGmin.extend(["NaN"])
+            index_dist_ATmin_SGmax.extend(["NaN"])
+            index_dist_ATmax_SGmax.extend(["NaN"])
+            verb_between_ATmin_SGmin.extend(["NaN"])
+            verb_between_ATmax_SGmin.extend(["NaN"])
+            verb_between_ATmin_SGmax.extend(["NaN"])
+            verb_between_ATmax_SGmax.extend(["NaN"])
+            minimum_SG_idx.extend(["NaN"])
+            maximum_SG_idx.extend(["NaN"])
 
     # Association types properties
     # direct link between association types
@@ -385,13 +409,16 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
                                      split_prepos_idx_disagg,Nr_AT, Nr_BO, Nr_BD, Nr_MO, Nr_SG, Nr_verbs, earliestverb_indx,
                                      latestverb_indx, Verb_in_AT_inst, Noun_in_AT_inst, Adj_Adv_in_AT_inst, Comp_Adj_Adv_in_AT_inst,
                                      Nr_ATs_in_instance, Multi_AT_Indice_gap, minimum_AT_idx, maximum_AT_idx, multiAT_shortestPathLen_min,
-                                     multiAT_shortestPathLen_max, same_dependTree, joined_BO_instances, AT_BD_minshortpath, AT_BD_maxshortpath,
+                                     multiAT_shortestPathLen_max, same_dependTree, missing_var_in_same_dependTree, joined_BO_instances,
+                                     AT_BD_minshortpath, AT_BD_maxshortpath,
                                      AT_BD_sumshortpath, AT_BO_minshortpath, AT_BO_maxshortpath, AT_BO_sumshortpath, AT_SG_minshortpath,
                                      AT_SG_maxshortpath, AT_SG_sumshortpath, AT_MO_minshortpath, AT_MO_maxshortpath, AT_MO_sumshortpath,
                                      all_before_or_after_split_propos, index_dist_ATmin_BD, index_dist_ATmax_BD, index_dist_ATmin_BO,
-                                     index_dist_ATmax_BO, index_dist_ATmin_MO, index_dist_ATmax_MO, index_dist_ATmin_SG,  index_dist_ATmax_SG,
+                                     index_dist_ATmax_BO, index_dist_ATmin_MO, index_dist_ATmax_MO, index_dist_ATmin_SGmin, index_dist_ATmin_SGmax,
+                                     index_dist_ATmax_SGmin, index_dist_ATmax_SGmax,
                                      verb_between_ATmin_BD, verb_between_ATmax_BD, verb_between_ATmin_BO, verb_between_ATmax_BO, verb_between_ATmin_MO,
-                                     verb_between_ATmax_MO, verb_between_ATmin_SG, verb_between_ATmax_SG, max_sent_ATidx, min_sent_ATidx,
+                                     verb_between_ATmax_MO, verb_between_ATmin_SGmin, verb_between_ATmax_SGmin, verb_between_ATmin_SGmax, verb_between_ATmax_SGmax,
+                                     max_sent_ATidx, min_sent_ATidx, max_sent_SGidx, min_sent_SGidx,
                                      max_sent_BDidx, min_sent_BDidx, max_sent_BOidx, min_sent_BOidx, max_sent_MOidx, min_sent_MOidx,
                                      max_sent_SGidx, min_sent_SGidx, semicolon_idx, all_before_or_after_semicolon])
 
@@ -400,20 +427,22 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
 possible_evidence_instances = pd.DataFrame({'DOI': DOI_disagg, 'Sentence': sent_ID_disagg, 'Evidence_Truth': Evidence_Truth, 'Fullsentence': SENT_disagg,
                                                  'BehaviorOption': BO_disagg, 'BehaviorDeterminant': BD_disagg,
                                                  'AssociationType': AT_disagg, 'Studygroup': SG_disagg, 'Moderator': MO_disagg,
-                                                 'BD_idx': BD_idx_disagg, 'BO_idx': BO_idx_disagg, 'SG_idx': SG_idx_disagg,
+                                                 'BD_idx': BD_idx_disagg, 'BO_idx': BO_idx_disagg,
                                                  'MO_idx': MO_idx_disagg, 'Split_Propos_idx': split_prepos_idx_disagg,
                                                  'all_before_or_after_split_propos': all_before_or_after_split_propos,
                                                  'semicolon_idx': semicolon_idx, 'all_before_or_after_semicolon': all_before_or_after_semicolon,
                                                  'index_dist_ATmin_BD': index_dist_ATmin_BD, 'index_dist_ATmax_BD': index_dist_ATmax_BD,
                                                  'index_dist_ATmin_BO': index_dist_ATmin_BO, 'index_dist_ATmax_BO': index_dist_ATmax_BO,
                                                  'index_dist_ATmin_MO': index_dist_ATmin_MO, 'index_dist_ATmax_MO': index_dist_ATmax_MO,
-                                                 'index_dist_ATmin_SG': index_dist_ATmin_SG,  'index_dist_ATmax_SG': index_dist_ATmax_SG,
-                                                 'same_dependTree': same_dependTree, 'joined_BO_instances': joined_BO_instances,
+                                                 'index_dist_ATmin_SGmin': index_dist_ATmin_SGmin,  'index_dist_ATmax_SGmin': index_dist_ATmax_SGmin,
+                                                 'index_dist_ATmin_SGmax': index_dist_ATmin_SGmax, 'index_dist_ATmax_SGmax': index_dist_ATmax_SGmax,
+                                                 'same_dependTree': same_dependTree, 'missing_var_in_same_dependTree' : missing_var_in_same_dependTree,  'joined_BO_instances': joined_BO_instances,
                                                  'Nr_AT': Nr_AT, 'Nr_BO': Nr_BO, 'Nr_BD': Nr_BD, 'Nr_MO': Nr_MO, 'Nr_SG': Nr_SG,
                                                  'Verb_in_AT_inst': Verb_in_AT_inst, 'Noun_in_AT_inst': Noun_in_AT_inst,
                                                  'Adj_Adv_in_AT_inst': Adj_Adv_in_AT_inst, 'Comp_Adj_Adv_in_AT_inst': Comp_Adj_Adv_in_AT_inst,
                                                  'Nr_ATs_in_instance': Nr_ATs_in_instance, 'Multi_AT_Indice_gap': Multi_AT_Indice_gap,
                                                  'minimum_AT_idx': minimum_AT_idx, 'maximum_AT_idx': maximum_AT_idx,
+                                                 'minimum_SG_idx': minimum_SG_idx, 'maximum_SG_idx': maximum_SG_idx,
                                                  'Nr_verbs': Nr_verbs, 'earliestverb_indx': earliestverb_indx, 'latestverb_indx': latestverb_indx,
                                                  'multiAT_shortestPathLen_min': multiAT_shortestPathLen_min,'multiAT_shortestPathLen_max': multiAT_shortestPathLen_max,
                                                  'AT_BD_minshortpath': AT_BD_minshortpath, 'AT_BD_maxshortpath': AT_BD_maxshortpath, 'AT_BD_sumshortpath': AT_BD_sumshortpath,
@@ -423,13 +452,17 @@ possible_evidence_instances = pd.DataFrame({'DOI': DOI_disagg, 'Sentence': sent_
                                                  'verb_between_ATmin_BD': verb_between_ATmin_BD, 'verb_between_ATmax_BD': verb_between_ATmax_BD,
                                                  'verb_between_ATmin_BO': verb_between_ATmin_BO, 'verb_between_ATmax_BO': verb_between_ATmax_BO,
                                                  'verb_between_ATmin_MO': verb_between_ATmin_MO, 'verb_between_ATmax_MO': verb_between_ATmax_MO,
-                                                 'verb_between_ATmin_SG': verb_between_ATmin_SG, 'verb_between_ATmax_SG': verb_between_ATmax_SG,
+                                                 'verb_between_ATmin_SGmin': verb_between_ATmin_SGmin, 'verb_between_ATmax_SGmin': verb_between_ATmax_SGmin,
+                                                 'verb_between_ATmin_SGmax': verb_between_ATmin_SGmax, 'verb_between_ATmax_SGmax': verb_between_ATmax_SGmax,
                                                  'max_sent_ATidx': max_sent_ATidx, 'min_sent_ATidx': min_sent_ATidx,
                                                  'max_sent_BDidx': max_sent_BDidx, 'min_sent_BDidx': min_sent_BDidx,
                                                  'max_sent_BOidx': max_sent_BOidx, 'min_sent_BOidx': min_sent_BOidx,
                                                  'max_sent_MOidx': max_sent_MOidx, 'min_sent_MOidx': min_sent_MOidx,
                                                  'max_sent_SGidx': max_sent_SGidx, 'min_sent_SGidx': min_sent_SGidx})
 
-possible_evidence_instances.to_csv("possible_evidence_instances.csv", index=False)
+possible_evidence_instances.replace({'NaN': -100}, regex=False, inplace=True)
+
+
+possible_evidence_instances.to_csv("possible_evidence_instances4.csv", index=False)
 # #
 print("Nr of unique articles contributing evidence: ",len(set(possible_evidence_instances['DOI'])))
