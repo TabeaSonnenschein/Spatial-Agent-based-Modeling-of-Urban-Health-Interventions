@@ -8,11 +8,11 @@ Date: 16/06/2022
 ---
 ---
 
-##### Steps
+#### Steps
 
 1) download bibliometrics of articles identified by the querying of the scientific database (e.g. Web of Science)
 
-2) use script "2_CrossRef_XML_mining.py" to apply the Crossref and Elsevier API to download XML of articles that have it and Pdf links for the rest. 
+2) use script ["2_CrossRef_XML_mining.py"](https://github.com/TabeaSonnenschein/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/blob/main/NLP%20Knowledge%20Extraction%20and%20Synthesis/02_CrossRef_XML_mining.py) to apply the Crossref and Elsevier API to download XML of articles that have it and Pdf links for the rest. 
 
 3) after downloading all pdf's, use "3_PdfToText.py" to extract the text from the Pdf documents and substitute bbreviations with the full names of what they represents.
 
