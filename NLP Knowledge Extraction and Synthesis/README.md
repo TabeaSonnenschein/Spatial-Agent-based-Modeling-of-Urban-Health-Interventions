@@ -23,4 +23,6 @@ Date: 16/06/2022
 
 10) use "10_syntactical_relation_learning_model.py" to apply a machine learning model to the syntactical feauture created in the previous step and infer the evidence relation truthfulness of the variable combinations. The script uses Random Forest as a default since it produced the best results but it can also use other classification models from the package sklearn. A F1 score and accuracy value will be also calculated. As an output the total dataset of possible evidence relations with the predicted truthfullness will be saved, but also a dataset with only the true evidence relations. The latter is what we will use for the last steps of the method. This is the extracted knowledge of the literature.
 
-11) 
+11) use "11_classify_association_types.py" to classify the association type phrases into significant, insignificant, consistent, inconsistent, postive, negative, correlated. Then drop the dublicate association types.
+
+12)  
