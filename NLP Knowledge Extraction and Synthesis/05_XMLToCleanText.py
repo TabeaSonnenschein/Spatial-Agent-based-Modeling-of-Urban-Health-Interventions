@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import re
-from FindingAndReplacingAbbreviations import FindNReplaceAbbr, FindAbbrev
+from utils.FindingAndReplacingAbbreviations import FindNReplaceAbbr, FindAbbrev
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults\xml")
 listOfFiles = os.listdir(path='C:/Users/Tabea/Documents/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/CrossrefResults/xml')

@@ -1,5 +1,4 @@
 import string
-
 import PyPDF2
 import os
 import pandas as pd
@@ -137,7 +136,9 @@ for file in listOfFiles:
                                           ("Th ending", "The finding"), ("th ending", "the finding"), ("The sending s", "These findings"), ("the sending s", "these findings"), ("specie d ", "specified"), ("conde n ce", "confidence"), (" nal ", " final "),
                                           ("aside n tied", "as identified"), ("ide n tied", "identified"), ("in ten t", "intent "), ("lassic ation", "lassification"), ("afixed", "a fixed"), ("aggregate deffect", "aggregated effect"),
                                           ("ident ies", "identifies"), ("specific ally", "specifically"), (" a ect ", " affect "), (" gur es ", " Figures "), ("s u er", " suffer"), ("con r med", "confirmed"), ("aec ted", "affected"),
-                                          ("conic ting", "conflicting"), ("rearm", "reaffirm"), ("chau eu ring", "chauffeuring"), (" con text", " context"), ("in ue nti a l", "influential "), ("classic ation", "classification")]
+                                          ("conic ting", "conflicting"), ("rearm", "reaffirm"), ("chau eu ring", "chauffeuring"), (" con text", " context"), ("in ue nti a l", "influential "), ("classic ation", "classification"),
+                                          ("? ex i bil it y", "flexibility"), ("ident i ? cation", "identification"), ("car pool er", "carpooler"), ("just i ? abl", "justifiabl"), ("class i ? cat", "classificat"),
+                                          ("M ov ability", "Movability"), ("random is ed", "randomised")]
                             for a, b in finalsliff:
                                 clean_sentence = clean_sentence.replace(a, b).strip()
                                 fullnames = [name.replace(a, b) for name in fullnames]

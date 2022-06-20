@@ -2,14 +2,15 @@ pkgs = c("stringr", "mgsub")
 # sapply(pkgs, install.packages, character.only = T) #install packages if necessary
 sapply(pkgs, require, character.only = T) #load 
 
-setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper")
+setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/modalchoice literature search")
 ref_data = read.csv("search5_reference_data.csv")
 
-length(which(!is.na(str_extract(ref_data$ï..input, "^file*"))))
+len= length(which(!is.na(str_extract(ref_data$ï..input, "^file*"))))
 
-ref_data_clean = as.data.frame(matrix(nrow = 214, ncol = 14))
+ref_data_clean = as.data.frame(matrix(nrow = len, ncol = 14))
 colnames(ref_data_clean)= c("article_id", "doc_type", "title", "abstract", "author", "doi", "file", "issn", "journal", "keywords", "number", "pages", "volume", "year")
 endings = which(!is.na(str_extract(ref_data$ï..input, "^\\}")))
+
 
 ref_data_clean$article_id = ref_data$ï..input[c(1,(endings[1:(length(endings)-1)] +1))]
 ref_data_clean$doc_type[which(!is.na(str_extract(ref_data_clean$article_id, "@article*")))] = "article"
@@ -74,7 +75,7 @@ ref_data_clean = read.csv("ref_data5_clean.csv")
 WOS_details = read.csv("WOS_references_search5_metareviews.csv")
 colnames(WOS_details)[1] = "doi"
 reference_details= merge(WOS_details, ref_data_clean, by = "doi")
-write.csv(reference_details, "metareview_details.csv")
+write.csv(reference_details, "metareview_details2.csv", row.names = F)
 
 reference_details_short = reference_details[, c( "doi", "citation", "Publication.Year", "Source.Title", "Article.Title")]
 reference_details_short = WOS_details[, c( "doi", "citation", "Publication.Year", "Source.Title", "Article.Title")]

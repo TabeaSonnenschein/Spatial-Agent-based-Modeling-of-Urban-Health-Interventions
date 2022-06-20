@@ -34,7 +34,8 @@ def extendInfofromTitleAbstract(articlesdata, fulllabeledtext, evidenceinstance_
             longest_BO = max(BO_inTitle, key=len)
             if all(True for elm in BO_inTitle if elm in longest_BO):
                 BO_inTitle = [longest_BO]
-        evidenceinstance_df['NrTitleBOappears'].iloc[evidence_data_idx] = len([i for i in fulllabeledtext['BehaviorOption'].iloc[labeled_words_idx] if [i] == BO_inTitle])
+        if len(BO_inTitle) > 0:
+            evidenceinstance_df['NrTitleBOappears'].iloc[evidence_data_idx] = len([i for i in fulllabeledtext['BehaviorOption'].iloc[labeled_words_idx] if BO_inTitle[0] in str(i)])
         evidenceinstance_df['BehavOptionsInTitle'].iloc[evidence_data_idx] = " ; ".join(BO_inTitle)
         abstract = article_data['abstract'].iloc[article_data_idx].to_string().lower()
         evidenceinstance_df['Abstract'].iloc[evidence_data_idx] = abstract
@@ -89,11 +90,37 @@ def find_lastBO_for_missing_BO_info(fulllabeledtext, evidenceinstance_df):
     return evidenceinstance_df
 
 def select_correct_imputation(evidenceinstance_df):
+    evidenceinstance_df[["BOimputed", "SGimputed"]] = ""
     for count, value in enumerate(evidenceinstance_df['BehaviorOption']):
         if value == "-100":
-            if evidenceinstance_df['BehavOptionsInTitle'].iloc[count] == evidenceinstance_df['last_BO'].iloc[count]:
-                evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['BehavOptionsInTitle'].iloc[count]
-            # elif
+            if len(evidenceinstance_df['BehavOptionsInTitle'].iloc[count]) > 0:
+                if ((evidenceinstance_df['BehavOptionsInTitle'].iloc[count] == evidenceinstance_df['last_BO'].iloc[count]) |
+                    (evidenceinstance_df['BehavOptionsInTitle'].iloc[count] in evidenceinstance_df['Fullsentence'].iloc[count])):
+                    evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['BehavOptionsInTitle'].iloc[count]
+                    evidenceinstance_df["BOimputed"].iloc[count] = 1
+                elif ((evidenceinstance_df['BehavOptionsInTitle'].iloc[count] in evidenceinstance_df['last_BO'].iloc[count]) & (evidenceinstance_df['sent_distance_lastBO'].iloc[count] <3)):
+                    evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['last_BO'].iloc[count]
+                    evidenceinstance_df["BOimputed"].iloc[count] = 1
+                elif ((evidenceinstance_df['last_BO'].iloc[count] in evidenceinstance_df['BehavOptionsInTitle'].iloc[count]) & (evidenceinstance_df['NrTitleBOappears'].iloc[count] > 20)):
+                    evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['BehavOptionsInTitle'].iloc[count]
+                    evidenceinstance_df["BOimputed"].iloc[count] = 1
+                elif ((evidenceinstance_df['NrTitleBOappears'].iloc[count]  > evidenceinstance_df['NrBO_inArticle'].iloc[count] )| (evidenceinstance_df['NrTitleBOappears'].iloc[count] > 25)):
+                    evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['BehavOptionsInTitle'].iloc[count]
+                    evidenceinstance_df["BOimputed"].iloc[count] = 1
+                elif evidenceinstance_df['sent_distance_lastBO'].iloc[count] <3:
+                    evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['last_BO'].iloc[count]
+                    evidenceinstance_df["BOimputed"].iloc[count] = 1
+            else:
+                if isinstance(evidenceinstance_df['sent_distance_lastBO'].iloc[count], int):
+                    if evidenceinstance_df['sent_distance_lastBO'].iloc[count] < 3:
+                        evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['last_BO'].iloc[count]
+                        evidenceinstance_df["BOimputed"].iloc[count] = 1
+
+    for count, value in enumerate(evidenceinstance_df['Studygroup']):
+        if ((value == "-100") & (evidenceinstance_df['StudyGroupInTitle'].iloc[count] != "")):
+            evidenceinstance_df['Studygroup'].iloc[count] = evidenceinstance_df['StudyGroupInTitle'].iloc[count]
+            evidenceinstance_df["SGimputed"].iloc[count] = 1
+
     return evidenceinstance_df
 
 evidence_instances = extendInfofromTitleAbstract(articlesdata = article_data, fulllabeledtext = labeled_words, evidenceinstance_df= evidence_instances)

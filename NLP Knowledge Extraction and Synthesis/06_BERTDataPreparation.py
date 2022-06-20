@@ -4,13 +4,14 @@ pd.options.mode.chained_assignment = None  # default='warn'
 import numpy as np
 import re
 import nltk
+## when not having downloaded this POS tagger yet, then uncomment
 # nltk.download('averaged_perceptron_tagger')
 
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
 
-# folder_orig, folder_dest = "txtclean", "pdftxt_csvs"
-folder_orig, folder_dest = "xml_extractedtxt", "xml_csvs"
+folder_orig, folder_dest = "txtclean", "pdftxt_csvs"
+# folder_orig, folder_dest = "xml_extractedtxt", "xml_csvs"
 max_words_in_sentence = 100
 
 listOfFiles = os.listdir(path=os.path.join(os.getcwd(), folder_orig))
