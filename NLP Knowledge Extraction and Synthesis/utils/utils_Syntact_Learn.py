@@ -9,7 +9,9 @@ def find_indices_words_in_sentence(entity_list, fullsentence):
     indx = -1
     entity_indices = []
     for entity in entity_list:
-        candidates = [(m.start()+1) for m in re.finditer((" " + entity + " "), (" " + fullsentence + " ")) if (m.start()+1) > indx][0]
+        # print(fullsentence)
+        # print(entity_list, entity, indx)
+        candidates = [(m.start()+1) for m in re.finditer(re.escape(" " + entity + " "), (" " + fullsentence + " ")) if m.start()>= indx][0]
         entity_indices.extend([candidates])
         indx = max(entity_indices)
     return entity_indices

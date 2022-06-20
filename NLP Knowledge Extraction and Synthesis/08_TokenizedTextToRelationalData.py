@@ -3,7 +3,7 @@ from typing import List, Any
 import pandas as pd
 import numpy as np
 import nltk
-import utils.TokentoRelatUtils
+from utils.TokentoRelatUtils import *
 
 ############ Abbreviation list
 ## ST = study, BD = Behavior Determinant, BO = Behavior Choice Option, AT = Association Type, SG = Study Group, MO = Moderator
