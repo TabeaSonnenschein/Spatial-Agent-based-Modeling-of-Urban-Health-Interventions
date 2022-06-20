@@ -303,7 +303,7 @@ for _ in trange(epochs, desc="Epoch"):
     accuracy_values.append(accuracy_score(pred_tags, valid_tags))
     print()
 
-output_model = ('C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/model_' + str(epochs) + '.bin')
+output_model = ('C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/modelfinal_' + str(epochs) + '.bin')
 torch.save(model.state_dict(),output_model)
 
 # Visualize the training loss
@@ -333,7 +333,7 @@ plt.legend(bbox_to_anchor=(1.02, 1),  borderaxespad=0) # legend in upper right c
 # plt.legend(loc='center right') # legend in center right
 # plt.legend(loc='best', bbox_to_anchor=(0.6, 0.6, 0.4, 0.3))
 plt.tight_layout()
-plt.savefig("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_bs"+str(bs)+"_ep"+str(epochs)+ "_lr"+ str(learning_rate)+ "_art"+ str(nr_articles_labeled)+".png",
+plt.savefig("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_final_bs"+str(bs)+"_ep"+str(epochs)+ "_lr"+ str(learning_rate)+ "_art"+ str(nr_articles_labeled)+".png",
             dpi=350)
 plt.show()
 
