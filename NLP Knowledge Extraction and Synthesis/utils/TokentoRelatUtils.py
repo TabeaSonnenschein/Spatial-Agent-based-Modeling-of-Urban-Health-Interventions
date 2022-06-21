@@ -142,6 +142,22 @@ def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
             dataframe['Tag'].iloc[open_slash] = Tagname
             open_slash = [i+1 for i in label_indices if (dataframe['Word'].iloc[i] == '/') and (i+1 not in label_indices)]
             dataframe['Tag'].iloc[open_slash] = Tagname
+            y = [i for i in label_indices_post if ((dataframe['POS'].iloc[i-1] in ["JJ", "JJS"]) or (
+                        "," in dataframe['Word'].iloc[i-3:i])) and (dataframe['Word'].iloc[i] in ["and", "or"]) and (dataframe['Tag'].iloc[i+1] == Tagname)]
+            dataframe['Tag'].iloc[y] = Tagname
+            y = [i for i in label_indices_post if (dataframe['POS'].iloc[i - 1] in ["NN", "NNS"]) and (dataframe['Word'].iloc[i] in ["and", "or"]) and (
+                             dataframe['Tag'].iloc[i + 1] == Tagname) and (((
+                             dataframe['Tag'].iloc[i + 2] == Tagname) and (dataframe['Tag'].iloc[i-2] != Tagname)) or ((
+                             dataframe['Tag'].iloc[i - 2] == Tagname) and (dataframe['Tag'].iloc[i+2] != Tagname)))]
+            dataframe['Tag'].iloc[y] = Tagname
+            y = [i for i in label_indices_post if (
+                        "," in dataframe['Word'].iloc[i-3:i]) and ((
+                        "," in dataframe['Word'].iloc[i+1:i+4]) or (
+                        "." in dataframe['Word'].iloc[i+1:i+4])) and (dataframe['Word'].iloc[i] in ["and", "or"]) and (
+                             dataframe['Tag'].iloc[i + 1] == Tagname) and ((
+                             dataframe['Tag'].iloc[i + 2] == Tagname) or (
+                             dataframe['Tag'].iloc[i - 2] == Tagname))]
+            dataframe['Tag'].iloc[y] = Tagname
     return dataframe
 
 def extendAssociationTypesToNeighboringAdjectNegatives(dataframe):
