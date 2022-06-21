@@ -32,4 +32,4 @@ The purpose of the method is to **extract and synthesise knowledge** about behav
 
 11) use ["11_classify_association_types.py"](https://github.com/TabeaSonnenschein/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/blob/main/NLP%20Knowledge%20Extraction%20and%20Synthesis/11_classify_association_types.py) to classify the association type phrases into significant, insignificant, consistent, inconsistent, postive, negative, correlated. Then drop the dublicate association types.
 
-12)  
+12)  use ["12_ExtractingInfoOfTitleAbstract.py"]() to impute the missing behavior options from the title of the article or the last mentioned behavior option. Moreover, studygroups that are mentioned in the title are assigned to all findings.
