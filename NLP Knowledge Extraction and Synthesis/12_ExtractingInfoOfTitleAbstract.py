@@ -99,8 +99,14 @@ def select_correct_imputation(evidenceinstance_df):
                     evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['BehavOptionsInTitle'].iloc[count]
                     evidenceinstance_df["BOimputed"].iloc[count] = 1
                 elif ((evidenceinstance_df['BehavOptionsInTitle'].iloc[count] in evidenceinstance_df['last_BO'].iloc[count]) & (evidenceinstance_df['sent_distance_lastBO'].iloc[count] <3)):
-                    evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['last_BO'].iloc[count]
-                    evidenceinstance_df["BOimputed"].iloc[count] = 1
+                    if ";" in evidenceinstance_df['last_BO'].iloc[count]:
+                        BOset = evidenceinstance_df['last_BO'].iloc[count].split(" ; ")
+                        BOset = list(dict.fromkeys([i for i in BOset if evidenceinstance_df['BehavOptionsInTitle'].iloc[count] in i]))
+                        if len(BOset) == 1:
+                            evidenceinstance_df['BehaviorOption'].iloc[count] = BOset[0]
+                    else:
+                        evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['last_BO'].iloc[count]
+                        evidenceinstance_df["BOimputed"].iloc[count] = 1
                 elif ((evidenceinstance_df['last_BO'].iloc[count] in evidenceinstance_df['BehavOptionsInTitle'].iloc[count]) & (evidenceinstance_df['NrTitleBOappears'].iloc[count] > 20)):
                     evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['BehavOptionsInTitle'].iloc[count]
                     evidenceinstance_df["BOimputed"].iloc[count] = 1
@@ -108,8 +114,25 @@ def select_correct_imputation(evidenceinstance_df):
                     evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['BehavOptionsInTitle'].iloc[count]
                     evidenceinstance_df["BOimputed"].iloc[count] = 1
                 elif evidenceinstance_df['sent_distance_lastBO'].iloc[count] <3:
-                    evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['last_BO'].iloc[count]
-                    evidenceinstance_df["BOimputed"].iloc[count] = 1
+                    if ";" in evidenceinstance_df['last_BO'].iloc[count]:
+                        BOset = evidenceinstance_df['last_BO'].iloc[count].split(" ; ")
+                        print(BOset)
+                        one = list(dict.fromkeys([i for i in BOset if (i in evidenceinstance_df['BehaviorOption'].iloc[count-1]) or (i in evidenceinstance_df['BehaviorOption'].iloc[count+1]) or (str(evidenceinstance_df['BehaviorOption'].iloc[count-1]) in i) or (str(evidenceinstance_df['BehaviorOption'].iloc[count+1]) in i)]))
+                        print(one)
+                        if len(one) == 1:
+                            evidenceinstance_df['BehaviorOption'].iloc[count] = one[0]
+                        elif len(one) > 1:
+                            evidenceinstance_df['BehaviorOption'].iloc[count] = min(one, key=len)
+                        else:
+                            one = [i for i in one if any(True for x in one if x in i)]
+                            if len(one) == 1:
+                                evidenceinstance_df['BehaviorOption'].iloc[count] = one[0]
+                            one = list(dict.fromkeys([i for i in BOset if i in evidenceinstance_df['BehaviorOption'].iloc[count-5:count+5]]))
+                            if len(one) == 1:
+                                evidenceinstance_df['BehaviorOption'].iloc[count] = one[0]
+                    else:
+                        evidenceinstance_df['BehaviorOption'].iloc[count] = evidenceinstance_df['last_BO'].iloc[count]
+                        evidenceinstance_df["BOimputed"].iloc[count] = 1
             else:
                 if isinstance(evidenceinstance_df['sent_distance_lastBO'].iloc[count], int):
                     if evidenceinstance_df['sent_distance_lastBO'].iloc[count] < 3:
