@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="4bdd97ee-597a-4c5d-9f7d-bc7c166bf4a3" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/08_TokenizedTextToRelationalData.py" beforeDir="false" afterPath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/08_TokenizedTextToRelationalData.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/09_syntactical_relation_learning_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/09_syntactical_relation_learning_preparation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/11_classify_association_types.py" beforeDir="false" afterPath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/11_classify_association_types.py" afterDir="false" />
-    </list>
+    <list default="true" id="4bdd97ee-597a-4c5d-9f7d-bc7c166bf4a3" name="Changes" comment="x" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -33,6 +29,29 @@
       <option name="presentableId" value="Default" />
       <updated>1655804752637</updated>
     </task>
+    <task id="LOCAL-00001" summary="x">
+      <created>1655805264709</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1655805264709</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="x" />
+    <option name="LAST_COMMIT_MESSAGE" value="x" />
   </component>
 </project>
