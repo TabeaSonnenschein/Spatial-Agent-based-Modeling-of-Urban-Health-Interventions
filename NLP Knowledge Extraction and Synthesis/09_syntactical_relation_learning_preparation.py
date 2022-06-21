@@ -1,12 +1,5 @@
 import os
-from typing import List, Any
-import re
-import pandas as pd
-import numpy as np
-from itertools import chain
 import spacy
-import deplacy
-from spacy.lang.en.examples import sentences
 en = spacy.load('en_core_web_sm')
 from spacy import displacy
 from utils.utils_Syntact_Learn import *

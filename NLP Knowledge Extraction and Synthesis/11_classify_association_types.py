@@ -57,6 +57,8 @@ evidence_instances["complete"] = 1
 for i in range(1, len(evidence_instances)):
     if all([True if x == None else False for x in list(evidence_instances.iloc[i, -5:-1])]):
         evidence_instances["complete"].iloc[i] = 0
+    ### here I could add a filter that removes
+    ### all evidence instances that are within a question or contain whether
 
 evidence_instances = evidence_instances[evidence_instances["complete"] == 1].iloc[:,:-1]
 evidence_instances.drop("AssociationType", axis = 1, inplace = True)
