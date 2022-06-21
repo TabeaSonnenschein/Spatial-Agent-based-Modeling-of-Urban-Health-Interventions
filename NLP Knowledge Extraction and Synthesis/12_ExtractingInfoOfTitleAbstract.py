@@ -130,3 +130,5 @@ evidence_instances = select_correct_imputation(evidenceinstance_df = evidence_in
 csv = os.path.join(os.getcwd(), ("unique_evidence_instances_interpolatingMissinginfo.csv"))
 evidence_instances.to_csv(csv, index=False)
 
+csv = os.path.join(os.getcwd(), ("unique_evidence_instances_clean.csv"))
+evidence_instances.iloc[:, :11].to_csv(csv, index=False)
