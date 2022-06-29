@@ -6,8 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="4bdd97ee-597a-4c5d-9f7d-bc7c166bf4a3" name="Changes" comment="x">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/12_ExtractingInfoOfTitleAbstract.py" beforeDir="false" afterPath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/12_ExtractingInfoOfTitleAbstract.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/utils/TokentoRelatUtils.py" beforeDir="false" afterPath="$PROJECT_DIR$/NLP Knowledge Extraction and Synthesis/utils/TokentoRelatUtils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
