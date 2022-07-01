@@ -1,10 +1,17 @@
 ####### Preparing stratified datasets
-# crosstabular stratified format to single sided variable combination format
 
-# nrow_var = number of rows corresponding to variable names 
-# ncol_var = number of columns corresponding to variable names 
-
-
+#' @title Crosstabular Stratified Format to Single Sided Variable Combination Format
+#' @description In order to facilitate the data preparation, this function can transform any stratified dataset structure in terms of number of row variables and column variable combinations into a dataset structure of all variable combinations as columns in the left and a single "counts" column on the right.
+#' @param df The stratified dataset that you want to process
+#' @param nrow_var number of rows corresponding to variable names
+#' @param ncol_var number of columns corresponding to variable names
+#' @param row_var_names The variable names that you want to use to describe the variables in the rows. This will be used as variable column name for the output dataset.The order needs to be from top row to lower row variables.
+#' @param col_var_names The variable names that you want to use to describe the variables in the columns. This will be used as variable column name for the output dataset. The order needs to be from left column to right column variables.
+#'
+#' @return Returns a processed stratefied dataframe with all variables as columns on the left. There will be all unique variable combinations. Additionally there will be the counts variable that shows how many people there are for the respective variable combination.
+#' @examples
+#'
+#' @export
 crosstabular_stratfieddf_to_singleside_df =  function(df, nrow_var, ncol_var, row_var_names, col_var_names){
   len_rowvar_combi = ncol(df) - ncol_var # how many classes of the row variables are there
   len_colvar_combi = nrow(df) - nrow_var # how many classes of the column variables are there
@@ -32,16 +39,18 @@ crosstabular_stratfieddf_to_singleside_df =  function(df, nrow_var, ncol_var, ro
 }
 
 # this function restructures the dataframe so that the classes of one column/variable are seperate columns
-restructure_one_var_marginal = function(df, variable){
+restructure_one_var_marginal = function(df, variable, countsname){
   classes = unique(df[,c(variable)])
-  restColumns = colnames(df)[(colnames(df) != variable) & (colnames(df) != "counts")]
-  df_new = unique(df[, c(restColumns)])
+  restColumns = colnames(df)[(colnames(df) != variable) & (colnames(df) != countsname)]
+  df_new = unique(as.data.frame(df[, c(restColumns)]))
+  colnames(df_new) = restColumns
   for(x in classes){
-    df_new[, c(x)] = as.numeric(df[df[,c(variable)] == x, "counts"])
+    df_new[, c(x)] = as.numeric(df[df[,c(variable)] == x, c(countsname)])
   }
   df_new[,c("total")] = rowSums(df_new[,c(classes)])
   return(df_new)
 }
+
 
 
 ## this function creates a stratified probability table from single attribute propensities
@@ -64,7 +73,7 @@ create_stratified_prob_table = function(nested_cond_attr_list, column_names, ori
       }
       new_strat_df[,i] = rep(var_comb, times = prod(attr_length)/prod(attr_length[(i):ncondVar]))
     }
-    
+
   }
   colnames(new_strat_df) = c(column_names, paste("prop_",var_for_pred, sep = ""))
   if(missing(total_population)){
