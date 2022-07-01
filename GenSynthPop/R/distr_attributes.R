@@ -1,14 +1,14 @@
 
-####### distributing attributes across agent population based on conditional proabilities and neighborhood totals 
+####### distributing attributes across agent population based on conditional proabilities and neighborhood totals
 
 ### EXPLANATION
 # This function distributes attribute classes in the agent population based on the conditional propensities and the neighborhood statistics
 # agent_df = Dataframe of the unique agents with their attributes
-# neigh_df = Dataframe of aggregate statistical data per neighborhood, specifically the total population 
+# neigh_df = Dataframe of aggregate statistical data per neighborhood, specifically the total population
 # per neighborhood and the counts per variable class.
 # variable = the new variable that we want to add based on the stratified and neighborhood marginal distributions
-# list_var_classes_neigh_df = a list of the column names in the Neighborhood dataset with 
-# the classes of the variable that will be modeled (e.g. c("Men", "Women", "Non-Binary"), which are the classes of sex). 
+# list_var_classes_neigh_df = a list of the column names in the Neighborhood dataset with
+# the classes of the variable that will be modeled (e.g. c("Men", "Women", "Non-Binary"), which are the classes of sex).
 # list_agent_propens = A list of the columns in the agent dataset that contain the propensities for the classes of the variable based on the other agents conditional attributes.
 # This list has to be in the same order as the list_var_classes_neigh_df, but can leave out the last propensity as it is 1 minus the other propensities.
 # The list_class_names is optional and contains the values that the new created agent variable should have for the different variable classes.
@@ -18,6 +18,22 @@
 
 ## distr_bin_attr_strat_n_neigh_stats is for binary attributes
 
+#' @title Distributing attributes across agent population based on conditional proabilities and neighborhood totals for binary attributes
+#' @description  This function distributes attribute classes in the agent population based on the conditional propensities and the neighborhood statistics. It uses random scores and sees if the score is below the propensity, in which case the first attribute is assigned, if above the second attribute is assigned. Consequently, the attribute distribution in each neighborhood will be compared to the respective neighborhood's totals. If the distribution is not equal to the neighborhood distributions or has an absolute difference more than one person or 2%, then first random scores will be assigned again, seeing if it results in a fitting distribution. If that does not work then the propensities of the number of agents equal to the rounded absolute difference of distribution in the neighborhood will be adjusted in the direction of the difference. This happens iteratively with assigning the attribute by setting the propensity in relation to the random score until the desired distribution is achieved.
+#
+#' @param agent_df Dataframe of the unique agents with their attributes
+#' @param neigh_df Dataframe of aggregate statistical data per neighborhood, specifically the total population per neighborhood and the counts per variable class.
+#' @param neigh_ID the columnname that indicates the neighborhood ID in both the agent and neighborhood dataframe
+#' @param variable the new variable that we want to add based on the stratified and neighborhood marginal distributions
+#' @param list_var_classes_neigh_df a list of the column names in the Neighborhood dataset with the classes of the variable that will be modeled (e.g. c("Men", "Women", "Non-Binary"), which are the classes of sex).
+#' @param list_agent_propens A list of the columns in the agent dataset that contain the propensities for the classes of the variable based on the other agents conditional attributes. This list has to be in the same order as the list_var_classes_neigh_df. Since we are dealing with a binary attribute, we can leave out the last propensity as it is 1 minus the other propensities.
+#' @param list_class_names The list_class_names is optional and contains the values that the new created agent variable should have for the different variable classes. It has to be in the same order and of the same length as the list_var_classes_neigh_df. If left empty, the list_var_classes_neigh_df will become the default values for the classes.
+#' @param agent_exclude an optional variable containing one or multiple variable names of the agent dataset on which basis agents should be excluded from the attribute assignment. These variables whould be binary columns, with 1 indicating that it should be excluded (e.g. "is_child" could be entered if agents with is_child = 1 should be exluded for the new attribute).
+#'
+#' @return returns the agent df with the newly distributed attribute and the random score, which is used to see if it is below or above the propensity.
+#' @export
+#'
+#' @examples
 distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
   print(Sys.time())
   agent_df[, c(variable, "random_scores")] = 0
@@ -127,7 +143,7 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
           }
         }
       }
-    } 
+    }
     print(paste("neighborhood:", i))
   }
   random_seq = sample(nrow(agent_df))
@@ -136,7 +152,22 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
   return(agent_df)
 }
 
-## distr_attr_strat_n_neigh_statsis for attributes with three or more values
+#' @title Distributing attributes across agent population based on conditional proabilities and neighborhood totals for attributes with 3 or more classes
+#' @description  This function distributes attribute classes in the agent population based on the conditional propensities and the neighborhood statistics. It uses random scores and sees if the score is below the propensity, in which case the first attribute is assigned, if above the second attribute is assigned. Consequently, the attribute distribution in each neighborhood will be compared to the respective neighborhood's totals. If the distribution is not equal to the neighborhood distributions or has an absolute difference more than one person or 2%, then first random scores will be assigned again, seeing if it results in a fitting distribution. If that does not work then the propensities of the number of agents equal to the rounded absolute difference of distribution in the neighborhood will be adjusted in the direction of the difference. This happens iteratively with assigning the attribute by setting the propensity in relation to the random score until the desired distribution is achieved.
+#
+#' @param agent_df Dataframe of the unique agents with their attributes
+#' @param neigh_df Dataframe of aggregate statistical data per neighborhood, specifically the total population per neighborhood and the counts per variable class.
+#' @param neigh_ID the columnname that indicates the neighborhood ID in both the agent and neighborhood dataframe
+#' @param variable the new variable that we want to add based on the stratified and neighborhood marginal distributions
+#' @param list_var_classes_neigh_df a list of the column names in the Neighborhood dataset with the classes of the variable that will be modeled (e.g. c("Men", "Women", "Non-Binary"), which are the classes of sex).
+#' @param list_agent_propens A list of the columns in the agent dataset that contain the propensities for the classes of the variable based on the other agents conditional attributes. This list has to be in the same order as the list_var_classes_neigh_df. We can leave out the last propensity as it is 1 minus the other propensities.
+#' @param list_class_names The list_class_names is optional and contains the values that the new created agent variable should have for the different variable classes. It has to be in the same order and of the same length as the list_var_classes_neigh_df. If left empty, the list_var_classes_neigh_df will become the default values for the classes.
+#' @param agent_exclude an optional variable containing one or multiple variable names of the agent dataset on which basis agents should be excluded from the attribute assignment. These variables whould be binary columns, with 1 indicating that it should be excluded (e.g. "is_child" could be entered if agents with is_child = 1 should be exluded for the new attribute).
+#'
+#' @return returns the agent df with the newly distributed attribute and the random score, which is used to see if it is below or above the propensity.
+#' @export
+#'
+#' @examples
 distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
   print(Sys.time())
   agent_df[, c(variable, "random_scores")] = 0
@@ -210,7 +241,7 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
               if(length(which(agent_df[x, c(variable)] == list_class_names[1])) >= tot__var_class_neigh[1] & length(which(agent_df[x, c(variable)] == list_class_names[2])) >= tot__var_class_neigh[2] & length(which(agent_df[x, c(variable)] == list_class_names[3])) >= tot__var_class_neigh[3]){
                 fitness = 1
               }
-            }  
+            }
           }
           else if(sum(tot__var_class_neigh) > length(x)){
             percent_diff = c()
@@ -272,7 +303,7 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
                 }
                 # else{
                 #   agent_df[x, c("random_scores")] = sample(x= seq(from= 0, to = 1, by= 0.01), size = length(x), replace = T)
-                # } 
+                # }
               }
             }
           }
@@ -281,7 +312,7 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
           print("use binary attribute function: distr_bin_attr_strat_n_neigh_stats() ")
         }
       }
-    } 
+    }
     print(paste("neighborhood:", i))
   }
   random_seq = sample(nrow(agent_df))

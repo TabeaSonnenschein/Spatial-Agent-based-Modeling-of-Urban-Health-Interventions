@@ -39,6 +39,15 @@ crosstabular_stratfieddf_to_singleside_df =  function(df, nrow_var, ncol_var, ro
 }
 
 # this function restructures the dataframe so that the classes of one column/variable are seperate columns
+#' @title Restructures a single-sided stratified dataframe so that the classes of one column/variable of interest are seperate columns
+#' @description This function takes a single-sided stratified dataframe, such as the output of the crosstabular_stratfieddf_to_singleside_df function and restructures it as such that the unique classes of one variable of interest (any of the variablecolumns), will become seperate columns. Hence the output will be a dataframe of all variable combinations excluding the variable of interest and the marginal distributions of the variable combinations along the classes of the variable of interest.
+#' @param df The original stratified dataframe with all varable combinations as columns on the left side.
+#' @param variable The variable of interest, for which on wants to generate seperate columns of the subclasses.
+#' @param countsname The columnname of the column in the original datafram, which indicates the counts for all variable combinations.
+#'
+#' @return the output will be a dataframe of all variable combinations excluding the variable of interest and the marginal distributions of the variable combinations along the classes of the variable of interest.
+#' @examples
+#' @export
 restructure_one_var_marginal = function(df, variable, countsname){
   classes = unique(df[,c(variable)])
   restColumns = colnames(df)[(colnames(df) != variable) & (colnames(df) != countsname)]
@@ -54,7 +63,19 @@ restructure_one_var_marginal = function(df, variable, countsname){
 
 
 ## this function creates a stratified probability table from single attribute propensities
-
+#' @title Creates a stratified probability table from single attribute propensities
+#' @description This function
+#' @param nested_cond_attr_list
+#' @param column_names
+#' @param orig_df
+#' @param strat_var
+#' @param var_for_pred
+#' @param total_population
+#'
+#' @return
+#' @export
+#'
+#' @examples
 create_stratified_prob_table = function(nested_cond_attr_list, column_names, orig_df, strat_var, var_for_pred, total_population){
   ncondVar = length(column_names)
   attr_length = c()
