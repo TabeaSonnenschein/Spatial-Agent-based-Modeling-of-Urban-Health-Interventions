@@ -1,0 +1,51 @@
+
+
+df = read.csv2("Bevoelkerung100M.csv")
+unique(df$Merkmal)
+#  " INSGESAMT"      "ALTER_KURZ"      "FAMSTND_AUSF"
+# "GEBURTLAND_GRP"  "GESCHLECHT"      "RELIGION_KURZ"
+# "STAATSANGE_GRP"  "STAATSANGE_HLND" "STAATSANGE_KURZ" "STAATZHL"
+# "ALTER_10JG"      "RTLAND_GRP"
+
+migr = df[df$Merkmal == "STAATSANGE_KURZ",]
+neigh_stats[,c("neighb_code")] = as.character(neigh_stats[,c("neighb_code")])
+augsburg_codes = unique(neigh_stats$neighb_code)
+colnames(migr)[1] = "neighb_code"
+colnames(neigh_stats)[2] = "neighb_code"
+
+migr = migr[order(migr$neighb_code),]
+write.csv(migr, "migr_allgrids.csv",row.names = F)
+migr = read.csv("migr_allgrids.csv")
+
+x = as.data.frame(table(migr$neighb_code))
+completegrids = x[x$Freq > 1, 1]
+migr_compl = migr[which(migr$neighb_code %in% completegrids),]
+migr_compl = migr_compl[,c("neighb_code", "Auspraegung_Text", "Anzahl")]
+colnames(migr_compl) = c("neighb_code", "migrationbackground", "counts")
+migr_compl= restructure_one_var_marginal(migr_compl, "migrationbackground", "counts")
+
+write.csv(migr_compl, "migrgrid_complete.csv",row.names = F)
+migr_compl = read.csv("migrgrid_complete.csv")
+
+
+typeof(migr_compl$neighb_code)
+typeof(neigh_stats$neighb_code)
+
+migr_compl$neighb_code= trimws(migr_compl$neighb_code)
+neigh_stats$neighb_code= trimws(neigh_stats$neighb_code)
+
+migr[which(migr$neighb_code %in% augsburg_codes),]
+which(as.character(migr_compl$neighb_code) %in% as.character(augsburg_codes))
+migr_compl_select = merge(migr_compl, neigh_stats[,c("neighb_code", "pop")], by.x = "neighb_code", by.y = "neighb_code", all.x = F )
+
+
+migr[,c("neighb_code")]
+augsburg_codes[1]
+neigh_stats[,c("neighb_code")]
+which(migr$neighb_code == augsburg_codes[1])
+migr$neighb_code[1]
+
+
+
+
+
