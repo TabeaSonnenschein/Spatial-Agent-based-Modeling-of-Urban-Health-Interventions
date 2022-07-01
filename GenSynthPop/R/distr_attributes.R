@@ -326,6 +326,18 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
 
 #### assigning attributes purely based on conditional probabilities
 
+#' @title Assigning Attributes purely based on conditional probabilities
+#' @description Sometimes there are no marginal distributions for the neighborhood available for certain variable that we want to join to the agent dataframe. For these cases this function can be used to assign variables solely based on the conditional propensities (the likelihood to have a certain attribute because of other attributes). Conditional propensity does not require causal direction, but can be purely based on statistical correlation in a place for a group of people.
+#' @param agent_df Dataframe of the unique agents with their attributes
+#' @param variable the new variable that we want to add based on the stratified and neighborhood marginal distributions
+#' @param list_agent_propens A list of the columns in the agent dataset that contain the propensities for the classes of the variable based on the other agents conditional attributes. This list has to be in the same order as the list_var_classes_neigh_df. We can leave out the last propensity as it is 1 minus the other propensities.
+#' @param list_class_names The list_class_names is optional and contains the values that the new created agent variable should have for the different variable classes. It has to be in the same order and of the same length as the list_var_classes_neigh_df. If left empty, the list_var_classes_neigh_df will become the default values for the classes.
+#' @param agent_exclude an optional variable containing one or multiple variable names of the agent dataset on which basis agents should be excluded from the attribute assignment. These variables whould be binary columns, with 1 indicating that it should be excluded (e.g. "is_child" could be entered if agents with is_child = 1 should be exluded for the new attribute).
+
+#' @return Returns the Agent dataframe with the new assigned attribute and the random score used for the assignment.
+#' @export
+#'
+#' @examples
 distr_attr_cond_prop = function(agent_df, variable, list_agent_propens, list_class_names, agent_exclude){
   print(Sys.time())
   agent_df[, c(variable, "random_scores")] = 0
