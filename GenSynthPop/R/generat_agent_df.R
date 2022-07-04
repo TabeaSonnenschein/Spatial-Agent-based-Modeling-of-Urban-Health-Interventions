@@ -9,6 +9,15 @@
 #' @export
 #'
 #' @examples
+#' ## Let us say we want to initiate a synthetic population of Amsterdam,
+#' ## which has a population size of 910 146 as of 2022
+#'
+#' agent_df = gen_agent_df(910146)
+#' print(agent_df)
+#'
+#' ## Because sometimes the sum of total census counts differs to the official overall city population count,
+#' ## it makes sense to use the sum of the population of the first attribute you will add (for example age).
+#'
 gen_agent_df = function(pop_size){
   agent_ID = paste("Agent_",1:pop_size, sep="")
   agent_df = as.data.frame(agent_ID)

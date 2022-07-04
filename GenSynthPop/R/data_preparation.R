@@ -10,9 +10,22 @@
 #'
 #' @return Returns a processed stratefied dataframe with all variables as columns on the left. There will be all unique variable combinations. Additionally there will be the counts variable that shows how many people there are for the respective variable combination.
 #' @examples
+#' # some example mock data
+#' # crosstabular stratified dataframe mock data
+#' row1 = c("age_groups","male","male", "female", "female", "non-binary", "non-binary" )
+#' row2 = c("", "employed", "unemployed", "employed", "unemployed", "employed", "unemployed")
+#' row3 = c("A1", sample(1:400,6))
+#' row4 = c("A2", sample(1:400,6))
+#' row5 = c("A3", sample(1:400,6))
+#' cross_tab_stratified_df = as.data.frame(rbind(row1, row2, row3, row4, row5))
+#'
+#' # function application
+#' ## the number of row variables are 2 (the sex and the employment status), while only age is a column variable, hence ncol_var = 1
+#' singleside_df = crosstabular_to_singleside_df(df = cross_tab_stratified_df, nrow_var = 2, ncol_var = 1, row_var_names = c("sex", "employ_status"), col_var_names = c("age_group"))
+#' print(singleside_df)
 #'
 #' @export
-crosstabular_stratfieddf_to_singleside_df =  function(df, nrow_var, ncol_var, row_var_names, col_var_names){
+crosstabular_to_singleside_df =  function(df, nrow_var, ncol_var, row_var_names, col_var_names){
   len_rowvar_combi = ncol(df) - ncol_var # how many classes of the row variables are there
   len_colvar_combi = nrow(df) - nrow_var # how many classes of the column variables are there
   df_len = len_rowvar_combi * len_colvar_combi
@@ -40,13 +53,25 @@ crosstabular_stratfieddf_to_singleside_df =  function(df, nrow_var, ncol_var, ro
 
 # this function restructures the dataframe so that the classes of one column/variable are seperate columns
 #' @title Restructures a single-sided stratified dataframe so that the classes of one column/variable of interest are seperate columns
-#' @description This function takes a single-sided stratified dataframe, such as the output of the crosstabular_stratfieddf_to_singleside_df function and restructures it as such that the unique classes of one variable of interest (any of the variablecolumns), will become seperate columns. Hence the output will be a dataframe of all variable combinations excluding the variable of interest and the marginal distributions of the variable combinations along the classes of the variable of interest.
+#' @description This function takes a single-sided stratified dataframe, such as the output of the crosstabular_to_singleside_df function and restructures it as such that the unique classes of one variable of interest (any of the variablecolumns), will become seperate columns. Hence the output will be a dataframe of all variable combinations excluding the variable of interest and the marginal distributions of the variable combinations along the classes of the variable of interest.
 #' @param df The original stratified dataframe with all varable combinations as columns on the left side.
 #' @param variable The variable of interest, for which on wants to generate seperate columns of the subclasses.
 #' @param countsname The columnname of the column in the original datafram, which indicates the counts for all variable combinations.
 #'
 #' @return the output will be a dataframe of all variable combinations excluding the variable of interest and the marginal distributions of the variable combinations along the classes of the variable of interest.
 #' @examples
+#' ## generating some example mock data ##
+#' # stratified dataframe mock data, can be output of function: crosstabular_to_singleside_df
+#' age_group = c("A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4")
+#' sex = c("male","male","male","male", "female","female","female","female", "non-binary", "non-binary", "non-binary","non-binary", "male","male","male","male", "female","female","female","female", "non-binary", "non-binary", "non-binary","non-binary")
+#' employ_status = c("employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed")
+#' counts = sample(1:400,length(age_group))
+#' singleside_stratified_df = data.frame(age_group, sex , employ_status, counts)
+#'
+#' # function application
+#' one_var_marginal_df = restructure_one_var_marginal(singleside_stratified_df, "employ_status", "counts")
+#' print(one_var_marginal_df)
+#'
 #' @export
 restructure_one_var_marginal = function(df, variable, countsname){
   classes = unique(df[,c(variable)])

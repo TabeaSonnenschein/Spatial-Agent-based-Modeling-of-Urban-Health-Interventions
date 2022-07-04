@@ -13,8 +13,8 @@
 #' @export
 #'
 #' @examples
-#' # some example mock data
-#' # stratified dataframe
+#' ## generating some example mock data ##
+#' # stratified dataframe mock data
 #' age_group = c("A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4")
 #' sex = c("male","male","male","male", "female","female","female","female", "non-binary", "non-binary", "non-binary","non-binary")
 #' employed = sample(1:400,length(age_group))
@@ -22,14 +22,16 @@
 #' total_pop = employed + unemployed
 #' stratified_df = data.frame(age_group, sex , employed, unemployed, total_pop)
 #'
-#' # agent dataframe
-#' agent_df = as.data.frame(paste("Agent_",1:500, sep="")))
-#' agent_df$age_group = age_group[sample(1,len(age_group), lenght(agent_df))]
-#' agent_df$sex = sex[sample(1,len(age_group), lenght(agent_df))]
+#' # agent dataframe mock data
+#' agent_df = as.data.frame(paste("Agent_",1:500, sep=""))
+#' agent_df$age_group = age_group[sample(1:length(age_group), size = nrow(agent_df), replace = T)]
+#' agent_df$sex = sex[sample(1:length(age_group), size = nrow(agent_df), replace = T)]
 #' colnames(agent_df) = c("agent_id",  "age_group", "sex" )
+#' agent_df = as.data.frame(paste("Agent_",1:500, sep=""))
 #'
 #' # function application
 #' agent_df = calc_propens_agents(stratified_df, "employed", "total_pop", agent_df, c("age_group", "sex"))
+#' print(agent_df$prop_employed)
 #'
 calc_propens_agents = function(dataframe, variable, total_population, agent_df, list_conditional_var){
   if(!missing(total_population)){
