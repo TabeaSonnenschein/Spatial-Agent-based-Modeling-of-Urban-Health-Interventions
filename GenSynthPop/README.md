@@ -5,23 +5,23 @@ This package contains a set of functions that help prepare stratified census dat
 
 ### Overview of functions
 
-###### For Data Preparation
+##### For Data Preparation
 * **crosstabular_to_singleside_df:** Crosstabular Stratified Table to Single Sided Variable Combination - Counts Table
 * **restructure_one_var_marginal:** Restructures a single-sided stratified dataframe so that the classes of one column/variable of interest are seperate columns
 
-###### For Initiating the Agent Dataframe
+##### For Initiating the Agent Dataframe
 * **gen_agent_df:** Generating an agent dataframe of the population size and assigning a unique ID
 
-###### For Conditional Propensity calculation
+##### For Conditional Propensity calculation
 * **calc_propens_agents:** Calculating the conditional propensity to have an attribute based on conditional variables
 * **strat_prop_from_sep_cond_var:** Creates a stratified propensity table from separate conditional variable joint distributions
 
-###### For Attribute Assignment based on conditional and marginal distributions
+##### For Attribute Assignment based on conditional and marginal distributions
 * **distr_attr_cond_prop:** Assigning Attributes purely based on conditional probabilities
 * **distr_attr_strat_n_neigh_stats_3plus:** Distributing attributes across agent population based on conditional proabilities and neighborhood totals for attributes with 3 or more classes
 * **distr_bin_attr_strat_n_neigh_stats:** Distributing attributes across agent population based on conditional proabilities and neighborhood totals for binary attributes
 
-###### For Validation
+##### For Validation
 * **crossvalid:** Cross validation with the neighborhood and stratified marginal distributions
 
 
