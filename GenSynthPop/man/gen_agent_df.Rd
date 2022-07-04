@@ -15,6 +15,22 @@ Returns a new dataframe of len(pop_size) with unique agent_ids.
 \description{
 The function creates a new agent dataframe of an indicated population size to start the building of the synthetic agent population.  Each row in the dataframe represents an individual and is assigned a unique ID. This is basically the agent dataframe scelaton that will be iteratively extended with attribute data based on conditional and marginal distributions of demographics.
 }
+\section{Example output table}{
+\tabular{c}{
+   agent_ID \cr
+   Agent_1 \cr
+   Agent_2 \cr
+   Agent_3 \cr
+   Agent_4 \cr
+   Agent_5 \cr
+   Agent_6 \cr
+   (...) \cr
+}
+
+\subsection{continues until population size. It is just the initiation of the agent_df, as a scelaton to be filled with representative attributes.}{
+}
+}
+
 \examples{
 ## Let us say we want to initiate a synthetic population of Amsterdam,
 ## which has a population size of 910 146 as of 2022

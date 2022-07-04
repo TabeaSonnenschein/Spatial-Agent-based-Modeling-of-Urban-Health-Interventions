@@ -63,9 +63,9 @@ This function takes a single-sided stratified dataframe, such as the output of t
 \examples{
 ## generating some example mock data ##
 # stratified dataframe mock data, can be output of function: crosstabular_to_singleside_df
-age_group = c("A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4")
-sex = c("male","male","male","male", "female","female","female","female", "non-binary", "non-binary", "non-binary","non-binary", "male","male","male","male", "female","female","female","female", "non-binary", "non-binary", "non-binary","non-binary")
-employ_status = c("employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "employed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed", "unemployed")
+age_group = rep(c("A1", "A2", "A3", "A4"), 6)
+sex = rep(c("male", "female", "non-binary"), each = 4)
+employ_status = rep(c("employed", "unemployed"), each = 12)
 counts = sample(1:400,length(age_group))
 singleside_stratified_df = data.frame(age_group, sex , employ_status, counts)
 

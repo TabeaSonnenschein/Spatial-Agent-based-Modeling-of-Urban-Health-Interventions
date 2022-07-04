@@ -7,7 +7,20 @@
 #'
 #' @return Returns a new dataframe of len(pop_size) with unique agent_ids.
 #' @export
+#' @details
+#' # Example output table
+#' | agent_ID |
+#' |:---:|
+#' | Agent_1 |
+#' | Agent_2 |
+#' | Agent_3 |
+#' | Agent_4 |
+#' | Agent_5 |
+#' | Agent_6 |
+#' (...)
 #'
+#' ### continues until population size. It is just the initiation of the agent_df, as a scelaton to be filled with representative attributes.
+#' @md
 #' @examples
 #' ## Let us say we want to initiate a synthetic population of Amsterdam,
 #' ## which has a population size of 910 146 as of 2022

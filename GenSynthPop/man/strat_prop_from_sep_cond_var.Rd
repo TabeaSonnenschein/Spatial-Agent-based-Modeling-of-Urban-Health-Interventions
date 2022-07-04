@@ -45,7 +45,7 @@ This function combines multiple - joint distributions of conditional variables i
 
 }
 
-\subsection{This is the intermediate output table.}{\tabular{cccc}{
+\subsection{This is the output table.}{\tabular{cccc}{
    sex \tab hh_structure \tab prop_employed \tab prop_unemployed \cr
    male \tab single_household \tab 0.4479570 \tab 0.5520430 \cr
    male \tab multi_pers_household \tab 0.3889687 \tab 0.6110313 \cr

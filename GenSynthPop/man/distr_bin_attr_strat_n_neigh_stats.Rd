@@ -38,3 +38,44 @@ returns the agent df with the newly distributed attribute and the random score, 
 \description{
 This function distributes attribute classes in the agent population based on the conditional propensities and the neighborhood statistics. It uses random scores and sees if the score is below the propensity, in which case the first attribute is assigned, if above the second attribute is assigned. Consequently, the attribute distribution in each neighborhood will be compared to the respective neighborhood's totals. If the distribution is not equal to the neighborhood distributions or has an absolute difference more than one person or 2\%, then first random scores will be assigned again, seeing if it results in a fitting distribution. If that does not work then the propensities of the number of agents equal to the rounded absolute difference of distribution in the neighborhood will be adjusted in the direction of the difference. This happens iteratively with assigning the attribute by setting the propensity in relation to the random score until the desired distribution is achieved.
 }
+\examples{
+## generating some example mock data (based on random numbers)
+### agent dataframe mock data ###
+agent_df = as.data.frame(paste("Agent_",1:500, sep=""))
+agent_df$neigh_ID = sample(1:10, size =nrow(agent_df), replace = T)
+agent_df$age_group = c("A1", "A2", "A3", "A4")[sample(1:4, size = nrow(agent_df), replace = T)]
+agent_df$sex = c("female", "male", "non-binary")[sample(1:3, size = nrow(agent_df), replace = T)]
+# the propensity variable this should be the ouput of the "calc_propens_agents" function or the "strat_prop_from_sep_cond_var" if no multi-joint distributions of conditional variable are available and only single conditional variable joint distributions.
+# for illustration purposes it is only a random probability here
+agent_df$prop_employed = sample(x= seq(from= 0, to = 1, by= 0.01), size = nrow(agent_df), replace = T)
+colnames(agent_df) = c("agent_id", "neigh_ID", "age_group", "sex", "prop_employed")
+print(agent_df)
+
+### neighborhood totals dataframe ###
+# since agents have been generated to represent the number of people in a previous step, here the neighborhood totals have to be equal to the count of the number of agents in the neighborhood
+# if it is not exactly equal that is fine, the algorithm can handle that (it is common that in census data the population totals can vary depending on the variable)
+neigh_df = as.data.frame(1:10)
+colnames(neigh_df) = c("neigh_ID")
+neigh_df$total = NA
+neigh_df$employed = NA
+for(id in neigh_df$neigh_ID){
+   neigh_df$total[id] = length(which(agent_df$neigh_ID == id))
+   neigh_df$employed[id] = sample(1:neigh_df$total[id], size = 1)
+}
+neigh_df$unemployed = neigh_df$total - neigh_df$employed
+print(neigh_df)
+
+## applying the function (without optional params)
+agent_df_new = distr_bin_attr_strat_n_neigh_stats(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "unemployed"), list_agent_propens = c("prop_employed"))
+print(agent_df_new)
+
+## applying the function (with optional params)
+# say we want to exclude people from age_group A1, we need to create a binary variable that indicates if an agent belongs to that group
+agent_df$is_child = 0
+agent_df$is_child[agent_df$age_group == "A1"] = 1
+# additionally, say we want to call the employ_status attributes differently then "employed" and "unemployed" as given by the dataframe, for example c("has_work_income", "no_work_income")
+# then we would use the function as such:
+agent_df_new = distr_bin_attr_strat_n_neigh_stats(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "unemployed"), list_agent_propens = c("prop_employed"), list_class_names = c("has_work_income", "no_work_income"), agent_exclude = "is_child" )
+print(agent_df_new)
+
+}

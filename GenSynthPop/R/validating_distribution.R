@@ -12,7 +12,52 @@
 
 #' @return orginal distribution dataset, agent distribution and difference
 #' @examples
-
+#' ## generating some example mock data (based on random numbers)
+#' ### stratified dataframe mock data ###
+#' age_group = c("A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4")
+#' sex = c("male","male","male","male", "female","female","female","female", "non-binary", "non-binary", "non-binary","non-binary")
+#' employed = sample(1:400,length(age_group))
+#' unemployed = sample(1:400,length(age_group))
+#' total_pop = employed + unemployed
+#' stratified_df = data.frame(age_group, sex , employed, unemployed, total_pop)
+#'
+#' ### agent dataframe mock data ###
+#' # This should be the actual agent_df that is the output of one of the attribute distribution algorithms
+#' agent_df = as.data.frame(paste("Agent_",1:500, sep=""))
+#' agent_df$neigh_ID = sample(1:10, size =nrow(agent_df), replace = T)
+#' agent_df$age_group = age_group[sample(1:length(age_group), size = nrow(agent_df), replace = T)]
+#' agent_df$sex = sex[sample(1:length(age_group), size = nrow(agent_df), replace = T)]
+#' agent_df$employ_status = c("employed","unemployed")[sample(1:2, size = nrow(agent_df), replace = T)]
+#' colnames(agent_df) = c("agent_id", "neigh_ID", "age_group", "sex", "employ_status")
+#' print(agent_df)
+#'
+#' ### neighborhood totals dataframe ###
+#' # since agents have been generated to represent the number of people in a previous step,
+#' # here the neighborhood totals have to be equal to the count of the number of agents in the neighborhood
+#' # if it is not exactly equal that is fine, the algorithm can handle that (it is common that in census data the population totals can vary depending on the variable)
+#' neigh_df = as.data.frame(1:10)
+#' colnames(neigh_df) = c("neigh_ID")
+#' neigh_df$total = NA
+#' neigh_df$employed = NA
+#' for(id in neigh_df$neigh_ID){
+#'    neigh_df$total[id] = length(which(agent_df$neigh_ID == id))
+#'    neigh_df$employed[id] = sample(1:neigh_df$total[id], size = 1)
+#' }
+#' neigh_df$unemployed = neigh_df$total - neigh_df$employed
+#' print(neigh_df)
+#'
+#'
+#' # function application on neighborhood distribution dataframe
+#' neigh_valid = crossvalid(valid_df = neigh_df, agent_df = agent_df, join_var = "neigh_ID", list_valid_var = c("employed", "unemployed"), agent_var = "employ_status", list_agent_attr = c("employed", "unemployed"))
+#' print(neigh_valid)
+#'
+#' # function application on stratified dataframe
+#' strat_valid = crossvalid(valid_df = stratified_df, agent_df = agent_df, join_var = c("age_group", "sex"), list_valid_var = c("employed", "unemployed"), agent_var = "employ_status", list_agent_attr = c("employed", "unemployed"))
+#' print(strat_valid)
+#'
+#' # Since these examples are based on random distributions, there is no correspondence between the agent_df distribution and the neigh_df/stratified_df distribution
+#' # However, when following the methods, it should correspond
+#'
 #' @export
 crossvalid = function(valid_df, agent_df, join_var, list_valid_var, agent_var, list_agent_attr ){
   output = valid_df[,c(join_var, list_valid_var)]

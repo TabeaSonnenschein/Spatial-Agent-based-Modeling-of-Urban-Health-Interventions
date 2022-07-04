@@ -124,7 +124,7 @@ calc_propens_agents = function(dataframe, variable, total_population, agent_df, 
 #' | single_household | 158 | 244 | 402 |
 #' | multi_pers_household | 118 | 311 | 429 |
 #'
-#' ## This is the intermediate output table.
+#' ## This is the output table.
 #' | sex | hh_structure | prop_employed | prop_unemployed |
 #' |:---:|:---:|:---:|:---:|
 #' | male | single_household | 0.4479570 | 0.5520430 |
