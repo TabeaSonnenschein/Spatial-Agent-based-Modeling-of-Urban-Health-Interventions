@@ -25,5 +25,15 @@ This package contains a set of functions that help prepare stratified census dat
 * **crossvalid:** Cross validation with the neighborhood and stratified marginal distributions
 
 
+### Installing package in R
+
+
+#### There is extensive documentation for the functions within R
+##### Looking up documentation for a function
+Example:
+?crosstabular_to_singleside_df
+help(crosstabular_to_singleside_df)
+
+Should there be remaining questions, shoot me an email: t.s.sonnenschein@uu.nl
 
 ### Instructions
