@@ -1,6 +1,6 @@
 ####### Preparing stratified datasets
 
-#' @title Crosstabular Stratified Format to Single Sided Variable Combination Format
+#' @title Crosstabular Stratified Table to Single Sided Variable Combination - Counts Table
 #' @description In order to facilitate the data preparation, this function can transform any stratified dataset structure in terms of number of row variables and column variable combinations into a dataset structure of all variable combinations as columns in the left and a single "counts" column on the right.
 #' @param df The stratified dataset that you want to process
 #' @param nrow_var number of rows corresponding to variable names
@@ -9,8 +9,9 @@
 #' @param col_var_names The variable names that you want to use to describe the variables in the columns. This will be used as variable column name for the output dataset. The order needs to be from left column to right column variables.
 #' @return Returns a processed stratefied dataframe with all variables as columns on the left. There will be all unique variable combinations. Additionally there will be the counts variable that shows how many people there are for the respective variable combination.
 #' @details
-#' # Turns a crosstabular stratified dataframe, such as this:
-#' ## note that it can have any number of row variables or column variables
+#' #Example Tables (random numbers)
+#' ## Turns a crosstabular stratified dataframe, such as this:
+#' ### *note that it can have any number of row variables (here 2) or column variables (here 1)
 #' | age_groups | male | male | female | female | non-binary | non-binary |
 #' |:----:|:----:|:----:|:----:|:----:|:----:|:----:|
 #' |  |employed | unemployed | employed | unemployed | employed | unemployed |
@@ -18,7 +19,7 @@
 #' | A2 | 132 | 323 | 275 | 206 | 248 | 270 |
 #' | A3 | 122 | 360 | 394 | 25 | 137 | 34 |
 #'
-#' # Into a single side stratified dataframe such as this:
+#' ## Into a single side stratified dataframe such as this:
 #' |age_group |sex | employ_status | counts |
 #' |:----:|:-----:|:----:|:---:|
 #' | A1 | male | employed | 25 |
@@ -89,8 +90,44 @@ crosstabular_to_singleside_df =  function(df, nrow_var, ncol_var, row_var_names,
 #' @param df The original stratified dataframe with all varable combinations as columns on the left side.
 #' @param variable The variable of interest, for which on wants to generate seperate columns of the subclasses.
 #' @param countsname The columnname of the column in the original datafram, which indicates the counts for all variable combinations.
-#'
 #' @return the output will be a dataframe of all variable combinations excluding the variable of interest and the marginal distributions of the variable combinations along the classes of the variable of interest.
+#' @details
+#' # Example Tables (random numbers)
+#' ## Turns a single side stratified dataframe such as this:
+#' |age_group |sex | employ_status | counts |
+#' |:----:|:-----:|:----:|:---:|
+#' | A1 | male | employed | 25 |
+#' | A2 | male | employed | 132 |
+#' | A3 | male | employed | 122 |
+#' | A1 | male | unemployed | 133 |
+#' | A2 | male | unemployed | 323 |
+#' | A3 | male | unemployed | 360 |
+#' | A1 | female | employed | 175 |
+#' | A2 | female | employed | 275 |
+#' | A3 | female | employed | 394 |
+#' | A1 | female | unemployed | 389 |
+#' | A2 | female | unemployed | 206 |
+#' | A3 | female | unemployed |  25 |
+#' | A1 | non-binary | employed | 196 |
+#' | A2 | non-binary | employed | 248 |
+#' | A3 | non-binary | employed | 137 |
+#' | A1 | non-binary | unemployed | 203 |
+#' | A2 | non-binary | unemployed | 270 |
+#' | A3 | non-binary | unemployed |  34 |
+#'
+#' ## into a one variable marginal distribution table for a specified variable of interest, and adds a total for the population of the attribute combination
+#' |age_group |sex | employed | un-employed | total |
+#' |:----:|:-----:|:----:|:---:|:---:|
+#' | A1 | male | 25 | 133 | 158 |
+#' | A2 | male | 132 | 323 | 455 |
+#' | A3 | male | 122 | 360 | 482 |
+#' | A1 | female | 175 | 389 | 564 |
+#' | A2 | female | 275 | 206 |481 |
+#' | A3 | female | 394 |  25 | 419 |
+#' | A1 | non-binary | 196 | 203 | 399 |
+#' | A2 | non-binary | 248 | 270 | 518 |
+#' | A3 | non-binary | 137 |  34 | 171 |
+#' @md
 #' @examples
 #' ## generating some example mock data ##
 #' # stratified dataframe mock data, can be output of function: crosstabular_to_singleside_df
@@ -120,20 +157,29 @@ restructure_one_var_marginal = function(df, variable, countsname){
 
 ## this function creates a stratified probability table from single attribute propensities
 #' @title Creates a stratified probability table from single attribute propensities
-#' @description This function
-#' @param nested_cond_attr_list
-#' @param column_names the names of columns
-#' @param orig_df
-#' @param strat_var
-#' @param var_for_pred
-#' @param total_population
-#'
-#' @return
+#' @description This function combines multiple - joint distributions of conditional variables into one stratified dataframe of all-variable combinations and the propensity to have the variable classes of interest
+#' @param df A dataframe with one column in which all classes of the conditional variables are listed in seperate rows and additional columns that show the marginal distributions for a variable of interest
+#' @param nested_cond_attr_list a nested list of classes of conditional variables. (e.g. list(c("female", "male", "non-binary"), c("employed", "unemployed")))
+#' @param cond_var_names a list of the names that you want to give the variables to which the  classes indicated in the nested_cond_attr_list belong. It has to have the same order as that list. (e.g. for above that could be c("sex", "employ_status"))
+#' @param cond_attr_column The column in which all separate conditional variable classes are listed.
+#' @param var_for_pred The columnnames that indicate the classes of the variable for which the stratified dataframe should be generated, if it is a binary variable, then only one class needs to be given, since the propensity to have the other class is class is 1-the propensity of the indicated class.
+#' @param total_population The column indicating the total population that has the conditional variable attribute of the row
+#' @returns a stratified dataset with all combinations of the conditional variables and the propensity to be/have the indicated classes
 #' @export
 #'
 #' @examples
-create_stratified_prob_table = function(nested_cond_attr_list, column_names, orig_df, strat_var, var_for_pred, total_population){
-  ncondVar = length(column_names)
+#' ## creating mock data
+#' cond_variables = c("male", "female", "non-binary", "single_household", "multi_pers_household")
+#' employed = sample(40:400,length(cond_variables))
+#' unemployed = sample(40:400,length(cond_variables))
+#' df = data.frame(cond_variables, employed , unemployed)
+#' df$tot_pop = df$employed + df$unemployed
+#'
+#' # function application
+#' strat_df = create_stratified_prob_table(df = df, nested_cond_attr_list = list(c("male", "female", "non-binary"), c("single_household", "multi_pers_household")), cond_var_names = c("sex", "hh_structure"), cond_attr_column = "cond_variables", var_for_pred = c("employed", "unemployed"), total_population = "tot_pop" )
+#' print(strat_df)
+create_stratified_prob_table = function(df, nested_cond_attr_list, cond_var_names, cond_attr_column, var_for_pred, total_population){
+  ncondVar = length(cond_var_names)
   attr_length = c()
   for(i in 1:ncondVar){
     attr_length = append(attr_length, length(nested_cond_attr_list[[i]]))
@@ -152,21 +198,21 @@ create_stratified_prob_table = function(nested_cond_attr_list, column_names, ori
     }
 
   }
-  colnames(new_strat_df) = c(column_names, paste("prop_",var_for_pred, sep = ""))
+  colnames(new_strat_df) = c(cond_var_names, paste("prop_",var_for_pred, sep = ""))
   if(missing(total_population)){
     for(i in 1:nrow(new_strat_df)){
       for(n in 1:length(var_for_pred)){
-        new_strat_df[i,n+ncondVar] = sum(orig_df[which(orig_df[,c(strat_var)] %in% c(new_strat_df[i,1:ncondVar])),c(var_for_pred[n])])/ncondVar
+        new_strat_df[i,n+ncondVar] = sum(df[which(df[,c(cond_attr_column)] %in% c(new_strat_df[i,1:ncondVar])),c(var_for_pred[n])])/ncondVar
       }
     }
   }
   else{
     for(i in 1:length(var_for_pred)){
-      orig_df[,c(paste("prop_",var_for_pred[i], sep = ""))] = orig_df[,c(var_for_pred[i])]/orig_df[, c(total_population)]
+      df[,c(paste("prop_",var_for_pred[i], sep = ""))] = df[,c(var_for_pred[i])]/df[, c(total_population)]
     }
     for(i in 1:nrow(new_strat_df)){
       for(n in 1:length(var_for_pred)){
-        new_strat_df[i,n+ncondVar] = sum(orig_df[which(orig_df[,c(strat_var)] %in% c(new_strat_df[i,1:ncondVar])),c(paste("prop_",var_for_pred[n], sep = ""))])/ncondVar
+        new_strat_df[i,n+ncondVar] = sum(df[which(df[,c(cond_attr_column)] %in% c(new_strat_df[i,1:ncondVar])),c(paste("prop_",var_for_pred[n], sep = ""))])/ncondVar
       }
     }
   }
