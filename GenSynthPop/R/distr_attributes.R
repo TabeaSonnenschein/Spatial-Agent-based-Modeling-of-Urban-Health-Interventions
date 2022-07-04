@@ -30,7 +30,7 @@
 #' @param list_class_names The list_class_names is optional and contains the values that the new created agent variable should have for the different variable classes. It has to be in the same order and of the same length as the list_var_classes_neigh_df. If left empty, the list_var_classes_neigh_df will become the default values for the classes.
 #' @param agent_exclude an optional variable containing one or multiple variable names of the agent dataset on which basis agents should be excluded from the attribute assignment. These variables whould be binary columns, with 1 indicating that it should be excluded (e.g. "is_child" could be entered if agents with is_child = 1 should be exluded for the new attribute).
 #'
-#' @return returns the agent df with the newly distributed attribute and the random score, which is used to see if it is below or above the propensity.
+#' @return returns the agent df with the newly distributed attribute and the random score, which is used to see if it is below or above the propensity. Moreover, the agent_df is shuffled to make sure no bias is caused by order
 #' @export
 #'
 #' @examples
