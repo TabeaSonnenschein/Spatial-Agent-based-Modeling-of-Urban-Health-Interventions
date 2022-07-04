@@ -7,8 +7,39 @@
 #' @param ncol_var number of columns corresponding to variable names
 #' @param row_var_names The variable names that you want to use to describe the variables in the rows. This will be used as variable column name for the output dataset.The order needs to be from top row to lower row variables.
 #' @param col_var_names The variable names that you want to use to describe the variables in the columns. This will be used as variable column name for the output dataset. The order needs to be from left column to right column variables.
-#'
 #' @return Returns a processed stratefied dataframe with all variables as columns on the left. There will be all unique variable combinations. Additionally there will be the counts variable that shows how many people there are for the respective variable combination.
+#' @details
+#' # Turns a crosstabular stratified dataframe, such as this:
+#' ## note that it can have any number of row variables or column variables
+#' | age_groups | male | male | female | female | non-binary | non-binary |
+#' |:----:|:----:|:----:|:----:|:----:|:----:|:----:|
+#' |  |employed | unemployed | employed | unemployed | employed | unemployed |
+#' | A1 | 25 | 133 | 175 | 389 | 196 | 203 |
+#' | A2 | 132 | 323 | 275 | 206 | 248 | 270 |
+#' | A3 | 122 | 360 | 394 | 25 | 137 | 34 |
+#'
+#' # Into a single side stratified dataframe such as this:
+#' |age_group |sex | employ_status | counts |
+#' |:----:|:-----:|:----:|:---:|
+#' | A1 | male | employed | 25 |
+#' | A2 | male | employed | 132 |
+#' | A3 | male | employed | 122 |
+#' | A1 | male | unemployed | 133 |
+#' | A2 | male | unemployed | 323 |
+#' | A3 | male | unemployed | 360 |
+#' | A1 | female | employed | 175 |
+#' | A2 | female | employed | 275 |
+#' | A3 | female | employed | 394 |
+#' | A1 | female | unemployed | 389 |
+#' | A2 | female | unemployed | 206 |
+#' | A3 | female | unemployed |  25 |
+#' | A1 | non-binary | employed | 196 |
+#' | A2 | non-binary | employed | 248 |
+#' | A3 | non-binary | employed | 137 |
+#' | A1 | non-binary | unemployed | 203 |
+#' | A2 | non-binary | unemployed | 270 |
+#' | A3 | non-binary | unemployed |  34 |
+#' @md
 #' @examples
 #' # some example mock data
 #' # crosstabular stratified dataframe mock data
@@ -18,6 +49,7 @@
 #' row4 = c("A2", sample(1:400,6))
 #' row5 = c("A3", sample(1:400,6))
 #' cross_tab_stratified_df = as.data.frame(rbind(row1, row2, row3, row4, row5))
+#' print(cross_tab_stratified_df)
 #'
 #' # function application
 #' ## the number of row variables are 2 (the sex and the employment status), while only age is a column variable, hence ncol_var = 1
@@ -86,12 +118,11 @@ restructure_one_var_marginal = function(df, variable, countsname){
 }
 
 
-
 ## this function creates a stratified probability table from single attribute propensities
 #' @title Creates a stratified probability table from single attribute propensities
 #' @description This function
 #' @param nested_cond_attr_list
-#' @param column_names
+#' @param column_names the names of columns
 #' @param orig_df
 #' @param strat_var
 #' @param var_for_pred

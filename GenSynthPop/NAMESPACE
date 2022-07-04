@@ -2,7 +2,7 @@
 
 export(calc_propens_agents)
 export(create_stratified_prob_table)
-export(crosstabular_stratfieddf_to_singleside_df)
+export(crosstabular_to_singleside_df)
 export(crossvalid)
 export(distr_attr_cond_prop)
 export(distr_attr_strat_n_neigh_stats_3plus)
