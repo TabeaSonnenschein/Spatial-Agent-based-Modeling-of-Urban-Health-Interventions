@@ -29,3 +29,19 @@ The output is the agent dataframe with an additional column of their propensity/
 \description{
 This is a function to calculate the probability/propensity to have a specific class of a variable conditional on other variables. It requires a stratified dataframe (@dataframe) which includes all combinations of the conditional variables (the ones based on which we want to calculate the propensity), the number of people with the variable class (@variable) for which we want to calculate the propensity, and the total number of people within the combination of conditional variables (@total_population). The function calculates the propensity to have a specific class based on the conditional variables, by dividing the number of people with the class if interest by the total number of people within the combination of conditional variables. Further, the function joins these probabilities with the agent dataset (@agent_df) based on the list of conditional variables (@list_conditional_var). This requires the variable/column names of the conditional variables to be equal for the stratified and the agent dataframe. Finally, it shuffles the agent dataset to avoid biases due to a non random order in the next steps.
 }
+\examples{
+# some example mock data
+# stratified dataframe
+age_group = c("A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4")
+sex = c("male","male","male","male", "female","female","female","female", "non-binary", "non-binary", "non-binary","non-binary")
+employed = sample(1:400,length(age_group))
+unemployed = sample(1:400,length(age_group))
+total_pop = employed + unemployed
+stratified_df = data.frame(age_group, sex , employed, unemployed, total_pop)
+# agent dataframe
+agent_df = as.data.frame("agent_id",  "age_group", "sex" )
+
+# function application
+agent_df = calc_propens_agents(stratified_df, "employed", "total_pop", agent_df, c("age_group", "sex"))
+
+}
