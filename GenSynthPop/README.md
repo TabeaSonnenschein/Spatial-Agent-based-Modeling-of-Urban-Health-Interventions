@@ -31,9 +31,11 @@ This package contains a set of functions that help prepare stratified census dat
 	install_github("TabeaSonnenschein/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/GenSynthPop")
 	library(GenSynthPop)
 
+### Looking up documentation for a function
 #### There is extensive documentation for the functions within R
-##### Looking up documentation for a function
+
 Example:
+
 	?crosstabular_to_singleside_df
 	help(crosstabular_to_singleside_df)
 
