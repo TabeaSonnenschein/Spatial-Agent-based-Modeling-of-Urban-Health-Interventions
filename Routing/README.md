@@ -162,3 +162,7 @@ Modify this with the actual path of the executable of your GAMA.
 
 * https://www.windowscentral.com/how-create-and-run-batch-file-windows-10
 * https://forums.tomsguide.com/threads/open-batch-file-when-a-specific-program-starts.180965/
+
+
+There you go! :stars: :rainbow: :rocket:
+☜(ﾟヮﾟ☜)
