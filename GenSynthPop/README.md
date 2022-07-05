@@ -18,8 +18,8 @@ This package contains a set of functions that help prepare stratified census dat
 * **strat_prop_from_sep_cond_var:** Creates a stratified propensity table from separate conditional variable joint distributions
 
 #### *For Attribute Assignment based on conditional and marginal distributions*
-* **distr_bin_attr_strat_n_neigh_stats:** Distributing attributes across agent population based on conditional proabilities and neighborhood totals for binary attributes
-* **distr_attr_strat_n_neigh_stats_3plus:** Distributing attributes across agent population based on conditional proabilities and neighborhood totals for attributes with 3 or more classes
+* **distr_attr_strat_neigh_stats_binary:** Distributing attributes across agent population based on conditional proabilities and neighborhood totals for binary attributes
+* **distr_attr_strat_neigh_stats_3plus:** Distributing attributes across agent population based on conditional proabilities and neighborhood totals for attributes with 3 or more classes
 * **distr_attr_cond_prop:** Assigning Attributes purely based on conditional probabilities
 
 #### *For Validation*
