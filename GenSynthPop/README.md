@@ -9,6 +9,7 @@ This package contains a set of functions that help prepare stratified census dat
 * **crosstabular_to_singleside_df:** Crosstabular Stratified Table to Single Sided Variable Combination - Counts Table
 * **restructure_one_var_marginal:** Restructures a single-sided stratified dataframe so that the classes of one column/variable of interest are seperate columns
 * **varclass_harmonization:** Harmonize the classes of a variable across datasets 
+* **aggreg_stratdata_in_harmonclasses:** Aggregating a stratified dataset into the newly added harmonised classes
 
 #### *For Initiating the Agent Dataframe*
 * **gen_agent_df:** Generating an agent dataframe of the population size and assigning a unique ID
@@ -51,7 +52,7 @@ Should there be remaining questions, shoot me an email: t.s.sonnenschein@uu.nl
 
 3. use this new agent_df and the neighborhood marginal distribution dataframe in the **distr_agent_neigh_age_group** code to distribute the agents across neighborhoods and age groups.
 
-4. Read the stratified dataframe with the conditional variable and the variable of interest (that you want to add), for example sex by agegroup, since we already added that one. Make sure that the classes of the conditional variables correspond to the ones in the agent_df. For that you can use **varclass_harmonization**. Additionally to restructure and prepare the data so that it can be read by **calc_propens_agents**, you can use the data preparation functions: **crosstabular_to_singleside_df** and **restructure_one_var_marginal**
+4. Read the stratified dataframe with the conditional variable and the variable of interest (that you want to add), for example sex by agegroup, since we already added that one. Make sure that the classes of the conditional variables correspond to the ones in the agent_df. For that you can use **varclass_harmonization**. If the stratified dataset has been assigned larger harmosed classes, the marginal distributions have to be aggregated, for which you can use: **aggreg_stratdata_in_harmonclasses**. If instead of the stratified dataset, the agent_df was assigned larger harmonised classes, then no aggregation is necessary, because the new harmonised attribute can be used for calculating the propensities in step 5. Additionally to restructure and prepare the data so that it can be read by **calc_propens_agents**, you can use the data preparation functions: **crosstabular_to_singleside_df** and **restructure_one_var_marginal**
 
 5. Use **calc_propens_agents** to generate propensities to have the attribute of interest based on the co-variance with the conditional variable that is already in the agent_df (e.g. the likelihood to be female based on the agegroup). This function takes the stratified dataframe, generates the propensities for the conditional variables and adds the given propensity for each agent to the agent_df. If you have a non-binary variable (3 or more classes) then calculate the propensities for every class of the variable (e.g. "low education", "middle education", "high education").
 

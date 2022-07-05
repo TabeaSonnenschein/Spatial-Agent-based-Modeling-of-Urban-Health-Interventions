@@ -169,7 +169,9 @@ restructure_one_var_marginal = function(df, variable, countsname){
 #'
 #' @examples
 #'#' ## generating some example mock data ##
-#' # stratified dataframe mock data, can be output of function: crosstabular_to_singleside_df
+#' # stratified dataframe mock data, can be output of function: crosstabular_to_singleside_df,
+#' # but also any other df with the classes of the variable that should be harmonised in one column
+#' # for example one can use the function also applied to the agent_df
 #' age_group = rep(c("A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9"), 6)
 #' sex = rep(c("male", "female", "non-binary"), each = 18)
 #' employ_status = rep(rep(c("employed", "unemployed"), each = 9), 3)
@@ -191,4 +193,30 @@ varclass_harmonization = function(df, orig_colname, list_other_df_classes, neste
     }
     return(df)
 }
+
+
+#' @title Aggregating a stratified dataset into the newly added harmonised classes
+#' @description Once the new harmonised classes of have been added to a stratified dataframe, the marginal distributions have to be aggregated correspondingly. This function helps doing exactly that, resulting in a new dataframe with only the harmonised classes, other stratified variables that were in the df, and the aggregated marginal distributions.
+#' @param df The stratified dataframe which contains old classes and a new harmonised class (corresponding to another dataframe) as well as some marginal distributions
+#' @param harmon_var_col The name of the column that contains the new harmonised classes (e.g. output of varclass_harmonization function)
+#' @param former_var_col The name of the old column that contains the classes that were initially in the dataframe but which we want to get rid off
+#' @param marg_dist_collist A list of names of the columns that specify the marginal distributions (numbers/counts). These will have to be aggregated into the new harmonised classes
+#'
+#' @return new dataframe with only the harmonised classes, other stratified variables that were in the df, and the aggregated marginal distributions.
+#' @export
+#'
+#' @examples
+aggreg_stratdata_in_harmonclasses = function(df, harmon_var_col, former_var_col, marg_dist_collist ){
+  classes = unique(df[,c(harmon_var_col)])
+  columns = colnames(df)[(colnames(df) != former_var_col) & !(colnames(df) %in% marg_dist_collist)]
+  df_new = unique(df[,c(columns)])
+  df_new[,c(marg_dist_collist)] = NA
+  for(i in seq_along(df_new[,c(harmon_var_col)])){
+    for( x in marg_dist_collist){
+        df_new[i, c(x)] = sum(df[df[,c(harmon_var_col)] == df_new[,c(harmon_var_col)][i], c(x)])
+    }
+  }
+}
+
+
 

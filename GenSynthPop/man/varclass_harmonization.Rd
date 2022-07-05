@@ -31,7 +31,9 @@ This function can help the data preparation by harmonising the classes of a vari
 }
 \examples{
 #' ## generating some example mock data ##
-# stratified dataframe mock data, can be output of function: crosstabular_to_singleside_df
+# stratified dataframe mock data, can be output of function: crosstabular_to_singleside_df,
+# but also any other df with the classes of the variable that should be harmonised in one column
+# for example one can use the function also applied to the agent_df
 age_group = rep(c("A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9"), 6)
 sex = rep(c("male", "female", "non-binary"), each = 18)
 employ_status = rep(rep(c("employed", "unemployed"), each = 9), 3)

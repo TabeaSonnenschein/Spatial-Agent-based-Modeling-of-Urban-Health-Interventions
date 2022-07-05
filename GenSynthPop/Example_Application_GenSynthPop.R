@@ -10,6 +10,7 @@ library(GenSynthPop)
 ?crosstabular_to_singleside_df       #data preprocessing: crosstabular to single side variable combinations table
 ?restructure_one_var_marginal        #data preprocessing:  single-sided stratified dataframe to marginal distribution across classes of one column
 ?varclass_harmonization              #harmonize the classes of a variable across datasets
+?aggreg_stratdata_in_harmonclasses   #Aggregating a stratified dataset into the newly added harmonised classes
 ?strat_prop_from_sep_cond_var        #creates a stratified propensity table from separate conditional variable joint distributions
 ?distr_attr_strat_neigh_stats_binary #distribute attributes based on conditional propensities and neighborhood totals (binary attributes)
 ?distr_attr_strat_neigh_stats_3plus  #Creates a stratified propensity table from separate conditional variable joint distributions (attributes with 3 or more classes)
