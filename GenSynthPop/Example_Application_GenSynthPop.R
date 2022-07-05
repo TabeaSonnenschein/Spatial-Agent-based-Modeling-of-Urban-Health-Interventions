@@ -60,5 +60,8 @@ agent_df = distr_attr_strat_neigh_stats_binary(agent_df = agent_df,
 agent_df = subset(agent_df, select=-c(prop_female, random_scores))
 print(agent_df)
 
+##### You have successfully added age, location and sex based on age-sex co-variance
+##### now you can add variables like that for any given number of attributes that your want to add
+
 
 

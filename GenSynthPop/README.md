@@ -50,4 +50,15 @@ Should there be remaining questions, shoot me an email: t.s.sonnenschein@uu.nl
 
 3. use this new agent_df and the neighborhood marginal distribution dataframe in the **distr_agent_neigh_age_group** code to distribute the agents across neighborhoods and age groups.
 
-4. 
+4. Read the stratified dataframe with the conditional variable and the variable of interest (that you want to add), for example sex by agegroup, since we already added that one.
+
+5. Use **calc_propens_agents** to generate propensities to have the attribute of interest based on the co-variance with the conditional variable that is already in the agent_df (e.g. the likelihood to be female based on the agegroup). This function takes the stratified dataframe, generates the propensities for the conditional variables and adds the given propensity for each agent to the agent_df. If you have a non-binary variable (3 or more classes) then calculate the propensities for every class of the variable (e.g. "low education", "middle education", "high education").
+
+6. Depending on if your variable is binary or not, use **distr_attr_strat_neigh_stats_binary** or **distr_attr_strat_neigh_stats_3plus** by reading the neighborhood marginal distributions for the variable of interest, and the propensities calculated in step 5 to distribute the attribute of interest across the agent population accordingly.
+
+7. Use **crossvalid** to validate that the generated distribution corresponds to the neighborhood and stratified distributions.
+
+8. Repeat steos 4,5,6,7 for any new variable that you want to add to the agent dataframe. The more attributes are added, the more conditional variables can be use (e.g. using age, sex, migrationbackground, household size, as conditional variables for being "employed" or not). However, as many might assume the availability of census and stratified data has its limit :), but that depends on the geographic location and the year of interest.
+
+
+## you can look at the Example_Application_GenSynthPop.R script for an example application of the functions in the package.
