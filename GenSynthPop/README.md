@@ -60,7 +60,7 @@ Should there be remaining questions, shoot me an email: t.s.sonnenschein@uu.nl
 
 7. Use **crossvalid** to validate that the generated distribution corresponds to the neighborhood and stratified distributions.
 
-8. Repeat steos 4,5,6,7 for any new variable that you want to add to the agent dataframe. The more attributes are added, the more conditional variables can be use (e.g. using age, sex, migrationbackground, household size, as conditional variables for being "employed" or not). However, as many might assume the availability of census and stratified data has its limit :), but that depends on the geographic location and the year of interest.
+8. Repeat steps 4,5,6,7 for any new variable that you want to add to the agent dataframe. The more attributes are added, the more conditional variables can be use (e.g. using age, sex, migrationbackground, household size, as conditional variables for being "employed" or not). However, as many might assume the availability of census and stratified data has its limit :), but that depends on the geographic location and the year of interest.
 
 
 ## you can look at the Example_Application_GenSynthPop.R script for an example application of the functions in the package.
