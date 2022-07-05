@@ -19,7 +19,9 @@ Instructions for Windows OS:
 2.	Download the OSM data for the region/city for which the routing system should be generated via Geofabrik (e.g. for Amsterdam  Nord-Holland-latest.osm.pbf)
 
 Either click on http://download.geofabrik.de/europe/netherlands/noord-holland-latest.osm.pbf
+
 Or use
+
 wget http://download.geofabrik.de/europe/netherlands/noord-holland-latest.osm.pbf
 
 3.	Save the data in the folder of the local GitHub repository osrm-backend
@@ -45,6 +47,7 @@ If you want to use MLD, type in CMD:
 
 
 e.g. for the car routing 1. Would be: osrm-extract  noord-holland-latest_car.osm.pbf -p profiles/car.lua; then 2. Would be osrm-partition noord-holland-latest_car.osrm
+
 We want to give each mode of transport a different port. Thus, you can give port 5001 and 5002 to the different modes of transport.
 	If you want to use CH, type in CMD
 1.	osrm-extract  “name of the osm.pbf file”  -p profiles/”name of mode of transport”.lua
@@ -134,11 +137,13 @@ Having the batch file for starting the OSRM servers, it is now possible to start
 9.	Click on the drop down menu for Begin the task: and click on “On and event”
 10.	In the Settings click on Costum and then New Event Filter
 11.	In the XML tab paste 
-<QueryList>
-  <Query Id="0" Path="Security">
-    <Select Path="Security">*[System[Provider[@Name='Microsoft-Windows-Security-Auditing'] and EventID=4688] and EventData[Data[@Name='NewProcessName']='C:\Users\Tabea\Documents\GAMA\Gama.exe']]</Select>
-  </Query>
-</QueryList>
+
+	<QueryList>
+		<Query Id="0" Path="Security">
+			<Select Path="Security">*[System[Provider[@Name='Microsoft-Windows-Security-Auditing'] and EventID=4688] and EventData[Data[@Name='NewProcessName']='C:\Users\Tabea\Documents\GAMA\Gama.exe']]</Select>
+		</Query>
+	</QueryList>
+	
 Modify this with the actual path of the executable of your GAMA.
 12.	Click on OK and OK to close the Trigger Window
 13.	Then click on the Actions Tab > New…
