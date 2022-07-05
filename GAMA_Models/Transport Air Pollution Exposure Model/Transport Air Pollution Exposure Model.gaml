@@ -10,7 +10,7 @@ model TransportAirPollutionExposureModel
 global skills: [RSkill]{
 	/** Insert the global definitions, variables and actions here */
 	
-	string path_data <- "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Calibration/";
+	string path_data <- "C:/Users/Tabea/Documents/PhD EXPANSE/Data/";
 	string path_workspace <- "C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/";
 	
 //	loading the spatial built environment
