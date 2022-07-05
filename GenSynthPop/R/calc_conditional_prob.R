@@ -62,7 +62,7 @@
 #' | Agent_223 | A1 | non-binary | 0.45307918 |
 #' (...)
 #'
-#' ### * if you have more than two classes of a variable then apply the same function to the same datasets multiple times for the different classes of the variable. E.g., if you have "low_education", "middle_education", "high_eduction", just apply it for two of them (the third can always be inferred by 1-sum(other propensities))
+#' ### * if you have more than two classes of a variable then apply the same function to the same datasets multiple times for the different classes of the variable. E.g., if you have "low_education", "middle_education", "high_eduction", just apply it for all of them.
 #' @md
 #' @examples
 #' ## generating some example mock data ##

@@ -26,7 +26,10 @@ This package contains a set of functions that help prepare stratified census dat
 
 
 ### Installing package in R
-
+install.packages("devtools")
+library(devtools)
+install_github("TabeaSonnenschein/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/GenSynthPop")
+library(GenSynthPop)
 
 #### There is extensive documentation for the functions within R
 ##### Looking up documentation for a function
