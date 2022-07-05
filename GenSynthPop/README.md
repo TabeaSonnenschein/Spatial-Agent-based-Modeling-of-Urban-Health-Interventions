@@ -43,3 +43,11 @@ Example:
 Should there be remaining questions, shoot me an email: t.s.sonnenschein@uu.nl
 
 ### Instructions
+
+1. Start by collecting neighborhood marginal distributions of age_groups. It is recommended to go as spatially resolved as you can (smallest spatial unit) but it depends on what you want to use the synthetic agent population for. You theoretically can even use provincial or national administrative areas, if this is your project scope and goal. We go for neighborhoods because we want to  create an urban ABM.
+
+2. apply **gen_agent_df** for the sum of all age groups in all neighborhoods. This will be the population size.
+
+3. use this new agent_df and the neighborhood marginal distribution dataframe in the **distr_agent_neigh_age_group** code to distribute the agents across neighborhoods and age groups.
+
+4. 
