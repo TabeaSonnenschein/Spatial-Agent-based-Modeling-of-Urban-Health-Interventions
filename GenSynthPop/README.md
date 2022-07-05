@@ -11,6 +11,7 @@ This package contains a set of functions that help prepare stratified census dat
 
 #### *For Initiating the Agent Dataframe*
 * **gen_agent_df:** Generating an agent dataframe of the population size and assigning a unique ID
+* **distr_agent_neigh_age_group:** Populating the agent_df with age_group and neigh_ID attributes distributed like a given neighborhood marginal distribution
 
 #### *For Conditional Propensity calculation*
 * **calc_propens_agents:** Calculating the conditional propensity to have an attribute based on conditional variables

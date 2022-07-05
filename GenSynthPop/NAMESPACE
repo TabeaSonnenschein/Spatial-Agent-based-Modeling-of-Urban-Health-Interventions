@@ -3,6 +3,7 @@
 export(calc_propens_agents)
 export(crosstabular_to_singleside_df)
 export(crossvalid)
+export(distr_agent_neigh_age_group)
 export(distr_attr_cond_prop)
 export(distr_attr_strat_n_neigh_stats_3plus)
 export(distr_bin_attr_strat_n_neigh_stats)

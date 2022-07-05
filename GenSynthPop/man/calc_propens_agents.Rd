@@ -82,7 +82,7 @@ This is a function to calculate the probability/propensity to have a specific cl
    (...) \tab  \tab  \tab  \cr
 }
 
-\subsection{* if you have more than two classes of a variable then apply the same function to the same datasets multiple times for the different classes of the variable. E.g., if you have "low_education", "middle_education", "high_eduction", just apply it for two of them (the third can always be inferred by 1-sum(other propensities))}{
+\subsection{* if you have more than two classes of a variable then apply the same function to the same datasets multiple times for the different classes of the variable. E.g., if you have "low_education", "middle_education", "high_eduction", just apply it for all of them.}{
 }
 
 }
