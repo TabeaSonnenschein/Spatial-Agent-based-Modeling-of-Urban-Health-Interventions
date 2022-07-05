@@ -51,9 +51,9 @@ global skills: [RSkill]{
     
     
 //  loading routing code
-    file Rcode_foot_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_foot.R");
-    file Rcode_car_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_car.R");
-    file Rcode_bike_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/OSRM_bike.R");
+    file Rcode_foot_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Routing/OSRM_foot.R");
+    file Rcode_car_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Routing/OSRM_car.R");
+    file Rcode_bike_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Routing/OSRM_bike.R");
 
 //  loading agent population attributes
     int nb_humans <- 150;
