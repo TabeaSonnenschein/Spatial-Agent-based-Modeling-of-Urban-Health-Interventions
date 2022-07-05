@@ -1,13 +1,13 @@
-##THE INSTRUCTIONS COVER:
+## THE INSTRUCTIONS COVER:
 
-##(1)SETTING UP A LOCAL INSTANCE OF OSRM
+## (1)SETTING UP A LOCAL INSTANCE OF OSRM
 
-##(2)STARTING MULTIPLE OSRM SERVERS AFTER HAVING PREPARED DATASETS (MANUALLY OR WITH A BATCH FILE)
+## (2)STARTING MULTIPLE OSRM SERVERS AFTER HAVING PREPARED DATASETS (MANUALLY OR WITH A BATCH FILE)
 
-##(3)AUTOMATICALLY LETTING THE BATCH FILE TO START THE SERVERS RUN WHEN STARTING GAMA (WITH TASK SCHEDULER)
+## (3)AUTOMATICALLY LETTING THE BATCH FILE TO START THE SERVERS RUN WHEN STARTING GAMA (WITH TASK SCHEDULER)
 
 =======================================
-#SETTING UP A LOCAL INSTANCE OF OSRM
+# SETTING UP A LOCAL INSTANCE OF OSRM
 =======================================
 03-07-2021
 Instructions for Windows OS:
@@ -87,7 +87,7 @@ osrm-routed --threads=1 --port=5001 noord-holland-latest_bike.osrm
 osrm-routed --threads=1 --port=5002 noord-holland-latest_foot.osrm
 
 =================================================
-#STARTING MULTIPLE SERVERS AFTER HAVING PREPARED DATASETS (needed every time when using OSRM)
+# STARTING MULTIPLE SERVERS AFTER HAVING PREPARED DATASETS (needed every time when using OSRM)
 =================================================
 There are multiple ways to do this. 
 (1) One can paste these commands in three different Command Prompts.  Handy software for managing multiple CMP’s: https://conemu.github.io/index.html
@@ -114,7 +114,7 @@ start cmd /c "cd C:\Users\Tabea\Documents\GitHub\osrm-backend & osrm-routed --al
 
 
 =========================================
-#AUTOMATICALLY RUNNING THE BATCH FILE WHEN STARTING GAMA
+# AUTOMATICALLY RUNNING THE BATCH FILE WHEN STARTING GAMA
 =========================================
 Having the batch file for starting the OSRM servers, it is now possible to start this batch file automatically every time when GAMA is started
 1.	Run secpol.msc and navigate to Advanced Audit... => System Audit... => Detailed Tracking. Enable "Audit Process Creation" for "Success". This will add a Process Creation event (ID 4688) to the Security log whenever a new process is created. Close secpol.msc.
