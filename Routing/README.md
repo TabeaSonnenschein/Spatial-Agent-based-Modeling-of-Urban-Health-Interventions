@@ -1,10 +1,10 @@
 ### THE INSTRUCTIONS COVER:
 
-### (1)SETTING UP A LOCAL INSTANCE OF OSRM
+### (1) [SETTING UP A LOCAL INSTANCE OF OSRM](https://github.com/TabeaSonnenschein/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/tree/main/Routing#setting-up-a-local-instance-of-osrm)
 
-### (2)STARTING MULTIPLE OSRM SERVERS AFTER HAVING PREPARED DATASETS (MANUALLY OR WITH A BATCH FILE)
+### (2) [STARTING MULTIPLE OSRM SERVERS AFTER HAVING PREPARED DATASETS (MANUALLY OR WITH A BATCH FILE)](https://github.com/TabeaSonnenschein/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/tree/main/Routing#starting-multiple-servers-after-having-prepared-datasets-needed-every-time-when-using-osrm)
 
-### (3)AUTOMATICALLY LETTING THE BATCH FILE TO START THE SERVERS RUN WHEN STARTING GAMA (WITH TASK SCHEDULER)
+### (3) [AUTOMATICALLY LETTING THE BATCH FILE TO START THE SERVERS RUN WHEN STARTING GAMA (WITH TASK SCHEDULER)](https://github.com/TabeaSonnenschein/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/tree/main/Routing#automatically-running-the-batch-file-when-starting-gama)
 
 ================================================
 # SETTING UP A LOCAL INSTANCE OF OSRM
