@@ -1,15 +1,18 @@
-## THE INSTRUCTIONS COVER:
+### THE INSTRUCTIONS COVER:
 
-## (1)SETTING UP A LOCAL INSTANCE OF OSRM
+### (1)SETTING UP A LOCAL INSTANCE OF OSRM
 
-## (2)STARTING MULTIPLE OSRM SERVERS AFTER HAVING PREPARED DATASETS (MANUALLY OR WITH A BATCH FILE)
+### (2)STARTING MULTIPLE OSRM SERVERS AFTER HAVING PREPARED DATASETS (MANUALLY OR WITH A BATCH FILE)
 
-## (3)AUTOMATICALLY LETTING THE BATCH FILE TO START THE SERVERS RUN WHEN STARTING GAMA (WITH TASK SCHEDULER)
+### (3)AUTOMATICALLY LETTING THE BATCH FILE TO START THE SERVERS RUN WHEN STARTING GAMA (WITH TASK SCHEDULER)
 
-=======================================
+================================================
 # SETTING UP A LOCAL INSTANCE OF OSRM
-=======================================
-03-07-2021
+================================================
+
+Date: 03-07-2021
+Author: Tabea Sonnenschein
+
 Instructions for Windows OS:
 1.	Clone the repository https://github.com/Project-OSRM/osrm-backend.git to a local folder
 
@@ -53,7 +56,8 @@ Example server name to be used in R: http://127.0.0.1:5000/
 
 
 Scripts (to be adjusted and copied):
-CREATING LOCAL INSTANCE BY PREPARING DATASETS AND OSRM FILES (only one time needed)
+### CREATING LOCAL INSTANCE BY PREPARING DATASETS AND OSRM FILES (only one time needed)
+
 ## Multi-Level Dijkstra (MLD) which best fits use-cases where query performance still needs to be very good; and live-updates to the data need to be made e.g. for regular Traffic updates
 cd C:\Users\Tabea\Documents\GitHub\osrm-backend
 osrm-extract  noord-holland-latest_car.osm.pbf -p profiles/car.lua
@@ -86,9 +90,9 @@ osrm-routed --threads=1 --port=5000 noord-holland-latest_car.osrm
 osrm-routed --threads=1 --port=5001 noord-holland-latest_bike.osrm
 osrm-routed --threads=1 --port=5002 noord-holland-latest_foot.osrm
 
-=================================================
+==========================================================
 # STARTING MULTIPLE SERVERS AFTER HAVING PREPARED DATASETS (needed every time when using OSRM)
-=================================================
+==========================================================
 There are multiple ways to do this. 
 (1) One can paste these commands in three different Command Prompts.  Handy software for managing multiple CMP’s: https://conemu.github.io/index.html
 
@@ -113,9 +117,9 @@ start cmd /c "cd C:\Users\Tabea\Documents\GitHub\osrm-backend & osrm-routed --al
 start cmd /c "cd C:\Users\Tabea\Documents\GitHub\osrm-backend & osrm-routed --algorithm=MLD --threads=1 --port=5002 noord-holland-latest_foot.osrm & pause"
 
 
-=========================================
+==================================================
 # AUTOMATICALLY RUNNING THE BATCH FILE WHEN STARTING GAMA
-=========================================
+==================================================
 Having the batch file for starting the OSRM servers, it is now possible to start this batch file automatically every time when GAMA is started
 1.	Run secpol.msc and navigate to Advanced Audit... => System Audit... => Detailed Tracking. Enable "Audit Process Creation" for "Success". This will add a Process Creation event (ID 4688) to the Security log whenever a new process is created. Close secpol.msc.
 2.	Open Task Scheduler: Open Start and Search for Task Scheduler and click the top result to open the app.
@@ -142,12 +146,12 @@ Modify this with the actual path of the executable of your GAMA.
 17.	Try opening GAMA and see if it works.
 
 
-FURTHER DOCUMENTATION AND LINKS 
-https://github.com/Project-OSRM/osrm-backend/wiki/Running-OSRM
-https://www.r-bloggers.com/2017/09/building-a-local-osrm-instance/
-https://github.com/Project-OSRM/osrm-backend/wiki
-https://github.com/fossgis-routing-server/cbf-routing-profiles
+### FURTHER DOCUMENTATION AND LINKS 
+* https://github.com/Project-OSRM/osrm-backend/wiki/Running-OSRM
+* https://www.r-bloggers.com/2017/09/building-a-local-osrm-instance/
+* https://github.com/Project-OSRM/osrm-backend/wiki
+* https://github.com/fossgis-routing-server/cbf-routing-profiles
 
 
-https://www.windowscentral.com/how-create-and-run-batch-file-windows-10
-https://forums.tomsguide.com/threads/open-batch-file-when-a-specific-program-starts.180965/
+* https://www.windowscentral.com/how-create-and-run-batch-file-windows-10
+* https://forums.tomsguide.com/threads/open-batch-file-when-a-specific-program-starts.180965/
