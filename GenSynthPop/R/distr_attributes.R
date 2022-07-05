@@ -16,7 +16,7 @@
 # agent_exclude = an optional variable containing one or multiple variable names of the agent dataset on which basis agents should be excluded from the attribute assignment
 # if that variable(s) is/are 1, then the agents will be excluded
 
-## distr_bin_attr_strat_n_neigh_stats is for binary attributes
+## distr_attr_strat_neigh_stats_binary is for binary attributes
 
 #' @title Distributing attributes across agent population based on conditional proabilities and neighborhood totals for binary attributes
 #' @description  This function distributes attribute classes in the agent population based on the conditional propensities and the neighborhood statistics. It uses random scores and sees if the score is below the propensity, in which case the first attribute is assigned, if above the second attribute is assigned. Consequently, the attribute distribution in each neighborhood will be compared to the respective neighborhood's totals. If the distribution is not equal to the neighborhood distributions or has an absolute difference more than one person or 2%, then first random scores will be assigned again, seeing if it results in a fitting distribution. If that does not work then the propensities of the number of agents equal to the rounded absolute difference of distribution in the neighborhood will be adjusted in the direction of the difference. This happens iteratively with assigning the attribute by setting the propensity in relation to the random score until the desired distribution is achieved.
@@ -60,7 +60,7 @@
 #' print(neigh_df)
 #'
 #' ## applying the function (without optional params)
-#' agent_df_new = distr_bin_attr_strat_n_neigh_stats(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "unemployed"), list_agent_propens = c("prop_employed"))
+#' agent_df_new = distr_attr_strat_neigh_stats_binary(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "unemployed"), list_agent_propens = c("prop_employed"))
 #' print(agent_df_new)
 #'
 #' ## applying the function (with optional params)
@@ -69,10 +69,10 @@
 #' agent_df$is_child[agent_df$age_group == "A1"] = 1
 #' # additionally, say we want to call the employ_status attributes differently then "employed" and "unemployed" as given by the dataframe, for example c("has_work_income", "no_work_income")
 #' # then we would use the function as such:
-#' agent_df_new = distr_bin_attr_strat_n_neigh_stats(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "unemployed"), list_agent_propens = c("prop_employed"), list_class_names = c("has_work_income", "no_work_income"), agent_exclude = "is_child" )
+#' agent_df_new = distr_attr_strat_neigh_stats_binary(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "unemployed"), list_agent_propens = c("prop_employed"), list_class_names = c("has_work_income", "no_work_income"), agent_exclude = "is_child" )
 #' print(agent_df_new)
 #'
-distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
+distr_attr_strat_neigh_stats_binary = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
   print(Sys.time())
   agent_df[, c(variable, "random_scores")] = 0
   if(missing(list_class_names)){
@@ -237,7 +237,7 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
 #' print(neigh_df)
 #'
 #' ## applying the function (without optional params)
-#' agent_df_new = distr_attr_strat_n_neigh_stats_3plus(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "pensioned", "unemployed"), list_agent_propens = c("prop_employed", "prop_pension", "prop_unemployed"))
+#' agent_df_new = distr_attr_strat_neigh_stats_3plus(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "pensioned", "unemployed"), list_agent_propens = c("prop_employed", "prop_pension", "prop_unemployed"))
 #' print(agent_df_new)
 #'
 #' ## applying the function (with optional params)
@@ -246,10 +246,10 @@ distr_bin_attr_strat_n_neigh_stats = function(agent_df, neigh_df, neigh_ID, vari
 #' agent_df$is_child[agent_df$age_group == "A1"] = 1
 #' # additionally, say we want to call the employ_status attributes differently then "employed" and "unemployed" as given by the dataframe, for example c("has_work_income", "no_work_income")
 #' # then we would use the function as such:
-#' agent_df_new = distr_attr_strat_n_neigh_stats_3plus(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "pensioned", "unemployed"), list_agent_propens = c("prop_employed", "prop_pension", "prop_unemployed"), list_class_names = c("has_work_income", "has_pension_income", "no_work_income"), agent_exclude = "is_child" )
+#' agent_df_new = distr_attr_strat_neigh_stats_3plus(agent_df = agent_df, neigh_df = neigh_df, neigh_ID = "neigh_ID", variable = "employ_status", list_var_classes_neigh_df = c("employed", "pensioned", "unemployed"), list_agent_propens = c("prop_employed", "prop_pension", "prop_unemployed"), list_class_names = c("has_work_income", "has_pension_income", "no_work_income"), agent_exclude = "is_child" )
 #' print(agent_df_new)
 #'
-distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
+distr_attr_strat_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, variable, list_var_classes_neigh_df, list_agent_propens, list_class_names, agent_exclude){
   print(Sys.time())
   agent_df[, c(variable, "random_scores")] = 0
   if(missing(list_class_names)){
@@ -390,7 +390,7 @@ distr_attr_strat_n_neigh_stats_3plus = function(agent_df, neigh_df, neigh_ID, va
           }
         }
         else if(lvar == 2){
-          print("use binary attribute function: distr_bin_attr_strat_n_neigh_stats() ")
+          print("use binary attribute function: distr_attr_strat_neigh_stats_binary() ")
         }
       }
     }
