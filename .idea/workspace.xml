@@ -21,7 +21,7 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/netCDF_ToCSV.py" />
   </component>
   <component name="RunManager" selected="Python.12_ExtractingInfoOfTitleAbstract">
     <configuration name="08_TokenizedTextToRelationalData" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
