@@ -8,6 +8,7 @@ library(GenSynthPop)
 ?distr_agent_neigh_age_group         #populating the agent_df with age_group and neigh_ID attributes
 ?crosstabular_to_singleside_df       #data preprocessing: crosstabular to single side variable combinations table
 ?restructure_one_var_marginal        #data preprocessing:  single-sided stratified dataframe to marginal distribution across classes of one column
+?varclass_harmonization              #harmonize the classes of a variable across datasets
 ?strat_prop_from_sep_cond_var        #creates a stratified propensity table from separate conditional variable joint distributions
 ?distr_attr_strat_neigh_stats_binary #distribute attributes based on conditional propensities and neighborhood totals (binary attributes)
 ?distr_attr_strat_neigh_stats_3plus  #Creates a stratified propensity table from separate conditional variable joint distributions (attributes with 3 or more classes)

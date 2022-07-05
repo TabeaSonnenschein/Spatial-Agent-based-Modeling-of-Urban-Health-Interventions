@@ -91,8 +91,8 @@ This is a function to calculate the probability/propensity to have a specific cl
 \examples{
 ## generating some example mock data ##
 # stratified dataframe mock data
-age_group = c("A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4", "A1", "A2", "A3", "A4")
-sex = c("male","male","male","male", "female","female","female","female", "non-binary", "non-binary", "non-binary","non-binary")
+age_group = rep(c("A1", "A2", "A3", "A4"),3)
+sex = rep(c("male", "female", "non-binary"), each = 4)
 employed = sample(1:400,length(age_group))
 unemployed = sample(1:400,length(age_group))
 total_pop = employed + unemployed

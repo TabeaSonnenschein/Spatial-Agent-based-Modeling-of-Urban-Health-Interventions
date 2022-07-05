@@ -132,8 +132,8 @@ crosstabular_to_singleside_df =  function(df, nrow_var, ncol_var, row_var_names,
 #' ## generating some example mock data ##
 #' # stratified dataframe mock data, can be output of function: crosstabular_to_singleside_df
 #' age_group = rep(c("A1", "A2", "A3", "A4"), 6)
-#' sex = rep(c("male", "female", "non-binary"), each = 4)
-#' employ_status = rep(c("employed", "unemployed"), each = 12)
+#' sex = rep(c("male", "female", "non-binary"), each = 8)
+#' employ_status = rep(rep(c("employed", "unemployed"), each = 4),3)
 #' counts = sample(1:400,length(age_group))
 #' singleside_stratified_df = data.frame(age_group, sex , employ_status, counts)
 #'
@@ -154,4 +154,41 @@ restructure_one_var_marginal = function(df, variable, countsname){
   return(df_new)
 }
 
+
+
+#' @title Harmonize the classes of a variable across datasets by providing corresponding lists of values and adding the corresponding values to the dataframe
+#' @description This function can help the data preparation by harmonising the classes of a variable. For example, one stratified dataframe might have other age_groups then the neighborhood dataframe. In this function you can add a nested list of corresponding values that in that order belong to a second list of replacement values (to match it to the other dataframe). No data is deleted, only one new column with the new corresponding classes of the other dataframe is added.
+#' @param df The dataframe of the one dataset where the new column with classes of the other dataset should be added to. This is logically most likely the dataframe that has the more fine classes that can be aggregated into the other dataframe larger classes.
+#' @param orig_colname The columnname of df that corresponds to the variable whose classes should be harmonised
+#' @param list_other_df_classes This should be a list of unique classes of the other dataframe with which the entered df should be harmonised
+#' @param nested_list_corr_values Provide a nested list (list of lists) for the values of df that correspond to the list_other_df_classes, in the same order as list_other_df_classes. There can be multiple values within df that correspond to one of the list_other_df_classes, which is why it is a list of lists.
+#' @param new_col_name the name of the new column that will be added with the corresponding other df classes
+#'
+#' @return returns the provided dataframe with an additional column of the corresponding values provided.
+#' @export
+#'
+#' @examples
+#'#' ## generating some example mock data ##
+#' # stratified dataframe mock data, can be output of function: crosstabular_to_singleside_df
+#' age_group = rep(c("A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9"), 6)
+#' sex = rep(c("male", "female", "non-binary"), each = 18)
+#' employ_status = rep(rep(c("employed", "unemployed"), each = 9), 3)
+#' counts = sample(1:400,length(age_group))
+#' singleside_stratified_df = data.frame(age_group, sex , employ_status, counts)
+#'
+#' # let us say we have another dataframe that we want to harmonize
+#' # and their unique classes for age are "0-19", "20-39", "40-59", "60-79","80plus"
+#' # we know that in the singleside_stratified_df that corresponds to list(c("A1", "A2"), c("A3", "A4"), c("A5", "A6"), c("A7", "A8"), c("A9))
+#' singleside_stratified_df = varclass_harmonization(df = singleside_stratified_df, orig_colname = "age_group", list_other_df_classes = c( "0-19", "20-39", "40-59", "60-79","80plus"), nested_list_corr_values = list(c("A1", "A2"), c("A3", "A4"), c("A5", "A6"), c("A7", "A8"), c("A9")), new_col_name = "age_group_otherdf")
+#' print(singleside_stratified_df)
+#'
+varclass_harmonization = function(df, orig_colname, list_other_df_classes, nested_list_corr_values, new_col_name){
+    df[,c(new_col_name)] = NA
+    for(i in 1:length(list_other_df_classes)){
+      for(x in 1:length(nested_list_corr_values[[i]])){
+          df[df[,c(orig_colname)] %in% nested_list_corr_values[[i]][x], c(new_col_name)] = list_other_df_classes[i]
+      }
+    }
+    return(df)
+}
 
