@@ -3,6 +3,7 @@ library(devtools)
 install_github("TabeaSonnenschein/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/GenSynthPop")
 library(GenSynthPop)
 
+#############################################################
 # check out the function documentation
 ?gen_agent_df                        #generating agent dataframe
 ?distr_agent_neigh_age_group         #populating the agent_df with age_group and neigh_ID attributes
@@ -16,7 +17,7 @@ library(GenSynthPop)
 ?crossvalid                          #crossvalidate that the agent attribute distribution corresponds to neighborhood and stratified distributions
 
 
-
+##############################################################
 # set the directory to your data folder for the population data
 setwd()
 
