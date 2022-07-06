@@ -6,9 +6,9 @@ import numpy as np
 from itertools import chain
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-csv = os.path.join(os.getcwd(), ("disaggregated_evidence_instances.csv"))
+csv = os.path.join(os.getcwd(), ("predicted_evidence_instances_true_data.csv"))
 pred_Evidence_instances_df = pd.read_csv(csv)
-csv = os.path.join(os.getcwd(), ("Evidence_instances_df.csv"))
+csv = os.path.join(os.getcwd(), ("predicted_evidence_instances_all.csv"))
 pred_Evidence_instances_norelation_df = pd.read_csv(csv)
 csv = os.path.join(os.getcwd(), ("manually_extracted_evidence_instances.csv"))
 manual_Evidence_instances_df = pd.read_csv(csv)
@@ -16,6 +16,9 @@ manual_Evidence_instances_df = manual_Evidence_instances_df.iloc[list(np.where(m
 
 articles = set(manual_Evidence_instances_df['DOI'])
 pred_evidence_articles = pred_Evidence_instances_df.iloc[[x for x,y in enumerate(pred_Evidence_instances_df['DOI']) if y in articles]]
+pred_evidence_articles.to_csv("predicted_evidence_eval_articles.csv",  index=False)
+
+
 pred_evidence_articles['BehaviorDeterminant'] = [word.replace("['", "").replace("']","") for word in pred_evidence_articles['BehaviorDeterminant']]
 pred_evidence_articles_norelation = pred_Evidence_instances_norelation_df['BehaviorDeterminant'].iloc[[x for x,y in enumerate(pred_Evidence_instances_norelation_df['DOI']) if y in articles]]
 #pred_evidence_articles_norelation = pred_evidence_articles_norelation[np.where(pred_evidence_articles_norelation != "Nan")[0]]

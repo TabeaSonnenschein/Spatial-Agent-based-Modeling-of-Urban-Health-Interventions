@@ -22,7 +22,8 @@ from matplotlib import pyplot
 
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-csv = os.path.join(os.getcwd(), ("possible_evidence_instances_training_data_2000.csv"))
+# csv = os.path.join(os.getcwd(), ("possible_evidence_instances_training_data_2000.csv"))
+csv = os.path.join(os.getcwd(), ("possible_evidence_instances_training_data_4000.csv"))
 traindata = pd.read_csv(csv)
 
 print(traindata.iloc[:,9:].head())
@@ -33,7 +34,7 @@ y = traindata['Evidence_Truth']
 X = traindata.iloc[:,9:]
 target_names = [0,1]
 X_train, X_test, y_train, y_test = train_test_split(X, y,
-        test_size=0.3,
+        test_size=0.2,
         random_state=23,
         stratify=y)
 

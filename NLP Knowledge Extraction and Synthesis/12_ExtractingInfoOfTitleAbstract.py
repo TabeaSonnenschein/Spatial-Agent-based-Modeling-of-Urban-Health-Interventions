@@ -53,6 +53,7 @@ def extendInfofromTitleAbstract(articlesdata, fulllabeledtext, evidenceinstance_
         StudyGroup = fulllabeledtext['Studygroup'].iloc[labeled_words_idx]
         StudyGroup = [elm.lower().split(" ; ") for elm in StudyGroup if isinstance(elm, str)]
         StudyGroup = list(dict.fromkeys(list(chain.from_iterable(StudyGroup))))
+        StudyGroup = [i for i in StudyGroup if i not in ["in", "of", "to"]]
         evidenceinstance_df['NrSG_inArticle'].iloc[evidence_data_idx] = len(StudyGroup)
         SG_inTitle = [elm for elm in StudyGroup if title.find(elm) != -1]
         if len(SG_inTitle) > 1:

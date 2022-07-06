@@ -41,14 +41,16 @@ BD_disagg, AT_disagg, BO_disagg, SG_disagg, MO_disagg  = [], [], [], [], []
 SENT_disagg, DOI_disagg, sent_ID_disagg = [], [], []
 
 ## Syntactical Properties
-# Indices
+# Variable Combination Indices
 BD_idx_disagg, AT_idx_disagg, BO_idx_disagg, MO_idx_disagg, SG_idx_disagg, split_prepos_idx_disagg = [], [], [], [], [], []
 all_before_or_after_split_propos, index_dist_ATmin_BD, index_dist_ATmax_BD, index_dist_ATmin_BO, index_dist_ATmax_BO = [], [], [], [], []
 index_dist_ATmin_MO, index_dist_ATmax_MO, index_dist_ATmin_SGmin, index_dist_ATmin_SGmax, index_dist_ATmax_SGmin, index_dist_ATmax_SGmax = [], [], [], [], [], []
 semicolon_idx, all_before_or_after_semicolon = [], []
+min_negator_idx, max_negator_idx = [], []
 
 minimum_AT_idx, maximum_AT_idx, minimum_SG_idx, maximum_SG_idx = [],[], [],[]
 
+# sentence level indices
 max_sent_ATidx, min_sent_ATidx, max_sent_BDidx, min_sent_BDidx, max_sent_BOidx, min_sent_BOidx = [], [], [], [], [], []
 max_sent_MOidx, min_sent_MOidx, max_sent_SGidx, min_sent_SGidx= [], [], [], []
 
@@ -63,6 +65,7 @@ Verb_in_AT_inst, Noun_in_AT_inst, Adj_Adv_in_AT_inst, Comp_Adj_Adv_in_AT_inst, V
 Nr_ATs_in_instance, Multi_AT_Indice_gap = [], []
 some_AT_in_brackets, all_AT_in_brackets= [], []
 multiAT_shortestPathLen_min, multiAT_shortestPathLen_max = [], []
+ATinst_has_not, ATsent_has_not = [], []
 
 # combinatory variable properties
 same_dependTree, missing_var_in_same_dependTree = [], []
@@ -97,6 +100,7 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     # brackets = [m.start() for x in ["(", ")"] for m in re.finditer((x), value)]
     semicolon = [m.start() for m in re.finditer(";", value)]
     semicolon.extend(["NaN"])
+    negators = [m.start() for x in ["not", "except", "Not"] for m in re.finditer((x), value)]
 
     #######################
     ## Dependency Parser ##
@@ -124,8 +128,8 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
         wordlist = (" ").join([str(word) for word in wordlist])
         items_in_subtree_groups.append(check_if_in_wordlist_and_append([AT_entities,BD_entities,BO_entities,SG_entities, MO_entities], wordlist))
     #print(items_in_subtree_groups)
-    graph = Dependencytree_to_Graph(doc)
 
+    graph = Dependencytree_to_Graph(doc)
 
     ### filling target list
     # variable names
@@ -309,19 +313,24 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
             maximum_SG_idx.extend(["NaN"])
 
     # Association types properties
+    # if it contains a negator (not)
+    ATsent_has_not.extend([1 if any(True if "not" in phrase else False for phrase in AT_entities) else 0] * NR_poss_relat)
+
     # direct link between association types
     ATentitylist = combinations_alllists(AT_entities)
     # Get the length and path
-    multiAT_shortestPath_min = []
-    multiAT_shortestPath_max = []
-
+    multiAT_shortestPath_min, multiAT_shortestPath_max = [], []
+    has_not = []
     for i in range(0, len(ATentitylist)):
         if len(ATentitylist[i]) == 1:
             multiAT_shortestPath_min.extend([0])
             multiAT_shortestPath_max.extend([0])
+            has_not.extend([1 if "not" in ATentitylist[i] else 0])
         else:
             multiAT_shortestPath = []
             words_inlist = list(chain.from_iterable([phrase.split(" ") for phrase in ATentitylist[i]]))
+            ## checking if any "not" in wordlist
+            has_not.extend([1 if "not" in words_inlist else 0])
             for f in range(0, len(words_inlist)):
                 for x in range((f + 1), (len(words_inlist))):
                     multiAT_shortestPath.extend([nx.shortest_path_length(graph, source=words_inlist[f].lower(),
@@ -331,6 +340,7 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
             multiAT_shortestPath_max.extend([max(multiAT_shortestPath)])
     multiAT_shortestPathLen_min.extend(multiAT_shortestPath_min * AT_repetition)
     multiAT_shortestPathLen_max.extend(multiAT_shortestPath_max * AT_repetition)
+    ATinst_has_not.extend(has_not * AT_repetition)
 
     # checking ATs part of speech (gramma function)
     fullsentence_ATPOS = complete_evidence_Instances['AT_POS'].iloc[count].split(" ; ")
@@ -360,6 +370,12 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     # sentence level variables
     split_prepos_idx_disagg.extend([split_prepos[0]] * NR_poss_relat)
     semicolon_idx.extend([semicolon[0]]*NR_poss_relat)
+    if negators:
+        min_negator_idx.extend([min(negators)]*NR_poss_relat)
+        max_negator_idx.extend([max(negators)]*NR_poss_relat)
+    else:
+        min_negator_idx.extend(["NaN"] * NR_poss_relat)
+        max_negator_idx.extend(["NaN"] * NR_poss_relat)
     SENT_disagg.extend([value] * NR_poss_relat)
     DOI_disagg.extend([complete_evidence_Instances['DOI'].iloc[count]] * NR_poss_relat)
     sent_ID_disagg.extend([complete_evidence_Instances['Sentence'].iloc[count]] * NR_poss_relat)
@@ -403,7 +419,7 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
                                      latestverb_indx, Verb_in_AT_inst, Noun_in_AT_inst, Adj_Adv_in_AT_inst, Comp_Adj_Adv_in_AT_inst,
                                      Nr_ATs_in_instance, Multi_AT_Indice_gap, minimum_AT_idx, maximum_AT_idx, multiAT_shortestPathLen_min,
                                      multiAT_shortestPathLen_max, same_dependTree, missing_var_in_same_dependTree, joined_BO_instances,
-                                     AT_BD_minshortpath, AT_BD_maxshortpath,
+                                     ATinst_has_not, ATsent_has_not, AT_BD_minshortpath, AT_BD_maxshortpath,
                                      AT_BD_sumshortpath, AT_BO_minshortpath, AT_BO_maxshortpath, AT_BO_sumshortpath, AT_SG_minshortpath,
                                      AT_SG_maxshortpath, AT_SG_sumshortpath, AT_MO_minshortpath, AT_MO_maxshortpath, AT_MO_sumshortpath,
                                      all_before_or_after_split_propos, index_dist_ATmin_BD, index_dist_ATmax_BD, index_dist_ATmin_BO,
@@ -413,7 +429,7 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
                                      verb_between_ATmax_MO, verb_between_ATmin_SGmin, verb_between_ATmax_SGmin, verb_between_ATmin_SGmax, verb_between_ATmax_SGmax,
                                      max_sent_ATidx, min_sent_ATidx, max_sent_SGidx, min_sent_SGidx,
                                      max_sent_BDidx, min_sent_BDidx, max_sent_BOidx, min_sent_BOidx, max_sent_MOidx, min_sent_MOidx,
-                                     max_sent_SGidx, min_sent_SGidx, semicolon_idx, all_before_or_after_semicolon])
+                                     max_sent_SGidx, min_sent_SGidx, semicolon_idx, all_before_or_after_semicolon, max_negator_idx, min_negator_idx])
 
 
 
@@ -424,6 +440,7 @@ possible_evidence_instances = pd.DataFrame({'DOI': DOI_disagg, 'Sentence': sent_
                                                  'MO_idx': MO_idx_disagg, 'Split_Propos_idx': split_prepos_idx_disagg,
                                                  'all_before_or_after_split_propos': all_before_or_after_split_propos,
                                                  'semicolon_idx': semicolon_idx, 'all_before_or_after_semicolon': all_before_or_after_semicolon,
+                                                 'max_negator_idx': max_negator_idx, 'min_negator_idx': min_negator_idx,
                                                  'index_dist_ATmin_BD': index_dist_ATmin_BD, 'index_dist_ATmax_BD': index_dist_ATmax_BD,
                                                  'index_dist_ATmin_BO': index_dist_ATmin_BO, 'index_dist_ATmax_BO': index_dist_ATmax_BO,
                                                  'index_dist_ATmin_MO': index_dist_ATmin_MO, 'index_dist_ATmax_MO': index_dist_ATmax_MO,
@@ -436,6 +453,7 @@ possible_evidence_instances = pd.DataFrame({'DOI': DOI_disagg, 'Sentence': sent_
                                                  'Nr_ATs_in_instance': Nr_ATs_in_instance, 'Multi_AT_Indice_gap': Multi_AT_Indice_gap,
                                                  'minimum_AT_idx': minimum_AT_idx, 'maximum_AT_idx': maximum_AT_idx,
                                                  'minimum_SG_idx': minimum_SG_idx, 'maximum_SG_idx': maximum_SG_idx,
+                                                 'ATinst_has_not': ATinst_has_not, 'ATsent_has_not': ATsent_has_not,
                                                  'Nr_verbs': Nr_verbs, 'earliestverb_indx': earliestverb_indx, 'latestverb_indx': latestverb_indx,
                                                  'multiAT_shortestPathLen_min': multiAT_shortestPathLen_min,'multiAT_shortestPathLen_max': multiAT_shortestPathLen_max,
                                                  'AT_BD_minshortpath': AT_BD_minshortpath, 'AT_BD_maxshortpath': AT_BD_maxshortpath, 'AT_BD_sumshortpath': AT_BD_sumshortpath,
