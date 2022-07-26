@@ -73,7 +73,7 @@
       <tags>categoryTag:General</tags>
     </sharedElements>
     <sharedElements xsi:type="advanced:Area" xmi:id="_fYkNZPylEeyLFpdMbOJW2w" elementId="org.eclipse.ui.editorss" selectedElement="_fYkNZfylEeyLFpdMbOJW2w">
-      <children xsi:type="basic:PartStack" xmi:id="_fYkNZfylEeyLFpdMbOJW2w" elementId="org.eclipse.e4.primaryDataStack" selectedElement="_ys92QPylEeyLFpdMbOJW2w">
+      <children xsi:type="basic:PartStack" xmi:id="_fYkNZfylEeyLFpdMbOJW2w" elementId="org.eclipse.e4.primaryDataStack" selectedElement="_fhqfAPylEeyLFpdMbOJW2w">
         <tags>org.eclipse.e4.primaryDataStack</tags>
         <tags>EditorStack</tags>
         <tags>active</tags>
@@ -82,6 +82,8 @@
           <tags>Editor</tags>
           <tags>msi.gama.application.browser</tags>
           <tags>removeOnHide</tags>
+          <tags>active</tags>
+          <tags>activeOnClose</tags>
         </children>
         <children xsi:type="basic:Part" xmi:id="_ys92QPylEeyLFpdMbOJW2w" elementId="org.eclipse.e4.ui.compatibility.editor" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityEditor" label="Transport Air Pollution Exposure Model.gaml" closeable="true">
           <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;editor id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;Transport Air Pollution Exposure Model.gaml&quot; partName=&quot;Transport Air Pollution Exposure Model.gaml&quot; title=&quot;Transport Air Pollution Exposure Model.gaml&quot; tooltip=&quot;Urban Exposure Transport Intervention ABMs/models/Transport Air Pollution Exposure Model.gaml&quot;>&#xD;&#xA;&lt;input factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; path=&quot;/Urban Exposure Transport Intervention ABMs/models/Transport Air Pollution Exposure Model.gaml&quot;/>&#xD;&#xA;&lt;editorState selectionHorizontalPixel=&quot;0&quot; selectionLength=&quot;0&quot; selectionOffset=&quot;5186&quot; selectionTopPixel=&quot;2417&quot;/>&#xD;&#xA;&lt;/editor>"/>
@@ -89,7 +91,6 @@
           <tags>msi.gama.lang.gaml.Gaml</tags>
           <tags>removeOnHide</tags>
           <tags>activeOnClose</tags>
-          <tags>active</tags>
         </children>
       </children>
     </sharedElements>
@@ -1088,7 +1089,7 @@
   <addons xmi:id="_fQJ4S_ylEeyLFpdMbOJW2w" elementId="MinMax Addon" contributorURI="platform:/plugin/org.eclipse.ui.workbench" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.addons.swt/org.eclipse.e4.ui.workbench.addons.minmax.MinMaxAddon"/>
   <addons xmi:id="_fQJ4TPylEeyLFpdMbOJW2w" elementId="org.eclipse.ui.workbench.addon.0" contributorURI="platform:/plugin/org.eclipse.ui.workbench" contributionURI="bundleclass://org.eclipse.e4.ui.workbench/org.eclipse.e4.ui.internal.workbench.addons.HandlerProcessingAddon"/>
   <addons xmi:id="_fQNioPylEeyLFpdMbOJW2w" elementId="SplitterAddon" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.addons.swt/org.eclipse.e4.ui.workbench.addons.splitteraddon.SplitterAddon"/>
-  <addons xmi:id="_WXl4gf0bEeyPFq0UExrkqQ" elementId="org.eclipse.ui.ide.addon.0" contributionURI="bundleclass://org.eclipse.ui.ide/org.eclipse.ui.internal.ide.addons.SaveAllDirtyPartsAddon"/>
+  <addons xmi:id="_IYS0IKimEeS11vbz3f9ezw" elementId="org.eclipse.ui.ide.addon.0" contributorURI="platform:/plugin/org.eclipse.ui.ide" contributionURI="bundleclass://org.eclipse.ui.ide/org.eclipse.ui.internal.ide.addons.SaveAllDirtyPartsAddon"/>
   <addons xmi:id="_dz0JgGOlEeSMMaPQU2nlzw" elementId="org.eclipse.ui.ide.application.addon.0" contributorURI="platform:/plugin/org.eclipse.ui.ide.application" contributionURI="bundleclass://org.eclipse.ui.ide.application/org.eclipse.ui.internal.ide.application.addons.ModelCleanupAddon"/>
   <categories xmi:id="_fQblEPylEeyLFpdMbOJW2w" elementId="org.eclipse.team.ui.category.team" name="Team" description="Actions that apply when working with a Team"/>
   <categories xmi:id="_fQblEfylEeyLFpdMbOJW2w" elementId="org.eclipse.ui.category.views" name="Views" description="Commands for opening views"/>
