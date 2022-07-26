@@ -10,6 +10,7 @@ This package contains a set of functions that help prepare stratified census dat
 * **restructure_one_var_marginal:** Restructures a single-sided stratified dataframe so that the classes of one column/variable of interest are seperate columns
 * **varclass_harmonization:** Harmonize the classes of a variable across datasets 
 * **aggreg_stratdata_in_harmonclasses:** Aggregating a stratified dataset into the newly added harmonised classes
+* **add_spatial_units_to_agent_df:** Add a new spatial unit to the agent dataframe based on a unit map
 
 #### *For Initiating the Agent Dataframe*
 * **gen_agent_df:** Generating an agent dataframe of the population size and assigning a unique ID
