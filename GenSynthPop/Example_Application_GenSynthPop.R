@@ -16,7 +16,7 @@ library(GenSynthPop)
 ?distr_attr_strat_neigh_stats_3plus  #Creates a stratified propensity table from separate conditional variable joint distributions (attributes with 3 or more classes)
 ?distr_attr_cond_prop                #if neighborhood marginal distributions are unavailable use this: to distribute purely based on conditional propensities
 ?crossvalid                          #crossvalidate that the agent attribute distribution corresponds to neighborhood and stratified distributions
-
+?add_spatial_units_to_agent_df       #Add a new spatial unit to the agent dataframe based on a unit map
 
 ##############################################################
 # set the directory to your data folder for the population data
