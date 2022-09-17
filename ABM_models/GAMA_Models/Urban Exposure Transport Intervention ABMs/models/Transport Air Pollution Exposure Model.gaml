@@ -42,6 +42,11 @@ global skills: [RSkill]{
     csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv", ",", string); 
     //	columnnames:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid"
 
+    //  loading grid with airpollution determinants
+    file airpoll_determ_raster <- grid_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
+    csv_file airpoll_determ_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv", ",", string); 
+    //	columnnames: 
+
     
 //  loading Environmental Stressor Maps
 	file shape_file_NoiseContour_night <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
@@ -733,12 +738,12 @@ grid Environment_stressors cell_width: 100 cell_height: 100  parallel: true{
 	}
 	
 //	rgb color <- #green update: rgb(255 *(AirPoll_PM10/30.0) , 255 * (1 - (AirPoll_PM10/30.0)), 0.0);
-//	reflex stressor_adjustment when: (((current_date.minute mod 10) = 0) or (current_date.minute = 0)){
-//		if(AirPoll_PM2_5 != 0){
-//			diffuse var: AirPoll_PM2_5 on: Environment_stressors proportion: 0.3 radius: 1;
-//			AirPoll_PM2_5 <- AirPoll_PM2_5 * 0.3;
-//		}
-//	}
+	reflex atmospheric_dispersion when: (((current_date.minute mod 10) = 0) or (current_date.minute = 0)){
+		if(AirPoll_PM2_5 != 0){
+			diffuse var: AirPoll_PM2_5 on: Environment_stressors proportion: 0.3 radius: 1;
+			AirPoll_PM2_5 <- AirPoll_PM2_5 * 0.3;
+		}
+	}
 	
 }
 
