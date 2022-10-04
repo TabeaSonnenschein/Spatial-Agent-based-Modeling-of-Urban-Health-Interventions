@@ -644,6 +644,24 @@ ggplot(data = st_as_sf(walkability_grid)) +
   geom_sf(aes(fill = walkability_grid$ParkingPrices_post), size= 0.01)+
   scale_fill_viridis_c(option = "D")
 
+#####################################
+# Sidewalk Coverage
+#####################################
+
+Sidewalks = readOGR(dsn=paste(dataFolder, "/Built Environment/Transport Infrastructure/pedestrian", sep = ""),layer="BGT_pedway_polygons_geomattr2")
+Sidewalks = spTransform(Sidewalks, CRSobj = crs)
+Sidewalks = aggregate(Sidewalks, dissolve = T)
+Sidewalks = st_as_sfc(Sidewalks)
+plot(Sidewalks,col="yellow", add = T)
+
+Sidewalks_raster = coverage_fraction(walkability_grid_raster, Sidewalks)[[1]]
+Sidewalks_raster= rasterToPolygons(Sidewalks_raster)
+walkability_grid@data$sidewalk_coverage = Sidewalks_raster@data$layer
+ggplot(data = st_as_sf(walkability_grid)) +
+  geom_sf(aes(fill = walkability_grid$sidewalk_coverage), size= 0.01)+
+  scale_fill_viridis_c(option = "D")
+summary(walkability_grid$sidewalk_coverage)
+
 
 #####################################
 # Saving the grid data
