@@ -1,7 +1,9 @@
-pkgs = c("rgdal","sp", "sf",  "dplyr")
+pkgs = c("rgdal","sp", "sf",  "dplyr", "bigmemory")
+sapply(pkgs[which(sapply(pkgs, require, character.only = T) == FALSE)], install.packages, character.only = T)
 sapply(pkgs, require, character.only = T) #load
 rm(pkgs)
 
+memory.limit(size=16000)
 
 dataFolder= "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
 
@@ -16,7 +18,7 @@ colname_description = read.csv("ODiN2018_Codeboek_prepared.csv")
 ## reading postcode data
 setwd(paste(dataFolder, "/Administrative Units", sep = ""))
 PC6 = read.csv("pc6hnr20190801_gwb.csv")  # has all postcode 6 and housenumbers in the netherlands
-
+write.csv(PC6_small, "PC6_small.csv", row.names = F)
 # Gemeente AMsterdam = 363; Diemen = 384; Ouder-Amstel = 437
 
 PC6_StudyArea = PC6[which(PC6$Gemeente2019 %in% c("363", "384", "437")), ]
@@ -157,22 +159,38 @@ write.csv(ODIN2018_Studyarea, "ODIN2018_Studyarea.csv", row.names = F)
 setwd(paste(dataFolder, "/ODIN/2019", sep = ""))
 ODIN2019_Studyarea = read.csv("ODIN2019_Studyarea.csv")
 
+ODIN2018_Studyarea = ODIN2018_Studyarea[, englishnames]
+
 setwd(paste(dataFolder, "/ODIN/2018", sep = ""))
 ODIN2018_Studyarea = read.csv("ODIN2018_Studyarea.csv")
-
+remove(PC6, PC6_StudyArea)
 
 PC6_small = PC6_StudyArea[, c("PC4", "PC6")]
 colnames(PC6_small) = c("orig_postcode", "orig_PC6")
 
-ODIN2018_Studyarea_origPC6 = merge(ODIN2018_Studyarea, PC6_small, by= "orig_postcode")
-ODIN2019_Studyarea_origPC6 = merge(ODIN2019_Studyarea, PC6_small, by= "orig_postcode")
+
+ODIN2018_Studyarea_origPC6 = merge(ODIN2018_Studyarea, PC6_small, by= "orig_postcode", all.x = T, all.y = F)
+write.csv(ODIN2018_Studyarea_origPC6, "ODIN2018_Studyarea_origPC6.csv", row.names = F)
+ODIN2019_Studyarea_origPC6 = merge(ODIN2019_Studyarea, PC6_small, by= "orig_postcode", all.x = T, all.y = F)
 
 ODIN2018_Studyarea_origPC6 = ODIN2018_Studyarea_origPC6[sample(1:nrow(ODIN2018_Studyarea_origPC6), size= 1000), ]
 ODIN2019_Studyarea_origPC6 = ODIN2019_Studyarea_origPC6[sample(1:nrow(ODIN2019_Studyarea_origPC6), size= 1000), ]
 
 colnames(PC6_small) = c("dest_postcode", "dest_PC6")
-ODIN2018_Studyarea_PC6 = merge(ODIN2018_Studyarea_origPC6, PC6_small, by= "dest_postcode")
-ODIN2019_Studyarea_PC6 = merge(ODIN2019_Studyarea_origPC6, PC6_small, by= "dest_postcode")
+
+i=1
+
+ODIN2018_Studyarea_PC6 = merge(ODIN2018_Studyarea_origPC6[((i-1)*10000):(i*10000),], PC6_small, by= "dest_postcode", all.x = T, all.y = F)
+
+for(i in 2:as.integer(nrow(ODIN2018_Studyarea_origPC6)/5000)){
+  print(paste("computing rows:", as.character((i-1)*5000), "to", as.character(i*5000)))
+  ODIN2018_Studyarea_PC61 = merge(ODIN2018_Studyarea_origPC6[((i-1)*5000):(i*5000),], PC6_small, by= "dest_postcode", all.x = T, all.y = F)
+  ODIN2018_Studyarea_PC6 = rbind(ODIN2018_Studyarea_PC6, ODIN2018_Studyarea_PC61)
+}
+
+
+ODIN2018_Studyarea_PC61 = merge(ODIN2018_Studyarea_origPC61[0:10000,], PC6_small, by= "dest_postcode", all.x = T, all.y = F)
+ODIN2019_Studyarea_PC6 = merge(ODIN2019_Studyarea_origPC6, PC6_small, by= "dest_postcode", all.x = T, all.y = F)
 
 
 ODIN2018_Studyarea_PC6 = ODIN2018_Studyarea_PC6[sample(1:nrow(ODIN2018_Studyarea_PC6), size= 1000), ]

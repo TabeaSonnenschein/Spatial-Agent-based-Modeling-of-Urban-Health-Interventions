@@ -29,7 +29,7 @@ pkgs = c("maptools","raster", "rgdal","sp", "sf", "jpeg", "data.table", "purrr",
          "rstan", "boot",  "concaveman", "data.tree", "DiagrammeR", "networkD3", "rgexf", "tidytree", "exactextractr", "terra")
 sapply(pkgs, require, character.only = T) #load
 rm(pkgs)
-
+?point.in.poly
 dataFolder= "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
 
 crs = "+init=EPSG:28992" #Amersfoort / RD New

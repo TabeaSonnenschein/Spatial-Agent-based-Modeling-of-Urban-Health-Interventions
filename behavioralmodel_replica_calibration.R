@@ -60,6 +60,11 @@ ODIN$PubTransTrip = 0
 ODIN$PubTransTrip[ODIN$modes_simple == "publicTransport"] = 1
 
 
+setwd("D:")
+ODIN = read.csv("ODIN2018_Studyarea_PC6.csv")
+ODIN = read.csv("ODIN2018_Studyarea_PC61.csv")
+ODIN = read.csv("ODIN2018_Studyarea_PC62.csv")
+
 ## Environmental Behavior Determinants
 setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure")
 PC6_env_behav_determ = read.csv("PC6_env_behav_determ.csv")
@@ -69,7 +74,7 @@ env_behav_colnames = c("PC6", "area", "perimeter", "unqId", "Intid", "popDns", "
              "SumTraffVo", "HighwLen", "PedStrWidt", "PedStrLen", "LenBikRout",
              "DistCBD", "retailDiv", "MaxSpeed", "MinSpeed", "MeanSpeed", "NrStrLight",
              "CrimeIncid", "MaxNoisDay", "MxNoisNigh", "OpenSpace", "NrParkSpac",
-             "PNonWester", "PWelfarDep", "coords.x1","coords.x2")
+             "PNonWester", "PWelfarDep", "PrkPricPre", "PrkPricPos", "coords.x1","coords.x2")
 
 PC6_polygon = readOGR(dsn=getwd(),layer="PC6_polygon_behav_determ")
 PC6_polygonsf = st_as_sf(PC6_polygon)
@@ -77,6 +82,9 @@ PC6_polygonsf = st_as_sf(PC6_polygon)
 crs = "+init=EPSG:28992" #Amersfoort / RD New
 crs_name = "RDNew"
 CRS_defin = "+towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725"
+
+
+
 
 
 ##################################################
