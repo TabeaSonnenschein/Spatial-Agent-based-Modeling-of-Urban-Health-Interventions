@@ -42,6 +42,11 @@ for(i in 1:length(mode_names)){
 
 table(ODIN$mode_name)
 
+
+ODIN$car_access = 0
+ODIN$car_access[ODIN$Nr_cars_hh > 0] = 1
+
+
 ODIN$modes_simple = ""
 ODIN$modes_simple[ODIN$mode_name %in% c("Personenauto", "Bestelauto", "Vrachtwagen", "Landbouwvoertuig", "Gehandicaptenvervoermiddel met motor")] = "car"
 ODIN$modes_simple[ODIN$mode_name %in% c("Trein", "Bus", "Tram", "Metro")] = "publicTransport"
@@ -239,7 +244,7 @@ summary(car_lm)
 ### Behavioral Model Replica ###############
 ############################################
 
-
+### with behavior constraints
 
 ###########need to subselect based on pre-intervention date
  date < 2019 #April
@@ -258,37 +263,103 @@ ODIN_orig_dest$age_group[ODIN_orig_dest$age %in% 65:100] = 5
 income_weight_car = 0
 trip_dist_weight_car_age = c(0,0,0,0,0)
 parking_space_weight_car = 0
-car_access_weight = 0
+car_access_weight = 0   #test as binary or weight
+parking_price_weight_car = 0
+parking_price_weight_car_income = c(0,0,0)
+children_weight_car = 0
+DistCBD_weight_car  = 0
+
+
+trip_dist_weight_walk_age = c(0,0,0,0,0)
+DistCBD_weight_walk  = 0
+pubTraDns_orig_weight_walk  = 0
+pubTraDns_dest_weight_walk = 0
+popDns_weight_walk  = 0
+retaiDns_weight_walk = 0
+greenCovr_weight_walk = 0
+RdIntrsDns_weight_walk = 0
+TrafAccid_weight_walk = 0
+AccidPedes_weight_walk = 0
+NrTrees_weight_walk = 0
+MeanTraffV_weight_walk = 0
+HighwLen_weight_walk = 0
+PedStrWidt_weight_walk = 0
+PedStrLen_weight_walk = 0
+retailDiv_weight_walk = 0
+MaxSpeed_weight_walk = 0
+NrStrLight_weight_walk = 0
+CrimeIncid_weight_walk = 0
+MaxNoisDay_weight_walk = 0
+OpenSpace_weight_walk = 0
+PNonWester_weight_walk = 0
+PWelfarDep_weight_walk = 0
+
+trip_dist_weight_bike_age = c(0,0,0,0,0)
+LenBikRout_weight_walk = 0
+TrafAccid_weight_walk = 0
+DistCBD_weight_walk  = 0
+NrTrees_weight_walk = 0
+MeanTraffV_weight_walk = 0
+HighwLen_weight_walk = 0
+
 
 
 ODIN_orig_dest$driving_utility = (income_weight_car * ODIN_orig_dest$income) +
                                  (trip_dist_weight_car_age[ODIN_orig_dest$age_group] * ODIN_orig_dest$trip_distance) +
                                  (parking_space_weight_car * ODIN_orig_dest$NrParkSpac.dest) +
                                  (parking_price_weight_car * ODIN_orig_dest$ParkingPrice.dest) +
-                                  (car_access_weight)
+                                 (children_weight_car * ODIN_orig_dest$nr_children_yonger6) +
+                                 (DistCBD_weight_car * ODIN_orig_dest$DistCBD)
+
+ODIN_orig_dest$driving_utility[ODIN_orig_dest$car_access > 0]  = 0
+
+
+ODIN_orig_dest$walking_utility = (trip_dist_weight_walk_age[ODIN_orig_dest$age_group] * ODIN_orig_dest$trip_distance) +
+                                  (DistCBD_weight_walk * ODIN_orig_dest$DistCBD) +
+                                  (pubTraDns_orig_weight_walk * ODIN_orig_dest$pubTraDns.orig) +
+                                  (pubTraDns_dest_weight_walk * ODIN_orig_dest$pubTraDns.dest) +
+                                  (popDns_weight_walk * ODIN_orig_dest$popDns) +
+                                  (retaiDns_weight_walk * ODIN_orig_dest$retaiDns) +
+                                  (greenCovr_weight_walk * ODIN_orig_dest$greenCovr) +
+                                  (RdIntrsDns_weight_walk * ODIN_orig_dest$RdIntrsDns) +
+                                  (TrafAccid_weight_walk * ODIN_orig_dest$TrafAccid) +
+                                  (AccidPedes_weight_walk * ODIN_orig_dest$AccidPedes) +
+                                  (NrTrees_weight_walk * ODIN_orig_dest$NrTrees) +
+                                  (MeanTraffV_weight_walk * ODIN_orig_dest$MeanTraffV) +
+                                  (HighwLen_weight_walk * ODIN_orig_dest$HighwLen) +
+                                  (PedStrWidt_weight_walk * ODIN_orig_dest$PedStrWidt) +
+                                  (PedStrLen_weight_walk * ODIN_orig_dest$PedStrLen) +
+                                  (retailDiv_weight_walk * ODIN_orig_dest$retailDiv) +
+                                  (MaxSpeed_weight_walk * ODIN_orig_dest$MaxSpeed) +
+                                  (NrStrLight_weight_walk * ODIN_orig_dest$NrStrLight) +
+                                  (CrimeIncid_weight_walk * ODIN_orig_dest$CrimeIncid) +
+                                  (MaxNoisDay_weight_walk * ODIN_orig_dest$MaxNoisDay) +
+                                  (OpenSpace_weight_walk * ODIN_orig_dest$OpenSpace) +
+                                  (PNonWester_weight_walk * ODIN_orig_dest$PNonWester) +
+                                  (PWelfarDep_weight_walk * ODIN_orig_dest$PWelfarDep)
+
+
+
+ODIN_orig_dest$biking_utility = (trip_dist_weight_bike_age[ODIN_orig_dest$age_group] * ODIN_orig_dest$trip_distance) +
+                                  (DistCBD_weight_bike * ODIN_orig_dest$DistCBD) +
+                                  (popDns_weight_bike * ODIN_orig_dest$popDns) +
+                                  (greenCovr_weight_bike * ODIN_orig_dest$greenCovr) +
+                                  (RdIntrsDns_weight_bike * ODIN_orig_dest$RdIntrsDns) +
+                                  (TrafAccid_weight_bike * ODIN_orig_dest$TrafAccid) +
+                                  (LenBikRout_weight_walk * ODIN_orig_dest$LenBikRout) +
+                                  (NrTrees_weight_bike * ODIN_orig_dest$NrTrees) +
+                                  (MeanTraffV_weight_bike * ODIN_orig_dest$MeanTraffV) +
+                                  (HighwLen_weight_bike * ODIN_orig_dest$HighwLen) +
+                                  (MaxSpeed_weight_bike * ODIN_orig_dest$MaxSpeed) +
+                                  (NrStrLight_weight_bike * ODIN_orig_dest$NrStrLight) +
+                                  (CrimeIncid_weight_bike * ODIN_orig_dest$CrimeIncid) +
+                                  (MaxNoisDay_weight_bike * ODIN_orig_dest$MaxNoisDay) +
+                                  (OpenSpace_weight_bike * ODIN_orig_dest$OpenSpace) +
+                                  (PNonWester_weight_bike * ODIN_orig_dest$PNonWester) +
+                                  (PWelfarDep_weight_bike * ODIN_orig_dest$PWelfarDep)
+
 
 season (weather)
-
-walking_utility <- (affordability_weight * float(affordability["perc_budget_walk"]))
-+ (pop_density_weight_walk * float(assumed_quality_infrastructure["pop_density"]))
-+ (retail_density_weight_walk * float(assumed_quality_infrastructure["retail_density"]))
-+ (greenCoverage_weight_walk * float(assumed_quality_infrastructure["greenCoverage"]))
-+ (public_Transport_density_weight_walk * float(assumed_quality_infrastructure["public_Transport_density"]))
-+ (road_intersection_density_weight_walk * float(assumed_quality_infrastructure["road_intersection_density"]))
-+ (traveltime_weight * float(assumed_traveltime["traveltime_walk"]))
-+ (tripdistance_weight_age_walk[agegroup] * tripdistance_weight_BMI_walk[weightgroup] * (trip_distance/1000))
-
-biking_utility <- (affordability_weight * float(affordability["perc_budget_bike"]))
-+ (pop_density_weight_bike * float(assumed_quality_infrastructure["pop_density"]))
-+ (retail_density_weight_bike * float(assumed_quality_infrastructure["retail_density"]))
-+ (greenCoverage_weight_bike * float(assumed_quality_infrastructure["greenCoverage"]))
-+ (public_Transport_density_weight_bike * float(assumed_quality_infrastructure["public_Transport_density"]))
-+ (road_intersection_density_weight_bike * float(assumed_quality_infrastructure["road_intersection_density"]))
-+ (traveltime_weight * float(assumed_traveltime["traveltime_bike"]))
-+ (tripdistance_weight_age_bike[agegroup] * tripdistance_weight_BMI_bike[weightgroup] * (trip_distance/1000))
-
-
-
 
 
 
@@ -311,52 +382,3 @@ summary(GA)
 
 hill.climbing.search(attributes, eval.fun)
 
-driving_utility <- (affordability_weight * float(affordability["perc_budget_car"]))
-  + (traveltime_weight * float(assumed_traveltime["traveltime_car"]))
-  + (tripdistance_weight_age_car[agegroup] * tripdistance_weight_BMI_car[weightgroup] * (trip_distance/1000))
-
-
-walking_utility <- (affordability_weight * float(affordability["perc_budget_walk"]))
-  + (pop_density_weight_walk * float(assumed_quality_infrastructure["pop_density"]))
-  + (retail_density_weight_walk * float(assumed_quality_infrastructure["retail_density"]))
-  + (greenCoverage_weight_walk * float(assumed_quality_infrastructure["greenCoverage"]))
-  + (public_Transport_density_weight_walk * float(assumed_quality_infrastructure["public_Transport_density"]))
-  + (road_intersection_density_weight_walk * float(assumed_quality_infrastructure["road_intersection_density"]))
-  + (traveltime_weight * float(assumed_traveltime["traveltime_walk"]))
-  + (tripdistance_weight_age_walk[agegroup] * tripdistance_weight_BMI_walk[weightgroup] * (trip_distance/1000))
-
-biking_utility <- (affordability_weight * float(affordability["perc_budget_bike"]))
-  + (pop_density_weight_bike * float(assumed_quality_infrastructure["pop_density"]))
-  + (retail_density_weight_bike * float(assumed_quality_infrastructure["retail_density"]))
-  + (greenCoverage_weight_bike * float(assumed_quality_infrastructure["greenCoverage"]))
-  + (public_Transport_density_weight_bike * float(assumed_quality_infrastructure["public_Transport_density"]))
-  + (road_intersection_density_weight_bike * float(assumed_quality_infrastructure["road_intersection_density"]))
-  + (traveltime_weight * float(assumed_traveltime["traveltime_bike"]))
-  + (tripdistance_weight_age_bike[agegroup] * tripdistance_weight_BMI_bike[weightgroup] * (trip_distance/1000))
-
-if(trip_distance <= distance_willing_travel["walk"]){
-    if(car_owner = 1){
-      modalchoice <- ["car", "walk", "bike"] at ([driving_utility, walking_utility, biking_utility] index_of  max([driving_utility, walking_utility, biking_utility]));
-    }
-    else{
-      modalchoice <- ["walk", "bike"] at ([walking_utility, biking_utility] index_of  max([walking_utility, biking_utility]));
-    }
-  }
-  else if(trip_distance <= distance_willing_travel["bike"]){
-    if(car_owner = 1){
-      modalchoice <- ["car","bike"] at ([driving_utility, biking_utility] index_of  max([driving_utility, biking_utility]));
-    }
-    else{
-      modalchoice <- "bike";
-    }
-  }
-  else{
-    if(car_owner = 1){
-      modalchoice <- "car";
-    }
-    else{
-      modalchoice <- "bike";
-    }
-  }
-  write string(trip_distance) + " " + modalchoice ;
-}
