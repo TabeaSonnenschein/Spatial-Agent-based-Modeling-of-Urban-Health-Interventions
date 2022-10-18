@@ -27,6 +27,8 @@ englishnames = c("TripID", "orig_postcode", "dest_postcode", "modal_choice", "Pe
 
 ODIN = ODIN[, c("orig_PC6","dest_PC6",englishnames)]
 
+ODIN$car_access = 0
+ODIN$car_access[ODIN$Nr_cars_hh > 0] = 1
 
 mode_names = c("Personenauto",	"Trein",	"Bus",	"Tram",	"Metro",	"Speedpedelec",
 "Elektrische fiets",	"Niet-elektrische fiets", "Te voet","Touringcar",
@@ -41,10 +43,6 @@ for(i in 1:length(mode_names)){
 }
 
 table(ODIN$mode_name)
-
-
-ODIN$car_access = 0
-ODIN$car_access[ODIN$Nr_cars_hh > 0] = 1
 
 
 ODIN$modes_simple = ""
@@ -89,9 +87,6 @@ crs_name = "RDNew"
 CRS_defin = "+towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725"
 
 
-
-
-
 ##################################################
 ### joining ODIN data with environmental data ####
 ##################################################
@@ -130,6 +125,15 @@ for(x in 1:nrow(ODIN)){
 plot(PC6_polygon[which(PC6_polygon$PC6 %in% route_stats$PC6),])
 plot(orig_dest_line, add = T, col = "red")
 st_length(orig_dest_line)
+
+
+######################################################
+### Read environmental trip data ####################
+####################################################
+
+
+
+
 
 #####################################################
 ### Initial Regression Exploration ##################
