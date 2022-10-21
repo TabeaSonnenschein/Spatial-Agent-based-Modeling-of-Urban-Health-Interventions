@@ -1,7 +1,7 @@
 #########################
 ### Load packages #######
 #########################
-pkgs = c("GA", "caTools","FSelector", "xgboost", "MLmetrics","MetricsWeighted", "bnlearn", "stats", "rgdal","sp", "sf", "rgeos" , "ggplot2", "matrixStats",  "raster",  "dplyr")
+pkgs = c("GA","MetricsWeighted", "bnlearn", "stats", "rgdal","sp", "sf", "rgeos" , "ggplot2", "matrixStats",  "raster",  "dplyr")
 sapply(pkgs[which(sapply(pkgs, require, character.only = T) == FALSE)], install.packages, character.only = T)
 sapply(pkgs, require, character.only = T) #load
 rm(pkgs)
@@ -456,23 +456,28 @@ fitness = function(x)
 {
   # walk_params_simple = x
   if(mode == "bike"){
-    bike_params_simple = x
+    bike_params_simple = x[1:length(bike_params_simple)]
+    hetero_params[[3]] = x[(length(bike_params_simple)+1):length(x)]
+    
    }
   else if(mode == "car"){
-    car_params_simple = x
+    car_params_simple = x[1:length(car_params_simple)]
+    hetero_params[[1]] = x[(length(car_params_simple)+1):length(x)]
   }  
   else if(mode == "walk"){
-    walk_params_simple = x
+    walk_params_simple = x[1:length(walk_params_simple)]
+    hetero_params[[2]] = x[(length(walk_params_simple)+1):length(x)]
   }
   else if(mode == "transit"){
-    transit_params_simple = x
+    transit_params_simple = x[1:length(transit_params_simple)]
+    hetero_params[[4]] = x[(length(transit_params_simple)+1):length(x)]
   }
-  else if (mode == "complex"){
-    hetero_params[[1]] = x[1:6]
-    hetero_params[[2]] = x[7:12]
-    hetero_params[[3]] = x[13:18]
-    hetero_params[[4]] = x[19:24]
-  }
+  # else if (mode == "complex"){
+  #   hetero_params[[1]] = x[1:6]
+  #   hetero_params[[2]] = x[7:12]
+  #   hetero_params[[3]] = x[13:18]
+  #   hetero_params[[4]] = x[19:24]
+  # }
   modechoice = calc_modal_choice(car_params_simple = car_params_simple, 
                     walk_params_simple = walk_params_simple,
                     bike_params_simple = bike_params_simple,
@@ -490,7 +495,11 @@ fitness = function(x)
                   (bike_f1 * modal_split[2]) + 
                   (car_f1 * modal_split[3]) + 
                   (transit_f1 * modal_split[4]) 
-  print(paste0(mode, " par, F1-scor: walk ", walk_f1, ", car ", car_f1, ", bike ", bike_f1, ", transit ", transit_f1, ", weighted ", weighted_f1))
+  print(paste0(mode, " par, F1-scor: walk ", format(round(walk_f1, 2), nsmall = 2), 
+               ", car ", format(round(car_f1, 2), nsmall = 2), 
+               ", bike ", format(round(bike_f1, 2), nsmall = 2), 
+               ", transit ", format(round(transit_f1, 2), nsmall = 2), 
+               ", weighted ", weighted_f1))
   return(weighted_f1)
 }
 
@@ -499,50 +508,42 @@ fitness = function(x)
 mode = "bike"
 print(mode)
 GA_bike <- ga("real-valued", fitness = fitness,
-                  lower = c(rep(0,length(bike_params_simple))), upper = c(rep(2,length(bike_params_simple))), 
+                  lower = c(rep(0,length(bike_params_simple)+6)), upper = c(rep(3,length(bike_params_simple)+6)), 
                   popSize = 100,  maxiter = 1000, run = 200, seed = 123)
 summary(GA_bike)
-bike_params_simple = GA_bike@solution[1,]
+bike_params_simple = GA_bike@solution[1,][1:length(bike_params_simple)]
+hetero_params[[3]] = GA_bike@solution[1,][(length(bike_params_simple)+1):(length(bike_params_simple)+6)]
+
+
 
 mode = "walk"
 print(mode)
 GA_walk <- ga("real-valued", fitness = fitness,
-              lower = c(rep(0,length(walk_params_simple))), upper = c(rep(2,length(walk_params_simple))), 
-              popSize = 100, maxiter = 1000, run = 200, seed = 123)
+              lower = c(rep(0,length(walk_params_simple)+6)), upper = c(rep(3,length(walk_params_simple)+6)), 
+              popSize = 200, maxiter = 1000, run = 200, seed = 123)
 summary(GA_walk)
-walk_params_simple= GA_walk@solution[1,]
+walk_params_simple= GA_walk@solution[1,][1:length(walk_params_simple)]
+hetero_params[[2]] = GA_walk@solution[1,][(length(walk_params_simple)+1):(length(walk_params_simple)+6)]
+
+
 
 mode = "car"
 print(mode)
 GA_car <- ga("real-valued", fitness = fitness,
-             lower = c(rep(0,length(car_params_simple))), upper = c(rep(10,length(car_params_simple))),
-             popSize = 100, maxiter = 1000, run = 200, seed = 123)
+             lower = c(rep(0,length(car_params_simple)+6)), upper = c(rep(10,length(car_params_simple)+6)),
+             popSize = 200, maxiter = 1000, run = 200, seed = 123)
 summary(GA_car)
 car_params_simple= GA_car@solution[1,]
-# 
+
+
 mode = "transit"
 print(mode)
 GA_transit <- ga("real-valued", fitness = fitness,
-                 lower = c(rep(0,length(transit_params_simple))), upper = c(rep(10,length(transit_params_simple))), 
-                 popSize = 100,    maxiter = 1000, run = 200, seed = 123)
+                 lower = c(rep(0,length(transit_params_simple)+6)), upper = c(rep(5,length(transit_params_simple)+6)), 
+                 popSize = 200,    maxiter = 1000, run = 200, seed = 123)
 summary(GA_transit)
-transit_params_simple= GA_transit@solution[1,]
-
-mode = "complex"
-print(mode)
-GA_hetero <- ga("real-valued", fitness = fitness,
-                lower = c(rep(0,24)), upper = c(rep(10,24)), 
-                popSize = 100,    maxiter = 1000, run = 200, seed = 123)
-summary(GA_hetero)
-hetero_params[[1]] = GA_hetero@solution[1,][1:6]
-hetero_params[[2]] = GA_hetero@solution[1,][7:12]
-hetero_params[[3]] = GA_hetero@solution[1,][13:18]
-hetero_params[[4]] = GA_hetero@solution[1,][19:24]
-
-
-
-
-
+transit_params_simple= GA_transit@solution[1,][1:length(transit_params_simple)]
+hetero_params[[4]] = GA_hetero@solution[1,][(length(transit_params_simple)+1):(length(transit_params_simple)+6)]
 
 
 
