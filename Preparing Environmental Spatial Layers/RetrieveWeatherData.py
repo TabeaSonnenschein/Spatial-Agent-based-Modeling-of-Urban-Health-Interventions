@@ -77,15 +77,15 @@ def list_dataset_files(
 
 async def main():
     api_key = "eyJvcmciOiI1ZTU1NGUxOTI3NGE5NjAwMDEyYTNlYjEiLCJpZCI6IjRlNTliMDY1YzM0NjQzZmJiYjA3MTc5MWFlYzJhNjMwIiwiaCI6Im11cm11cjEyOCJ9"
-    # dataset_name = "etmaalgegevensKNMIstations"
-    # dataset_version = "1"
+    dataset_name = "etmaalgegevensKNMIstations"
+    dataset_version = "1"
     # dataset_name = "Rd1"
     # dataset_version = "5"
-    dataset_name = "rad_nl21_rac_mfbs_01h_netcdf4"    #https://dataplatform.knmi.nl/dataset/rad-nl21-rac-mfbs-01h-netcdf4-2-0
-    dataset_version = "2.0"
+    # dataset_name = "rad_nl21_rac_mfbs_01h_netcdf4"    #https://dataplatform.knmi.nl/dataset/rad-nl21-rac-mfbs-01h-netcdf4-2-0
+    # dataset_version = "2.0"
     base_url = "https://api.dataplatform.knmi.nl/open-data/v1"
 
-    download_directory = r"C:\Users\Tabea\Documents\PhD EXPANSE\Data\Amsterdam\Weather"
+    download_directory = r"C:\Users\Tabea\Documents\PhD EXPANSE\Data\Amsterdam\Weather\2"
 
     # Make sure to send the API key with every HTTP request
     session = requests.Session()
@@ -97,8 +97,9 @@ async def main():
 
     filenames = []
 
-    start_after_filename = ' '
+    # start_after_filename = ' '
     # start_after_filename = 'INTER_OPER_R___RD1_____L3__20181230T080000_20181231T080000_0005.nc'
+    # start_after_filename = 'INTER_OPER_R___RD1_____L3__20171230T080000_20171231T080000_0005.nc'
     max_keys = 500
 
     # Use the API to get a list of all dataset filenames
@@ -109,7 +110,9 @@ async def main():
             base_url,
             dataset_name,
             dataset_version,
-            {"maxKeys": f"{max_keys}", "startAfterFilename": start_after_filename},
+            # {"maxKeys": f"{max_keys}", "startAfterFilename": start_after_filename},
+            {"maxKeys": f"{max_keys}"},
+
         )
 
         # Store filenames

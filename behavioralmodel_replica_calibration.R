@@ -15,18 +15,21 @@ setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ODIN/2018")
 ODIN = read.csv("ODIN2018_Studyarea_PC6_sample.csv")
 colnames(ODIN)
 
-dutchnames = c("VerplID", "VertPC", "AankPC", "Hvm", "OPID", "Geslacht", "Leeftijd",
+dutchnames = c("VerplID", "VertPC", "AankPC", "Hvm", "OPID", "Dag", "Maand", "Jaar", "Geslacht", "Leeftijd",
                "Herkomst", "HHAuto", "HHGestInkG",
                "BetWerk", "Opleiding", "HHPers",
                "HHLft1", "HHLft2", "HHLft3", "MotiefV")
 
-englishnames = c("TripID", "orig_postcode", "dest_postcode", "modal_choice", "Person_ID", "sex", "age",
+englishnames = c("TripID", "orig_postcode", "dest_postcode", "modal_choice", "Person_ID", "Day", "Month", "Year", "sex", "age",
                  "migration_background", "Nr_cars_hh",
                  "income",  "employment_status",
                  "education_level", "HH_size",  "nr_children_yonger6",
                  "nr_child_6_11", "nr_child_12_17", "trip_purpose")
 
 ODIN = ODIN[, c("orig_PC6","dest_PC6",englishnames)]
+
+ODIN$Date = paste0(as.character(ODIN$Dag),"/",as.character(ODIN$Maand),"/",as.character(ODIN$Jaar))
+ODIN$Date = paste0(as.character(ODIN$Day),"/",as.character(ODIN$Month),"/",as.character(ODIN$Year))
 
 ODIN$car_access = 0
 ODIN$car_access[ODIN$Nr_cars_hh > 0] = 1
