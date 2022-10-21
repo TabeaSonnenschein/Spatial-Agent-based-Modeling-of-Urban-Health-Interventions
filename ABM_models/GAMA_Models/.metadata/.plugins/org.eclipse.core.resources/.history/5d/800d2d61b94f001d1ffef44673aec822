@@ -36,11 +36,14 @@ global skills: [RSkill]{
    	list<geometry> Restaurants;
    	list<geometry> Entertainment;
     
-    //  loading grid with walkability measures
-//    file shape_file_walkability <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.shp");
+    //  loading grid with Environmental Behavior Determinant measures
     file rasterfile_walkability <- grid_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
     csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv", ",", string); 
     //	columnnames:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid"
+    file rasterfile_EnvDeter <- grid_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/ModalChoice_determ_200.tif");
+    csv_file EnvDeter_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/ModalChoice_determ_200.csv", ",", string); 
+    //	columnnames:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid"
+
 
     //  loading grid with airpollution determinants
     file airpoll_determ_raster <- grid_file(path_data+"Amsterdam/Air Pollution Determinants/AirPollDeterm_grid.tif");

@@ -221,3 +221,5 @@ plot(stations, add=T, col = "red")
 
 writeOGR(stations, dsn=destination_folder ,layer= "measurementstations",driver="ESRI Shapefile")
 
+
+

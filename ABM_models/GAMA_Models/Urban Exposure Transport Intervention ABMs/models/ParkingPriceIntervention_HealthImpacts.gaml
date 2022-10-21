@@ -36,11 +36,16 @@ global skills: [RSkill]{
    	list<geometry> Restaurants;
    	list<geometry> Entertainment;
     
-    //  loading grid with walkability measures
-//    file shape_file_walkability <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.shp");
-    file rasterfile_walkability <- grid_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_grid.tif");
-    csv_file walkability_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/walkability_measures.csv", ",", string); 
-    //	columnnames:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid"
+    //  loading grid with Environmental Behavior Determinant measures
+    //	columnnames before:  "popDns", "retaiDns" , "greenCovr", "pubTraDns"  , "RdIntrsDns", "Intid"
+    file rasterfile_EnvDeter <- grid_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/ModalChoice_determ_200.tif");
+    csv_file EnvDeter_data <- csv_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/ModalChoice_determ_200.csv", ",", string); 
+    //	columnnames:  "unqId", "Intid", "popDns", "retaiDns" , "greenCovr", "pubTraDns",
+//                                    "RdIntrsDns", "TrafAccid", "AccidPedes", "NrTrees", "MeanTraffV",
+//                                    "SumTraffVo", "HighwLen", "PedStrWidt", "PedStrLen", "LenBikRout",
+//                                    "DistCBD", "retailDiv", "MaxSpeed", "MinSpeed", "MeanSpeed", "NrStrLight",
+//                                    "CrimeIncid", "MaxNoisDay", "MxNoisNigh", "OpenSpace", "NrParkSpac",
+//                                    "PNonWester", "PWelfarDep", "PrkPricPre", "PrkPricPos"	
 
     //  loading grid with airpollution determinants
     file airpoll_determ_raster <- grid_file(path_data+"Amsterdam/Air Pollution Determinants/AirPollDeterm_grid.tif");
@@ -83,7 +88,7 @@ global skills: [RSkill]{
 	map<string, float> Noise_Filter <- create_map(["indoor", "car", "walk", "bike"], [0.20, 0.40, 1, 1]); /// percentage of Noise that remains (is not filtered)							// needs robust methodology
 	map<string, float> AirPollution_Filter <- create_map(["indoor", "car",  "walk", "bike"], [0.60, 0.80, 1, 1]); /// percentage of Air Pollution that remains (is not filtered)			// needs robust methodology
 	
-	grid Perceivable_Environment file: rasterfile_walkability{
+	grid Perceivable_Environment file: rasterfile_EnvDeter{
 		int csvindex;
 		float pop_density;
 		float retail_density;
@@ -132,7 +137,7 @@ global skills: [RSkill]{
 	        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
         	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI'), scheduletype:: read('scheduletype')]; // careful: column 1 is has the index 0 in GAMA      //
-    	matrix walkability_measures <- matrix(walkability_data);
+    	matrix walkability_measures <- matrix(EnvDeter_data);
     	ask Perceivable_Environment{
     		write "id gridvalue: " + int(self.grid_value);
     		datalist <- rows_list(walkability_measures) at (int(self.grid_value)-1);

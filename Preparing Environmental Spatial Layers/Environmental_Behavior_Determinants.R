@@ -29,7 +29,7 @@ pkgs = c("maptools","raster", "rgdal","sp", "sf", "jpeg", "data.table", "purrr",
          "rstan", "boot",  "concaveman", "data.tree", "DiagrammeR", "networkD3", "rgexf", "tidytree", "exactextractr", "terra")
 sapply(pkgs, require, character.only = T) #load
 rm(pkgs)
-?point.in.poly
+
 dataFolder= "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
 
 crs = "+init=EPSG:28992" #Amersfoort / RD New
@@ -701,12 +701,18 @@ colnames(walkability_grid@data) = c("unique_id",  "int_id", "population_density"
 
 writeOGR(walkability_grid, dsn=getwd() ,layer= paste("ModalChoice_determ_",raster_size, sep=""),driver="ESRI Shapefile")
 walkability_grid = readOGR(dsn=getwd(),layer=paste("ModalChoice_determ_",raster_size, sep=""))
+walkability_grid = readOGR(dsn=getwd(),layer="ModalChoice_determ_200")
+walkability_grid$PrkPricPos[is.na(walkability_grid$PrkPricPos)] = 0
+walkability_grid$PrkPricPre[is.na(walkability_grid$PrkPricPre)] = 0
+write.csv(as.data.frame(walkability_grid), "ModalChoice_determ_200.csv", row.names = F)
+
 
 summary(walkability_grid$popDns)
 summary(walkability_grid$greenCovr)
 summary(walkability_grid$retaiDns)
 summary(walkability_grid$pubTraDns)
 summary(walkability_grid$RdIntrsDns)
+summary(walkability_grid$PrkPricPre)
 
 
 #####################################

@@ -5,29 +5,37 @@ from itertools import chain
 from operator import itemgetter
 pd.options.mode.chained_assignment = None  # default='warn'
 
-os.chdir(r"D:")
-listOfFiles = os.listdir(path='D:')
-listOfFiles = [filename for filename in listOfFiles if ".csv" in filename]
+# os.chdir(r"D:")
+# listOfFiles = os.listdir(path='D:')
+# listOfFiles = [filename for filename in listOfFiles if ".csv" in filename]
+
+# os.chdir(r"D:/9234_Orig_Dest_TrackProperties_PC6Combinations_1")
+# df = pd.read_csv("9234_Orig_Dest_TrackProperties_PC6Combinations_1.csv")
+# print("9234_Orig_Dest_TrackProperties_PC6Combinations_1", len(df.index))
+
+os.chdir(r"D:/9234_Orig_Dest_TrackProperties_PC6Combinations_2")
+df = pd.read_csv("9234_Orig_Dest_TrackProperties_PC6Combinations_2.csv")
+print("9234_Orig_Dest_TrackProperties_PC6Combinations_2", len(df.index))
 
 #
 # numberlist = [int(el.replace("ODIN2018_Studyarea_PC6_data1_", "").replace(".csv", "")) for el in listOfFiles ]
 # numberlist = [int(el.replace("ODIN2018_Studyarea_PC6_joineddata_", "").replace(".csv", "")) for el in listOfFiles ]
 # listOfFiles = [listOfFiles[indx] for indx in np.argsort(numberlist)]
-print(listOfFiles)
-
-envdata = pd.read_csv("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/PC6_env_behav_determ.csv")
-print(list(envdata.columns))
-origjoin = envdata[["PC6", "PrkPricPre", "PrkPricPos", "NrParkSpac"]]
-destjoin = envdata[["PC6", "DistCBD", "pubTraDns"]]
-origjoin.rename(columns = { "PC6": "orig_PC6" , 'PrkPricPre':'PrkPricPre.orig', 'PrkPricPos':'PrkPricPos.orig', 'NrParkSpac':'NrParkSpac.orig'}, inplace = True)
-destjoin.rename(columns = {"PC6": "dest_PC6" , 'DistCBD':'DistCBD.dest', 'pubTraDns':'pubTraDns.dest'}, inplace = True)
-print(list(origjoin.columns))
-print(list(destjoin.columns))
-origjoin.fillna(0, inplace= True)
-destjoin.fillna(0, inplace= True)
-print(origjoin.head())
-print(destjoin.head())
-del envdata
+# print(listOfFiles)
+#
+# envdata = pd.read_csv("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/PC6_env_behav_determ.csv")
+# print(list(envdata.columns))
+# origjoin = envdata[["PC6", "PrkPricPre", "PrkPricPos", "NrParkSpac"]]
+# destjoin = envdata[["PC6", "DistCBD", "pubTraDns"]]
+# origjoin.rename(columns = { "PC6": "orig_PC6" , 'PrkPricPre':'PrkPricPre.orig', 'PrkPricPos':'PrkPricPos.orig', 'NrParkSpac':'NrParkSpac.orig'}, inplace = True)
+# destjoin.rename(columns = {"PC6": "dest_PC6" , 'DistCBD':'DistCBD.dest', 'pubTraDns':'pubTraDns.dest'}, inplace = True)
+# print(list(origjoin.columns))
+# print(list(destjoin.columns))
+# origjoin.fillna(0, inplace= True)
+# destjoin.fillna(0, inplace= True)
+# print(origjoin.head())
+# print(destjoin.head())
+# del envdata
 
 # for file in listOfFiles:
 #     print("reading: ", file)
@@ -46,31 +54,31 @@ del envdata
 #     df = df[columnnames]
 #     print("writing: ", file)
 #     df.to_csv(file, index = False)
-
-for file in listOfFiles:
-    print("reading: ", file)
-    df = pd.read_csv(os.path.join(os.getcwd(), file))
-    columnnames = list(df.columns)
-    df1 = df.iloc[:int(len(df.index)/2)]
-    df2 = df.iloc[int(len(df.index)/2):]
-    del df
-    print(columnnames)
-    columnnames.extend(["PrkPricPre.orig","PrkPricPos.orig", "NrParkSpac.orig", "DistCBD.dest","pubTraDns.dest"])
-    print(columnnames)
-    print("merging: NR1 ", file)
-    df1 = pd.merge(df1, origjoin, on="orig_PC6", how="left")
-    df1 = pd.merge(df1, destjoin, on="dest_PC6", how="left")
-    print("merging: NR2 ", file)
-    df2 = pd.merge(df2, origjoin, on="orig_PC6", how="left")
-    df2 = pd.merge(df2, destjoin, on="dest_PC6", how="left")
-    print(list(df1.columns))
-    df1 = pd.concat([df1, df2])
-    del df2
-    df1 = df1[columnnames]
-    len(df1.index)
-    print("writing: ", file)
-    df1.to_csv(file, index = False)
-
+#
+# for file in listOfFiles:
+#     print("reading: ", file)
+#     df = pd.read_csv(os.path.join(os.getcwd(), file))
+#     columnnames = list(df.columns)
+#     df1 = df.iloc[:int(len(df.index)/2)]
+#     df2 = df.iloc[int(len(df.index)/2):]
+#     del df
+#     print(columnnames)
+#     columnnames.extend(["PrkPricPre.orig","PrkPricPos.orig", "NrParkSpac.orig", "DistCBD.dest","pubTraDns.dest"])
+#     print(columnnames)
+#     print("merging: NR1 ", file)
+#     df1 = pd.merge(df1, origjoin, on="orig_PC6", how="left")
+#     df1 = pd.merge(df1, destjoin, on="dest_PC6", how="left")
+#     print("merging: NR2 ", file)
+#     df2 = pd.merge(df2, origjoin, on="orig_PC6", how="left")
+#     df2 = pd.merge(df2, destjoin, on="dest_PC6", how="left")
+#     print(list(df1.columns))
+#     df1 = pd.concat([df1, df2])
+#     del df2
+#     df1 = df1[columnnames]
+#     len(df1.index)
+#     print("writing: ", file)
+#     df1.to_csv(file, index = False)
+#
 
 # for file in listOfFiles:
 #     print("reading: ", file)
