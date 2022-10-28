@@ -977,8 +977,10 @@ agents_clean = read.csv("Agent_pop.csv")
 # employment
 c("NettoArbeidsparticipatie_67" , "PercentageWerknemers_68", "PercentageZelfstandigen_69" )
 
+colnames(neigh_stats3)
 #income
-neigh_stats = neigh_stats3[,c("neighb_code", "AantalInkomensontvangers_67"  , "k_40PersonenMetLaagsteInkomen_70" , "k_20PersonenMetHoogsteInkomen_71",
+colnames(neigh_stats3)[2] = "neighb_code"
+neigh_stats = neigh_stats3[,c("neighb_code", "AantalInwoners_5" , "AantalInkomensontvangers_67"  , "k_40PersonenMetLaagsteInkomen_70" , "k_20PersonenMetHoogsteInkomen_71",
                     "k_40HuishoudensMetLaagsteInkomen_73",  "k_20HuishoudensMetHoogsteInkomen_74",  "HuishoudensMetEenLaagInkomen_75",
                     "HuishOnderOfRondSociaalMinimum_76")]
 
@@ -1072,12 +1074,14 @@ agents_clean = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age
          "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype")]
    
 colnames(neigh_stats)
+neigh_stats$No_income = neigh_stats$AantalInwoners_5 - neigh_stats$AantalInkomensontvangers_67
+
 x = distr_attr_strat_neigh_stats_binary(
   agent_df = x,
   neigh_df = neigh_stats,
   neigh_ID = "neighb_code",
   variable = "personal_income",
-  list_var_classes_neigh_df = c("AantalInkomensontvangers_67"),
+  list_var_classes_neigh_df = c("AantalInkomensontvangers_67", "No_income"),
   list_agent_propens = "prop_personal_income",
   list_class_names = c("has_personal_income", "no_personal_income")
 )
@@ -1086,7 +1090,15 @@ x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20",
          "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","average_income_standardised", 
          "average_income_personal", "personal_income")]
 
+crossvalidate = crossvalid(valid_df = neigh_stats, agent_df= x, 
+           join_var = "neighb_code", 
+           list_valid_var =  c("AantalInkomensontvangers_67", "No_income"), 
+           agent_var = "personal_income",
+           list_agent_attr =  c("has_personal_income", "no_personal_income"))
 
+
+
+?crossvalid
 
 income_data2 = read.csv("83931NED_UntypedDataSet_27102022_224122.csv", sep = ";")
 
@@ -1151,6 +1163,9 @@ for(i in 1:nrow(income_data2_strat)){
 }
 
 write.csv(income_data2_strat, "income_class_propensities.csv", row.names = F)
+income_data2_strat = read.csv("income_class_propensities.csv")
+x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+         "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income")]
 
 x = merge(x, income_data2_strat, by = c("sex", "age_group", "migrationbackground"))
 ?GenSynthPop::distr_attr_cond_prop
@@ -1158,23 +1173,83 @@ incomeclass
 x$no_income = 0
 x$no_income[x$personal_income == "no_personal_income"]=1
 
+neigh_stats$lowest_40percentile_persons = as.integer((as.numeric(neigh_stats$k_40PersonenMetLaagsteInkomen_70)/100)*neigh_stats$AantalInwoners_5)
+neigh_stats$highest_20percentile_persons = as.integer((as.numeric(neigh_stats$k_20PersonenMetHoogsteInkomen_71)/100)*neigh_stats$AantalInwoners_5)
+neigh_stats$middle_40percentile = neigh_stats$AantalInwoners_5 - neigh_stats$lowest_40percentile_persons - neigh_stats$highest_20percentile_persons
 
-x = distr_attr_cond_prop(
+neigh_stats$No_income_agent_df = crossvalidate$agent_no_personal_income
+neigh_stats$lowest_40percentile_persons = neigh_stats$lowest_40percentile_persons - neigh_stats$No_income
+neigh_stats$lowest_40percentile_persons[neigh_stats$lowest_40percentile_persons<0] = 0
+
+
+?distr_attr_strat_neigh_stats_3plus
+x = distr_attr_strat_neigh_stats_3plus(
   agent_df = x,
-  variable = "incomeclass",
-  list_agent_propens = c("income1eDecile","income2eDecile", 
-                         "income3eDecile" ,"income4eDecile",
-                         "income5eDecile" ,"income6eDecile",
-                         "income7eDecile","income8eDecile",
-                         "income9eDecile","income10eDecile" ),
-  list_class_names = c("income1eDecile","income2eDecile", 
-                       "income3eDecile" ,"income4eDecile",
-                       "income5eDecile" ,"income6eDecile",
-                       "income7eDecile","income8eDecile",
-                       "income9eDecile","income10eDecile" ),
+  neigh_df = neigh_stats,
+  neigh_ID = "neighb_code",
+  variable = "income_group",
+  list_var_classes_neigh_df = c("lowest_40percentile_persons", "highest_20percentile_persons", "middle_40percentile"),
+  list_agent_propens = c("lowest_40percentile", "highest_20percentile", "middle_40percentile"),
+  list_class_names = c("lowest_40perc", "highest_20perc", "middle_40perc"),
   agent_exclude = "no_income"
 )
+x = x[,1:(ncol(x)-2)]
 
+x$income_group[x$no_income == 1] = "lowest_40perc"
+
+x$highest_20percentile = x$income10eDecile + x$income9eDecile
+x$lowest_40percentile = x$income1eDecile + x$income2eDecile + x$income3eDecile + x$income4eDecile
+x$middle_40percentile = x$income5eDecile + x$income6eDecile + x$income7eDecile + x$income8eDecile
+
+
+x$perc20_10_decile = x$income10eDecile/x$highest_20percentile
+x$perc20_9_decile = x$income9eDecile/x$highest_20percentile
+x$not_updecile = 1
+x$not_updecile[x$income_group == "highest_20perc"] = 0
+x = distr_attr_cond_prop(
+  agent_df = x,
+  variable = "updecile",
+  list_agent_propens = c("perc20_9_decile", "perc20_10_decile"),
+  list_class_names = c("income9eDecile","income10eDecile" ),
+  agent_exclude = "not_updecile"
+)
+
+x$perclow40_1_decile = x$income1eDecile/x$lowest_40percentile
+x$perclow40_2_decile = x$income2eDecile/x$lowest_40percentile
+x$perclow40_3_decile = x$income3eDecile/x$lowest_40percentile
+x$perclow40_4_decile = x$income4eDecile/x$lowest_40percentile
+
+x$not_lowdecile = 1
+x$not_lowdecile[x$income_group == "lowest_40perc"] = 0
+x = distr_attr_cond_prop(
+  agent_df = x,
+  variable = "lowdecile",
+  list_agent_propens = c("perclow40_1_decile", "perclow40_2_decile", "perclow40_3_decile", "perclow40_4_decile"),
+  list_class_names = c("income1eDecile","income2eDecile","income3eDecile","income4eDecile"),
+  agent_exclude = "not_lowdecile"
+)
+
+
+x$percmiddle40_5_decile = x$income5eDecile/x$middle_40percentile
+x$percmiddle40_6_decile = x$income6eDecile/x$middle_40percentile
+x$percmiddle40_7_decile = x$income7eDecile/x$middle_40percentile
+x$percmiddle40_8_decile = x$income8eDecile/x$middle_40percentile
+
+x$not_middledecile = 1
+x$not_middledecile[x$income_group == "middle_40perc"] = 0
+x = distr_attr_cond_prop(
+  agent_df = x,
+  variable = "middledecile",
+  list_agent_propens = c("percmiddle40_5_decile", "percmiddle40_6_decile", 
+                         "percmiddle40_7_decile", "percmiddle40_8_decile"),
+  list_class_names = c("income5eDecile","income6eDecile","income7eDecile","income8eDecile"),
+  agent_exclude = "not_middledecile"
+)
+x$middledecile
+x$incomeclass = x$lowdecile
+x$incomeclass[x$updecile != 0] = x$updecile[x$updecile != 0]
+x$incomeclass[x$middledecile != 0] = x$middledecile[x$middledecile != 0]
+colnames(x)
 x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
          "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income", "incomeclass")]
 

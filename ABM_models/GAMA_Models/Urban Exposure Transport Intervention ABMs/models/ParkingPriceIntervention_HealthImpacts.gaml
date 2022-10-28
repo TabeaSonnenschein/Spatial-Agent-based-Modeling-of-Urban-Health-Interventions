@@ -139,7 +139,7 @@ global skills: [RSkill]{
 	
 	reflex AirPollDispersion when: (current_date.minute = 0){
 		write "AirPoll Dispersion";
-		diffuse var: N02_dispersed on: AirPollution proportion: 0.3 radius: 1;
+		diffuse var: N02_dispersed on: AirPollution proportion: 0.3;
 		ask AirPollution{
 			if(ON_ROAD = 0){
 				NO2 <- N02_dispersed;

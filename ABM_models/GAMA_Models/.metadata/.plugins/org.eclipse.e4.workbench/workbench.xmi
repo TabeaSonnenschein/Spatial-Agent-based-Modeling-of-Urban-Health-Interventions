@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="ASCII"?>
 <application:Application xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:advanced="http://www.eclipse.org/ui/2010/UIModel/application/ui/advanced" xmlns:application="http://www.eclipse.org/ui/2010/UIModel/application" xmlns:basic="http://www.eclipse.org/ui/2010/UIModel/application/ui/basic" xmlns:menu="http://www.eclipse.org/ui/2010/UIModel/application/ui/menu" xmi:id="_84GBMVGOEe2EypWlJgbRkQ" elementId="org.eclipse.e4.legacy.ide.application" contributorURI="platform:/plugin/org.eclipse.ui.workbench" selectedElement="_84GBMlGOEe2EypWlJgbRkQ" bindingContexts="_84GBOFGOEe2EypWlJgbRkQ">
-  <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;workbench>&#xD;&#xA;&lt;mruList>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;ParkingPriceIntervention_HealthImpacts.gaml&quot; tooltip=&quot;Urban Exposure Transport Intervention ABMs/models/ParkingPriceIntervention_HealthImpacts.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Urban Exposure Transport Intervention ABMs/models/ParkingPriceIntervention_HealthImpacts.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;Transport Air Pollution Exposure Model_DecisionTreeBehaviour.gaml&quot; tooltip=&quot;Urban Exposure Transport Intervention ABMs/models/Transport Air Pollution Exposure Model_DecisionTreeBehaviour.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Urban Exposure Transport Intervention ABMs/models/Transport Air Pollution Exposure Model_DecisionTreeBehaviour.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.ide.FileStoreEditorInputFactory&quot; id=&quot;msi.gama.application.browser&quot; name=&quot;welcome.html&quot; tooltip=&quot;C:\Users\Tabea\Documents\GAMA\plugins\ummisco.gama.ui.shared_1.8.1.202006230234\welcome\welcome.html&quot;>&#xD;&#xA;&lt;persistable uri=&quot;file:/C:/Users/Tabea/Documents/GAMA/plugins/ummisco.gama.ui.shared_1.8.1.202006230234/welcome/welcome.html&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;ContinuousCurves.gaml&quot; tooltip=&quot;Ordinary Differential Equations/models/For Advanced Users/ContinuousCurves.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Ordinary Differential Equations/models/For Advanced Users/ContinuousCurves.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;Aspects.gaml&quot; tooltip=&quot;Visualization and User Interaction/Visualization/Aspects.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Visualization and User Interaction/Visualization/Aspects.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;Color Brewer.gaml&quot; tooltip=&quot;Visualization and User Interaction/Visualization/Color Brewer.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Visualization and User Interaction/Visualization/Color Brewer.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;/mruList>&#xD;&#xA;&lt;/workbench>"/>
+  <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;workbench>&#xD;&#xA;&lt;mruList>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.ide.FileStoreEditorInputFactory&quot; id=&quot;msi.gama.application.browser&quot; name=&quot;welcome.html&quot; tooltip=&quot;C:\Users\Tabea\Documents\GAMA\plugins\ummisco.gama.ui.shared_1.8.1.202006230234\welcome\welcome.html&quot;>&#xD;&#xA;&lt;persistable uri=&quot;file:/C:/Users/Tabea/Documents/GAMA/plugins/ummisco.gama.ui.shared_1.8.1.202006230234/welcome/welcome.html&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;ParkingPriceIntervention_HealthImpacts.gaml&quot; tooltip=&quot;Urban Exposure Transport Intervention ABMs/models/ParkingPriceIntervention_HealthImpacts.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Urban Exposure Transport Intervention ABMs/models/ParkingPriceIntervention_HealthImpacts.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;Transport Air Pollution Exposure Model_DecisionTreeBehaviour.gaml&quot; tooltip=&quot;Urban Exposure Transport Intervention ABMs/models/Transport Air Pollution Exposure Model_DecisionTreeBehaviour.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Urban Exposure Transport Intervention ABMs/models/Transport Air Pollution Exposure Model_DecisionTreeBehaviour.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;ContinuousCurves.gaml&quot; tooltip=&quot;Ordinary Differential Equations/models/For Advanced Users/ContinuousCurves.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Ordinary Differential Equations/models/For Advanced Users/ContinuousCurves.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;Aspects.gaml&quot; tooltip=&quot;Visualization and User Interaction/Visualization/Aspects.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Visualization and User Interaction/Visualization/Aspects.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;file factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;Color Brewer.gaml&quot; tooltip=&quot;Visualization and User Interaction/Visualization/Color Brewer.gaml&quot;>&#xD;&#xA;&lt;persistable path=&quot;/Visualization and User Interaction/Visualization/Color Brewer.gaml&quot;/>&#xD;&#xA;&lt;/file>&#xD;&#xA;&lt;/mruList>&#xD;&#xA;&lt;/workbench>"/>
   <tags>activeSchemeId:org.eclipse.ui.defaultAcceleratorConfiguration</tags>
   <tags>ModelMigrationProcessor.001</tags>
-  <children xsi:type="basic:TrimmedWindow" xmi:id="_84GBMlGOEe2EypWlJgbRkQ" elementId="IDEWindow" contributorURI="platform:/plugin/org.eclipse.ui.workbench" selectedElement="_9DxFsFGOEe2EypWlJgbRkQ" x="-11" y="0" width="1024" height="768">
+  <children xsi:type="basic:TrimmedWindow" xmi:id="_84GBMlGOEe2EypWlJgbRkQ" elementId="IDEWindow" contributorURI="platform:/plugin/org.eclipse.ui.workbench" selectedElement="_9DxFsFGOEe2EypWlJgbRkQ" x="0" y="0" width="1024" height="768">
     <persistedState key="coolBarVisible" value="true"/>
     <persistedState key="perspectiveBarVisible" value="true"/>
     <persistedState key="isRestored" value="true"/>
@@ -27,7 +27,7 @@
           <tags>persp.viewSC:msi.gama.application.outline</tags>
           <tags>persp.viewSC:msi.gama.application.problems</tags>
           <tags>persp.perspSC:msi.gama.application.perspectives.SimulationPerspective</tags>
-          <children xsi:type="basic:PartSashContainer" xmi:id="_9HE4YlGOEe2EypWlJgbRkQ" horizontal="true">
+          <children xsi:type="basic:PartSashContainer" xmi:id="_9HE4YlGOEe2EypWlJgbRkQ" selectedElement="_9HE4alGOEe2EypWlJgbRkQ" horizontal="true">
             <children xsi:type="basic:PartSashContainer" xmi:id="_9HE4Y1GOEe2EypWlJgbRkQ" containerData="2500" selectedElement="_-Wc2MFYbEe2kL4WJa_OV8w">
               <children xsi:type="basic:PartSashContainer" xmi:id="_-Wc2MFYbEe2kL4WJa_OV8w" containerData="7000" selectedElement="_9HE4ZFGOEe2EypWlJgbRkQ">
                 <children xsi:type="basic:PartStack" xmi:id="_-Wc2MVYbEe2kL4WJa_OV8w" elementId="PartStack@48a78fd5" toBeRendered="false" containerData="3028">
@@ -94,7 +94,7 @@
           <tags>removeOnHide</tags>
         </children>
         <children xsi:type="basic:Part" xmi:id="_-suAgFGOEe2EypWlJgbRkQ" elementId="org.eclipse.e4.ui.compatibility.editor" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityEditor" label="ParkingPriceIntervention_HealthImpacts.gaml" closeable="true">
-          <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;editor id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;ParkingPriceIntervention_HealthImpacts.gaml&quot; partName=&quot;ParkingPriceIntervention_HealthImpacts.gaml&quot; title=&quot;ParkingPriceIntervention_HealthImpacts.gaml&quot; tooltip=&quot;Urban Exposure Transport Intervention ABMs/models/ParkingPriceIntervention_HealthImpacts.gaml&quot;>&#xD;&#xA;&lt;input factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; path=&quot;/Urban Exposure Transport Intervention ABMs/models/ParkingPriceIntervention_HealthImpacts.gaml&quot;/>&#xD;&#xA;&lt;editorState selectionHorizontalPixel=&quot;0&quot; selectionLength=&quot;0&quot; selectionOffset=&quot;33996&quot; selectionTopPixel=&quot;15206&quot;/>&#xD;&#xA;&lt;/editor>"/>
+          <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;editor id=&quot;msi.gama.lang.gaml.Gaml&quot; name=&quot;ParkingPriceIntervention_HealthImpacts.gaml&quot; partName=&quot;ParkingPriceIntervention_HealthImpacts.gaml&quot; title=&quot;ParkingPriceIntervention_HealthImpacts.gaml&quot; tooltip=&quot;Urban Exposure Transport Intervention ABMs/models/ParkingPriceIntervention_HealthImpacts.gaml&quot;>&#xD;&#xA;&lt;input factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; path=&quot;/Urban Exposure Transport Intervention ABMs/models/ParkingPriceIntervention_HealthImpacts.gaml&quot;/>&#xD;&#xA;&lt;editorState selectionHorizontalPixel=&quot;0&quot; selectionLength=&quot;0&quot; selectionOffset=&quot;24868&quot; selectionTopPixel=&quot;10625&quot;/>&#xD;&#xA;&lt;/editor>"/>
           <tags>Editor</tags>
           <tags>msi.gama.lang.gaml.Gaml</tags>
           <tags>removeOnHide</tags>
@@ -1322,6 +1322,53 @@
       <tags>categoryTag:Gama</tags>
       <tags>NoRestore</tags>
     </sharedElements>
+    <sharedElements xsi:type="basic:Part" xmi:id="_cMILYFaeEe2-GdhKH1yftw" elementId="msi.gama.application.view.LayeredDisplayView:*" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityView" label="Display" iconURI="platform:/plugin/ummisco.gama.ui.shared/icons/view.display2.png" tooltip="" closeable="true">
+      <persistedState key="originalCompatibilityViewBundle" value="ummisco.gama.java2d"/>
+      <persistedState key="originalCompatibilityViewClass" value="ummisco.gama.java2d.AWTDisplayView"/>
+      <tags>View</tags>
+      <tags>categoryTag:Gama</tags>
+      <tags>NoRestore</tags>
+    </sharedElements>
+    <sharedElements xsi:type="basic:Part" xmi:id="_cMILYVaeEe2-GdhKH1yftw" elementId="msi.gama.application.view.OpenGLDisplayView:*" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityView" label="3D" iconURI="platform:/plugin/ummisco.gama.ui.shared/icons/view.display2.png" tooltip="" closeable="true">
+      <persistedState key="originalCompatibilityViewBundle" value="ummisco.gama.opengl"/>
+      <persistedState key="originalCompatibilityViewClass" value="ummisco.gama.opengl.view.OpenGLDisplayView"/>
+      <tags>View</tags>
+      <tags>categoryTag:Gama</tags>
+      <tags>NoRestore</tags>
+    </sharedElements>
+    <sharedElements xsi:type="basic:Part" xmi:id="_cMILYlaeEe2-GdhKH1yftw" elementId="msi.gama.application.view.TableAgentInspectView:*" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityView" label="Browser" iconURI="platform:/plugin/ummisco.gama.ui.shared/icons/view.browser2.png" tooltip="" closeable="true">
+      <persistedState key="originalCompatibilityViewBundle" value="ummisco.gama.ui.experiment"/>
+      <persistedState key="originalCompatibilityViewClass" value="ummisco.gama.ui.views.inspectors.PopulationInspectView"/>
+      <tags>View</tags>
+      <tags>categoryTag:Gama</tags>
+      <tags>NoRestore</tags>
+    </sharedElements>
+    <sharedElements xsi:type="basic:Part" xmi:id="_yRxM0FaeEe2-GdhKH1yftw" elementId="msi.gama.application.view.LayeredDisplayView:stats@@@1666947549725" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityView" label="stats" iconURI="platform:/plugin/ummisco.gama.ui.shared/icons/view.display2.png" tooltip="" closeable="true">
+      <persistedState key="originalCompatibilityViewBundle" value="ummisco.gama.java2d"/>
+      <persistedState key="originalCompatibilityViewClass" value="ummisco.gama.java2d.AWTDisplayView"/>
+      <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;view/>"/>
+      <tags>View</tags>
+      <tags>categoryTag:Gama</tags>
+      <tags>NoRestore</tags>
+      <menus xmi:id="_yR9aEFaeEe2-GdhKH1yftw" elementId="msi.gama.application.view.LayeredDisplayView">
+        <tags>ViewMenu</tags>
+        <tags>menuContribution:menu</tags>
+      </menus>
+      <toolbar xmi:id="_yR9aEVaeEe2-GdhKH1yftw" elementId="msi.gama.application.view.LayeredDisplayView" visible="false"/>
+    </sharedElements>
+    <sharedElements xsi:type="basic:Part" xmi:id="_yYW9AFaeEe2-GdhKH1yftw" elementId="msi.gama.application.view.OpenGLDisplayView:map@@@1666947550416" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityView" label="map" iconURI="platform:/plugin/ummisco.gama.ui.shared/icons/view.display2.png" tooltip="" closeable="true">
+      <persistedState key="originalCompatibilityViewBundle" value="ummisco.gama.opengl"/>
+      <persistedState key="originalCompatibilityViewClass" value="ummisco.gama.opengl.view.OpenGLDisplayView"/>
+      <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;view/>"/>
+      <tags>View</tags>
+      <tags>categoryTag:Gama</tags>
+      <tags>NoRestore</tags>
+      <menus xmi:id="_yYcckFaeEe2-GdhKH1yftw" elementId="msi.gama.application.view.OpenGLDisplayView">
+        <tags>ViewMenu</tags>
+        <tags>menuContribution:menu</tags>
+      </menus>
+      <toolbar xmi:id="_yYcckVaeEe2-GdhKH1yftw" elementId="msi.gama.application.view.OpenGLDisplayView"/>
+    </sharedElements>
     <trimBars xmi:id="_84GBM1GOEe2EypWlJgbRkQ" elementId="org.eclipse.ui.main.toolbar" contributorURI="platform:/plugin/org.eclipse.ui.workbench">
       <children xsi:type="menu:ToolBar" xmi:id="_9Etg4FGOEe2EypWlJgbRkQ" elementId="additions" toBeRendered="false">
         <tags>toolbarSeparator</tags>
@@ -2173,7 +2220,7 @@
   <addons xmi:id="_84GBRFGOEe2EypWlJgbRkQ" elementId="MinMax Addon" contributorURI="platform:/plugin/org.eclipse.ui.workbench" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.addons.swt/org.eclipse.e4.ui.workbench.addons.minmax.MinMaxAddon"/>
   <addons xmi:id="_84GBRVGOEe2EypWlJgbRkQ" elementId="org.eclipse.ui.workbench.addon.0" contributorURI="platform:/plugin/org.eclipse.ui.workbench" contributionURI="bundleclass://org.eclipse.e4.ui.workbench/org.eclipse.e4.ui.internal.workbench.addons.HandlerProcessingAddon"/>
   <addons xmi:id="_84JrkFGOEe2EypWlJgbRkQ" elementId="SplitterAddon" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.addons.swt/org.eclipse.e4.ui.workbench.addons.splitteraddon.SplitterAddon"/>
-  <addons xmi:id="_HBUM0VXVEe2kL4WJa_OV8w" elementId="org.eclipse.ui.ide.addon.0" contributionURI="bundleclass://org.eclipse.ui.ide/org.eclipse.ui.internal.ide.addons.SaveAllDirtyPartsAddon"/>
+  <addons xmi:id="_IYS0IKimEeS11vbz3f9ezw" elementId="org.eclipse.ui.ide.addon.0" contributorURI="platform:/plugin/org.eclipse.ui.ide" contributionURI="bundleclass://org.eclipse.ui.ide/org.eclipse.ui.internal.ide.addons.SaveAllDirtyPartsAddon"/>
   <addons xmi:id="_dz0JgGOlEeSMMaPQU2nlzw" elementId="org.eclipse.ui.ide.application.addon.0" contributorURI="platform:/plugin/org.eclipse.ui.ide.application" contributionURI="bundleclass://org.eclipse.ui.ide.application/org.eclipse.ui.internal.ide.application.addons.ModelCleanupAddon"/>
   <categories xmi:id="_84YVEFGOEe2EypWlJgbRkQ" elementId="org.eclipse.team.ui.category.team" name="Team" description="Actions that apply when working with a Team"/>
   <categories xmi:id="_84YVEVGOEe2EypWlJgbRkQ" elementId="org.eclipse.ui.category.views" name="Views" description="Commands for opening views"/>

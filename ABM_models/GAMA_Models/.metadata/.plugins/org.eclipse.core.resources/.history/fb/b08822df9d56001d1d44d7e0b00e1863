@@ -32,7 +32,7 @@ global skills: [RSkill]{
     file shape_file_Profess <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp");
     file spatial_extent <- shape_file(path_data+"Amsterdam/SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp");  
    	geometry shape <- envelope(spatial_extent); 
-   	map<string,rgb> color_per_type <- ["streets"::#aqua, "vegetation":: #green, "buildings":: #firebrick, "noise":: #purple];
+   	map<string,rgb> color_per_type <- ["streets"::#aqua, "vegetation":: #green, "buildings":: rgb(40,40,40), "NO2":: #purple];
    	list<geometry> Restaurants;
    	list<geometry> Entertainment;
     
@@ -55,28 +55,25 @@ global skills: [RSkill]{
     csv_file weather_data <- csv_file(path_data+"Amsterdam/Weather/Weather_Amsterdam18_19.csv", ",", string); 
 
 //  loading Environmental Stressor Maps
-	file shape_file_NoiseContour_night <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
-	file shape_file_NoiseContour_day <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp");
-//    file Tiff_file_PM2_5 <- file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PM2_5_RDNew_clipped.tif");
-    bool display_air_poll <- true;
-    
+	file shape_file_NoiseContour_night <- file(path_data+"Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
+	file shape_file_NoiseContour_day <- file(path_data+"Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp");    
     
 //  loading routing code
-    file Rcode_foot_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Routing/OSRM_foot.R");
-    file Rcode_car_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Routing/OSRM_car.R");
-    file Rcode_bike_routing <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/Routing/OSRM_bike.R");
+    file Rcode_foot_routing <- text_file(path_workspace+ "Routing/OSRM_foot.R");
+    file Rcode_car_routing <- text_file(path_workspace+ "Routing/OSRM_car.R");
+    file Rcode_bike_routing <- text_file(path_workspace+ "Routing/OSRM_bike.R");
 
 //  loading agent population attributes
     int nb_humans <- 150;
 //    csv_file Synth_Agent_file <- csv_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop.csv", ";", string, true);
-    file Rcode_agent_subsetting <- text_file("C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/ABM_models/GAMA_Models/External_Scripts_for_GAMA_Models/Subsetting_Synthetic_AgentPop_for_GAMA.R");
+    file Rcode_agent_subsetting <- text_file(path_workspace + "ABM_models/GAMA_Models/External_Scripts_for_GAMA_Models/Subsetting_Synthetic_AgentPop_for_GAMA.R");
     csv_file Synth_Agent_file;
     
 //  loading agent schedules   /// need more robust method for schedules based on HETUS data
-	text_file kids_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/kids_schedule.txt");
-	text_file youngadult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/youngadult_schedule.txt");
-	text_file adult_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/adult_schedule.txt");
-	text_file elderly_schedules_file <- text_file("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt");
+	text_file kids_schedules_file <- text_file(path_data+"Harmonised European Time Use Survey - Eurostat/kids_schedule.txt");
+	text_file youngadult_schedules_file <- text_file(path_data+"Harmonised European Time Use Survey - Eurostat/youngadult_schedule.txt");
+	text_file adult_schedules_file <- text_file(path_data+"Harmonised European Time Use Survey - Eurostat/adult_schedule.txt");
+	text_file elderly_schedules_file <- text_file(path_data+"Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt");
 
 // Global variables transport
 	map<string, float> travelspeed <- create_map(["walk", "bike", "car"], [1.4, 3.33, 11.11]); /// meters per seconds (5km/h, 12km/h, 40km/h )
@@ -131,12 +128,11 @@ global skills: [RSkill]{
 		rgb color <- rgb(0,0,0,0.0);
 		//	float PM2_5;
 		reflex AirPollOnRoads when: (current_date.minute = 0){
-			write "AirPoll OnRoads";
 			if(ON_ROAD = 1){
 				TrafficVolume <- rnd(0.0 , 5000.0);
 				NO2 <- (1.992+(0.03096377438925*TrafficVolume)+ baseline_NO2);
 				write "trafficvolume: " + TrafficVolume + " NO2:" + NO2;
-				color <- rgb(int((NO2/50)*147),0,int((NO2/50)*147),0.7);
+				color <- rgb(int((NO2/30)*20),0,int((NO2/30)*20),0.6);
 			}
 		}
 	}
@@ -147,7 +143,7 @@ global skills: [RSkill]{
 		ask AirPollution{
 			if(ON_ROAD = 0){
 				NO2 <- N02_dispersed;
-				color <- rgb(int((NO2/5000)*247),0,int((NO2/5000)*247),0.7);
+				color <- rgb(int((NO2/30)*20),0,int((NO2/30)*20),0.6);
 			}
 		}
 	}
@@ -252,11 +248,11 @@ global skills: [RSkill]{
 	float migration_background_weight_transit <- 3.28874307870865;
 	float education_trip_weight_transit <- 3.75979048013687;
 	
-	map<string,float> trip_dist_weight_car_age_sex<- create_map(["0-10_male", "10-17_male", "18-35_male", "36-50_male", "51-65_male", "66-110_male","0-10_female", "10-17_female", "18-35_female", "36-50_female", "51-65_female", "66-110_female" ],[11.0591059029102, 0.962839469313622, 9.53617548942566,4.08024819195271, 4.86473767459393, 4.09260354936123, 3.71629753708839, 8.47096960246563, 3.89222311973572, 5.55397488176823, 11.953562989831, 5.71857564151287]);
-	map<string,float> trip_dist_weight_walk_age_sex <-create_map(["0-10_male", "10-17_male", "18-35_male", "36-50_male", "51-65_male", "66-110_male","0-10_female", "10-17_female", "18-35_female", "36-50_female", "51-65_female", "66-110_female" ],[7.21976917848925, 8.29044911681444, 5.04141275615939, 1.39223796323901, 6.09801881092803, 5.84945764539026, 4.69248512212549, 5.13877227031467, 3.621193670808, 10.4696570236146, 3.31603709653658, 6.73278644050924]);
-	map<string,float> trip_dist_weight_bike_age_sex <- create_map(["0-10_male", "10-17_male", "18-35_male", "36-50_male", "51-65_male", "66-110_male","0-10_female", "10-17_female", "18-35_female", "36-50_female", "51-65_female", "66-110_female" ],[-2.39123424756851, -0.537665562228923, -0.528740234301317, 0.974833365976439, 0.443713327636509, 0.947249957985473, -1.71906995133581, -0.25895418816138, 0.623070677033765, -2.77885637547807, 0.127093711686002, -3.83601949080239]);
-	map<string,float> trip_dist_weight_transit_age_sex <- create_map(["0-10_male", "10-17_male", "18-35_male", "36-50_male", "51-65_male", "66-110_male","0-10_female", "10-17_female", "18-35_female", "36-50_female", "51-65_female", "66-110_female" ],[3.32117521762848, 3.02554619312286, 7.1869937479496, 5.56816500425339, 3.28471510112286, 1.72616386413574, 2.77206636965275, 5.73035696148872, 6.79463064670563, 3.81034554541111, 3.5399633795023, 8.77556157112122]);
-	map<string,float> threshold_dist_walk_age_sex <- create_map(["0-10_male", "10-17_male", "18-35_male", "36-50_male", "51-65_male", "66-110_male","0-10_female", "10-17_female", "18-35_female", "36-50_female", "51-65_female", "66-110_female" ],[2.46950243241625, 1.91464064429963, 1.47178913668987, 2.34497600978299, 6.27810573833026, 9.80976739544129, 7.52659972830291, 1.98572858642048, 1.74232226154276, 2.55649846595022, 3.78723804925229, 6.76927298699224]);
+	map<string,float> trip_dist_weight_car_age_sex<- create_map(["0-9_male", "10-17_male", "18-34_male", "35-49_male", "50-64_male", "65-110_male","0-9_female", "10-17_female", "18-34_female", "35-49_female", "50-64_female", "65-110_female" ],[11.0591059029102, 0.962839469313622, 9.53617548942566,4.08024819195271, 4.86473767459393, 4.09260354936123, 3.71629753708839, 8.47096960246563, 3.89222311973572, 5.55397488176823, 11.953562989831, 5.71857564151287]);
+	map<string,float> trip_dist_weight_walk_age_sex <-create_map(["0-9_male", "10-17_male", "18-34_male", "35-49_male", "50-64_male", "65-110_male","0-9_female", "10-17_female", "18-34_female", "35-49_female", "50-64_female", "65-110_female" ],[7.21976917848925, 8.29044911681444, 5.04141275615939, 1.39223796323901, 6.09801881092803, 5.84945764539026, 4.69248512212549, 5.13877227031467, 3.621193670808, 10.4696570236146, 3.31603709653658, 6.73278644050924]);
+	map<string,float> trip_dist_weight_bike_age_sex <- create_map(["0-9_male", "10-17_male", "18-34_male", "35-49_male", "50-64_male", "65-110_male","0-9_female", "10-17_female", "18-34_female", "35-49_female", "50-64_female", "65-110_female" ],[-2.39123424756851, -0.537665562228923, -0.528740234301317, 0.974833365976439, 0.443713327636509, 0.947249957985473, -1.71906995133581, -0.25895418816138, 0.623070677033765, -2.77885637547807, 0.127093711686002, -3.83601949080239]);
+	map<string,float> trip_dist_weight_transit_age_sex <- create_map(["0-9_male", "10-17_male", "18-34_male", "35-49_male", "50-64_male", "65-110_male","0-9_female", "10-17_female", "18-34_female", "35-49_female", "50-64_female", "65-110_female"],[3.32117521762848, 3.02554619312286, 7.1869937479496, 5.56816500425339, 3.28471510112286, 1.72616386413574, 2.77206636965275, 5.73035696148872, 6.79463064670563, 3.81034554541111, 3.5399633795023, 8.77556157112122]);
+	map<string,float> threshold_dist_walk_age_sex <- create_map(["0-9_male", "10-17_male", "18-34_male", "35-49_male", "50-64_male", "65-110_male","0-9_female", "10-17_female", "18-34_female", "35-49_female", "50-64_female", "65-110_female"],[2.46950243241625, 1.91464064429963, 1.47178913668987, 2.34497600978299, 6.27810573833026, 9.80976739544129, 7.52659972830291, 1.98572858642048, 1.74232226154276, 2.55649846595022, 3.78723804925229, 6.76927298699224]);
 	
 	// weather variables
 	int weatherindx;
@@ -290,10 +286,11 @@ global skills: [RSkill]{
         create Humans from: Synth_Agent_file with:[Agent_ID :: read('Agent_ID'), Neighborhood :: read('neighb_code'), 
 	        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
 	        hh_single :: int(read('hh_single')), is_child:: int(read('is_child')), has_child:: int(read('has_child')), 
-        	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI'), scheduletype:: read('scheduletype')]; // careful: column 1 is has the index 0 in GAMA      //
+        	current_edu:: read('current_education'), absolved_edu:: read('absolved_education'), BMI:: read('BMI'), 
+        	scheduletype:: read('scheduletype'), incomeclass:: read('incomeclass_int'), agesexgroup:: read('agesexgroup')]; // careful: column 1 is has the index 0 in GAMA      //
     	matrix EnvDeterm_measures <- matrix(EnvDeter_data);
+    	write "loading spatial behavior determinants data";
     	ask Perceivable_Environment{
-    		write "id gridvalue: " + int(self.grid_value);
     		datalist <- rows_list(EnvDeterm_measures) at (int(self.grid_value)-1);
 			popDns <- float(datalist at 1);
 			retaiDns <-  float(datalist at 2);
@@ -323,6 +320,7 @@ global skills: [RSkill]{
 			PrkPricPre <-  float(datalist at 28);
 			PrkPricPos <-  float(datalist at 29);
     	}
+    	write "loading air pollution determinants data";
     	ask AirPollution{
 			if(int_id_airpoll contains_value  int(self.grid_value)){
 				indx <- index_of(int_id_airpoll , int(self.grid_value));
@@ -331,7 +329,7 @@ global skills: [RSkill]{
 			}
     	}
     	 weatherindx <- index_of(column_at(weathermatrix, 0), string(current_date, 'dd/MM/yyyy'));
-    	 write string(current_date, 'dd-MM-yyyy');
+    	 write string(current_date, 'dd/MM/yyyy');
     	 rain <- weathermatrix[1,weatherindx];
     	 temperature <- weathermatrix[2,weatherindx];
     	 wind <- weathermatrix[4,weatherindx];
@@ -341,12 +339,11 @@ global skills: [RSkill]{
 
     reflex determineWeather when: (current_date.minute = 0 and current_date.hour = 0){
     	 weatherindx <- index_of(column_at(weathermatrix, 0), string(current_date, 'dd/MM/yyyy'));
-    	 write string(current_date, 'dd-MM-yyyy');
+    	 write string(current_date, 'dd/MM/yyyy');
     	 rain <- weathermatrix[1,weatherindx];
     	 temperature <- weathermatrix[2,weatherindx];
     	 wind <- weathermatrix[4,weatherindx];
-    	 write "temperature: " + temperature;
-    	 write "wind: "+ wind;
+    	 write "temperature: " + temperature + "rain: " +  rain + " wind: "+ wind;
     }
 }
 
@@ -377,10 +374,13 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	string BMI; 				//"underweight", "normal_weight", "moderate_overweight", "obese"
 	string scheduletype;
 	string agesexgroup;    /// 
-	string weightgroup; /// "normal", "overweight"
 	string incomegroup; /// "low", "middle", "high"			
-	int student <- 0;														// needs robust methodology
-
+	int student <- 0;		
+	int incomeclass; 
+	int commute <- 0;
+	int groceries <- 0;
+	int leisure <- 0;
+	int edu_trip <- 0;
 	
 	/// destination locations
 	geometry residence;
@@ -525,61 +525,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
        	  	if(flip(per_car_owners)){
        	  		car_owner <- 1;
        	  	}
-       	  }
-//       	  ["0-10_male", "10-17_male", "18-35_male", "36-50_male", "51-65_male", "66-110_male","0-10_female", "10-17_female", "18-35_female", "36-50_female", "51-65_female", "66-110_female" 
-       	  	if (age < 10){
-       	  		if (sex = "male"){
-       	  			agesexgroup <- "0-10_male";
-       	  		}
-       	  		else{
-       	  			agesexgroup <- "0-10_female";
-       	  		}
-       	  	}
-       	  	else if (age > 10 and age<= 17){
-       	  		if (sex = "male"){
-       	  			agesexgroup <- "10-17_male";
-       	  		}
-       	  		else{
-       	  			agesexgroup <- "10-17_female";
-       	  		}
-       	  	}    
-       	  	if(age > 17 and age<= 35){
-       	  		if (sex = "male"){
-       	  			agesexgroup <- "18-35_male";
-       	  		}
-       	  		else{
-       	  			agesexgroup <- "18-35_female";
-       	  		}       	  	}
-       	  	if(age > 35 and age<= 50){
-       	  		if (sex = "male"){
-       	  			agesexgroup <- "36-50_male";
-       	  		}
-       	  		else{
-       	  			agesexgroup <- "36-50_female";
-       	  		}       	  	}
-       	  	else if(age > 50 and age <= 65){
-       	  		if (sex = "male"){
-       	  			agesexgroup <- "51-65_male";
-       	  		}
-       	  		else{
-       	  			agesexgroup <- "51-65_female";
-       	  		}       	  	}
-       	  	else if(age > 65){
-       	  		if (sex = "male"){
-       	  			agesexgroup <- "66-110_male";
-       	  		}
-       	  		else{
-       	  			agesexgroup <- "66-110_female";
-       	  		}       	  	
-       	  	}       	  	
-       	  	
-
-			if(BMI = "moderate_overweight" or BMI = "obese" ){
-				weightgroup <- "overweight";
-			}
-			else{
-				weightgroup <- "normal";	
-			}
+       	  }    	  	
 			if (current_edu = "high"){
 				student <- 1;
 			}
@@ -599,6 +545,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 }
 		 if(current_activity != former_activity){
 		 	if(current_activity = "work"){
+		 		commute <- 1;
 				destination_activity <- workplace;
 				if(homeTOwork != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
 					track_path <- homeTOwork;
@@ -610,6 +557,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				}		 		
 		 	}
 		 	else if(current_activity = "school"){
+		 		edu_trip <- 1;
 		 		destination_activity <- school;
 		 		if(homeTOschool != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
 					track_path <- homeTOschool;
@@ -621,6 +569,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				}		
 		 	}
 		 	else if(current_activity = "university"){
+		 		edu_trip <- 1;
 		 		destination_activity <- university;
 		 		if(homeTOuni != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
 					track_path <- homeTOuni;
@@ -633,6 +582,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 	}
 		 	else if(current_activity = "groceries_shopping"){
 		 		destination_activity <- supermarket;
+		 		groceries <- 1;
 		 		if(homeTOsuperm != nil and (former_activity = "at_Home" or former_activity = "sleeping")){
 					track_path <- homeTOsuperm;
 					track_geometry <- homeTOsuperm_geometry;
@@ -697,6 +647,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 		}
 		 	}
 		 	else if(current_activity = "entertainment" ){
+		 		leisure <- 1;
 		 		destination_activity <- one_of(Entertainment);
 		 		loop while: destination_activity = nil {
 		 			destination_activity <- one_of(Entertainment);
@@ -724,7 +675,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		 			traveldecision <- 1;
 		 		}
 		 		else if(path_memory = 1){
-		 			 activity <- "commuting";
+		 			 activity <- "traveling";
 		 			 track_path <-  path((track_geometry add_point(point(destination_activity))));  
 		 		}
 		 		path_memory <- 0;
@@ -754,23 +705,21 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	   		assumed_traveltime <- ["traveltime_bike"::(trip_distance/travelspeed["bike"]), "traveltime_walk"::(trip_distance/travelspeed["walk"]), "traveltime_car"::(trip_distance/travelspeed["car"])]; 
 	   	}    	
     }
-    reflex Env_Activity_Affordance_Travel_orig_dest when: perception2 = 1 {
-    	 perception2 <- 0;	
-    	make_modalchoice <- 1;
-    	
-    }
+//    reflex Env_Activity_Affordance_Travel_orig_dest when: perception2 = 1 {
+//    	 perception2 <- 0;	
+//    	 make_modalchoice <- 1;
+//    	
+//    }
 //    sum((AirPollution overlapping self) collect each.NO2)
-    perceive Env_Activity_Affordance_Travel_orig target:Perceivable_Environment  when: perception2 = 1 {
+    perceive Env_Activity_Affordance_Travel_orig target:(Perceivable_Environment overlapping self.location) when: perception2 = 1 {
     	myself.perception2 <- 0;	
     	myself.perception3 <- 1;
     	write "perceiving orig variables";
-    	
     	ask myself{
-	   		assumed_quality_infrastructure_orig <- (["pubTraDns"::myself.pubTraDns, 
-	   			"DistCBD"::myself.DistCBD]);
+	   		assumed_quality_infrastructure_orig <- (["pubTraDns"::myself.pubTraDns, "DistCBD"::myself.DistCBD]);
 	   	}    	
     }
-    perceive Env_Activity_Affordance_Travel_dest target:(Perceivable_Environment grid_at self.destination.location)  when: perception3 = 1 {
+    perceive Env_Activity_Affordance_Travel_dest target:(Perceivable_Environment overlapping self.destination.location)  when: perception3 = 1 {
     	myself.perception3 <- 0;	
     	myself.make_modalchoice <- 1;
     	write "perceiving dest variables";
@@ -788,12 +737,12 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 	driving_utility <- (parking_space_weight_car * float(assumed_quality_infrastructure_dest["NrParkSpac"])) 
 					+ (parking_price_weight_car * float(assumed_quality_infrastructure_dest["PrkPricPre"])) 
 					+ (DistCBD_weight_car * float(assumed_quality_infrastructure_route["DistCBD"])) 
-					+ (income_weight_car * budget)
+					+ (income_weight_car * incomeclass)
 					+ (children_weight_car * has_child) 
 					+ (temperature_weight_car * temperature) 
 					+ (rain_weight_car * rain) 
-//					+ (commute_weight_car * commute)) 
-//					+ (groceries_weight_car * groceries) 	
+					+ (commute_weight_car * commute)
+					+ (groceries_weight_car * groceries) 	
 //					+ (bring_person_weight_car * bring_person) 
 //					+ (education_level_weight_car * education_level) 
 //					+ (driving_habit_weight_car * driving_habit) 
@@ -826,8 +775,8 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 					+ (temperature_weight_walk * temperature)
 					+ (rain_weight_walk * rain)
 					+ (wind_weight_walk * wind)
-//					+ (leisure_weight_walk * leisure)
-//					+ (groceries_weight_walk * groceries)
+					+ (leisure_weight_walk * leisure)
+					+ (groceries_weight_walk * groceries)
 //					+ (sex_weight_walk * sex)
 					+ (age_weight_walk * age)					
 					+ (trip_dist_weight_walk_age_sex[agesexgroup] * (trip_distance/1000));					
@@ -852,10 +801,10 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 					+ (temperature_weight_bike * temperature)
 					+ (rain_weight_bike * rain)
 					+ (wind_weight_bike * wind)
-//					+ (leisure_weight_bike * leisure)
-//					+ (groceries_weight_bike * groceries)
-//					+ (education_trip_weight_bike * edu_trip)
-//					+ (commute_weight_bike * commute)
+					+ (leisure_weight_bike * leisure)
+					+ (groceries_weight_bike * groceries)
+					+ (education_trip_weight_bike * edu_trip)
+					+ (commute_weight_bike * commute)
 					+ (student_weight_bike * student)
 //					+ (biking_habit_weight_bike * biking_habit)
 //					+ (sex_weight_walk * sex)
@@ -881,7 +830,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		write string(trip_distance) + " " + modalchoice ;
    }
 	reflex routing when:  new_route = 1  {
-		  activity <- "commuting";
+		  activity <- "traveling";
 		  new_route <- 0;
 		/// routing through OSRM via R interface
 		unknown a <-  R_eval("origin = " + to_R_data(container(self.location CRS_transform("EPSG:4326"))));
@@ -947,7 +896,11 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 				homeTOsuperm_duration <- track_duration;
 				supermTOhome_geometry <- line(reverse(container(geometry_collection(homeTOsuperm_geometry)))) add_point(self.residence.location);
 				supermTOhome <- path(supermTOhome_geometry);
-		}			
+		}	
+		commute <- 0;
+		edu_trip <- 0;
+		groceries <- 0;
+		leisure <- 0;		
 	}
 //	reflex any_activity when: activity = "perform_activity" and current_activity = "name of activity"{
 //		e.g. the activity could have an impact on health (sports...)
@@ -959,7 +912,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
 		hourly_Noise <- hourly_Noise + activity_Noise;
 	}
 	
-    reflex commuting when: activity = "commuting"{
+    reflex traveling when: activity = "traveling"{
 		do follow path: self.track_path speed: travelspeed[modalchoice];
 		if((self.location = self.destination_activity.location)){
 			self.location <- destination_activity.location;
@@ -996,7 +949,7 @@ species Humans skills:[moving, RSkill] control: simple_bdi parallel: true{
     	if(activity = "perform_activity"){
     		   draw sphere(30) color: #yellow;
     	}
-    	else if(activity = "commuting"){
+    	else if(activity = "traveling"){
     		if(modalchoice = "bike"){
     			draw cube(60) color: #blue;
     			
@@ -1030,9 +983,9 @@ experiment TransportAirPollutionExposureModel type: gui {
     	  	  		draw "Model Time: " + current_date color: #white font: font("SansSerif", 17) at: {40#px, 30#px};
 				}
   	      chart "Transport Mode distribution" type: histogram background: #black color: #white axes: #white size: {0.5,0.5} position: {0.5, 0.5} label_font: font("SansSerif", 12){
- 		       	data "walk" value: Humans count (each.modalchoice = "walk" and each.activity = "commuting") color:#green;
-	        	data "bike" value: Humans count (each.modalchoice = "bike" and each.activity = "commuting") color:#blue;
-   		     	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "commuting") color:#fuchsia;
+ 		       	data "walk" value: Humans count (each.modalchoice = "walk" and each.activity = "traveling") color:#green;
+	        	data "bike" value: Humans count (each.modalchoice = "bike" and each.activity = "traveling") color:#blue;
+   		     	data "car" value: Humans count (each.modalchoice = "car" and each.activity = "traveling") color:#fuchsia;
    		     	data "not travelling" value: Humans count (each.activity = "perform_activity") color:#yellow;
      	   }
 			chart "Mean Noise Exposure" type: scatter x_label: (string(int(step/60))) + " Minute Steps"  y_label: "Decibel" background: #black color: #white axes: #white size: {0.5,0.45} position: {0, 0.05} label_font: font("SansSerif", 12){
@@ -1063,9 +1016,10 @@ experiment TransportAirPollutionExposureModel type: gui {
     			draw shape color: #black;
     		}
        		graphics Buildings refresh: false{
-    			draw shape_file_buildings color: #firebrick;
-    			draw shape_file_buildings2 color: #firebrick;
-    			draw shape_file_buildings3 color: #firebrick;
+    			draw shape_file_buildings color: rgb(40,40,40);
+    			draw shape_file_buildings2 color: rgb(40,40,40);
+    			draw shape_file_buildings3 color: rgb(40,40,40);
+    			
 			}
 			graphics Streets refresh: false{
     			draw shape_file_streets color: #aqua;
