@@ -1454,8 +1454,65 @@ agents = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_
 ######################## car ownership ##############################
 c("PersonenautoSTotaal_99", "PersonenautoSBrandstofBenzine_100" , "PersonenautoSOverigeBrandstof_101", "PersonenautoSPerHuishouden_102" , "PersonenautoSNaarOppervlakte_103" , "Motorfietsen_104" )
 
+setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ODIN/2019")
+ODIN = read.csv("ODIN2019_Studyarea_with_outsidetrips.csv")
+
+ODIN$car_access = 0
+ODIN$car_access[ODIN$Nr_cars_hh > 0] = 1
+
+colnames(ODIN)
+dutchnames = c("OPID", "WoPC", "Geslacht", "Leeftijd",
+               "Herkomst", "HHAuto", "HHGestInkG",
+               "BetWerk", "Opleiding", "HHPers",
+               "HHLft1", "HHLft2", "HHLft3",  "MaatsPart", 
+               "FqNEFiets", "FqEFiets", "FqBTM", "FqTrein", "FqAutoB", "FqAutoP","car_access")
+
+englishnames = c("Person_ID", "Home_postcode", "sex", "age",
+                 "migration_background", "Nr_cars_hh",
+                 "income",  "employment_status",
+                 "education_level", "HH_size",  "nr_children_yonger6",
+                 "nr_child_6_11", "nr_child_12_17", 
+                 "socialgroup", "Freq_biking", "freq_ebiking", "freq_nontrain_transit", 
+                 "freq_train_transit", "freq_driv_car", "freq_passenger_car","car_access")
+
+ODIN = ODIN[,dutchnames]
+colnames(ODIN) = englishnames
+ODIN = unique(ODIN)
+
+ODIN$single_hh = 0
+ODIN$single_hh[ODIN$HH_size == 1] = 1
+
+ODIN$student = 0
+ODIN$student[which(ODIN$socialgroup == 4)] = 1
+
+ODIN$driving_habit = 0
+ODIN$driving_habit[ODIN$freq_driv_car %in% 1:2] = 1
+
+ODIN$biking_habit = 0
+ODIN$biking_habit[ODIN$Freq_biking %in% 1:2] = 1
+ODIN$biking_habit[ODIN$freq_ebiking %in% 1:2] = 1
+
+ODIN$transit_habit = 0
+ODIN$transit_habit[ODIN$freq_train_transit %in% 1:2] = 1
+ODIN$transit_habit[ODIN$freq_nontrain_transit %in% 1:2] = 1
+
+
+
+agents_clean$absolved_education
+ODIN$education_agent = ODIN$education_level
+ODIN$education_agent[ODIN$education_agent %in% c(0,1,2,5,6,7)] = 1
+ODIN$education_agent[ODIN$education_agent == 3] = 2
+ODIN$education_agent[ODIN$education_agent == 4] = 3
+
+agents_clean$education_int = agents_clean$absolved_education
+agents_clean$education_int[agents_clean$education_int  %in% c(0, "low")] = 1
+agents_clean$education_int[agents_clean$education_int  == "middle"] = 2
+agents_clean$education_int[agents_clean$education_int  == "high"] = 3
+
+table(ODIN$education_agent)
+
+
 
 
 agents$agent_ID = paste("Agent_",1:tot_pop, sep="")
-
 write.csv(agents, "Agent_pop.csv")
