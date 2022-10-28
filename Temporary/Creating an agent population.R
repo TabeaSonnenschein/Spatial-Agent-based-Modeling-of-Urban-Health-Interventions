@@ -971,12 +971,14 @@ agents_clean = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" ,
                    "havechild", "current_education", "absolved_education" )]
 write.csv(agents_clean, "Agent_pop.csv", row.names = FALSE)
 
+setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population")
+agents_clean = read.csv("Agent_pop.csv")
 
 # employment
 c("NettoArbeidsparticipatie_67" , "PercentageWerknemers_68", "PercentageZelfstandigen_69" )
 
 #income
-x = neigh_stats3[,c("AantalInkomensontvangers_67"  , "k_40PersonenMetLaagsteInkomen_70" , "k_20PersonenMetHoogsteInkomen_71",
+neigh_stats = neigh_stats3[,c("neighb_code", "AantalInkomensontvangers_67"  , "k_40PersonenMetLaagsteInkomen_70" , "k_20PersonenMetHoogsteInkomen_71",
                     "k_40HuishoudensMetLaagsteInkomen_73",  "k_20HuishoudensMetHoogsteInkomen_74",  "HuishoudensMetEenLaagInkomen_75",
                     "HuishOnderOfRondSociaalMinimum_76")]
 
@@ -1016,8 +1018,186 @@ Inc_stats = create_stratified_prob_table(nested_cond_attr_list = list(c("Leeftij
                                          orig_df = income_stats, strat_var = "Title")
 
 
+maleincome = strat_prop_from_sep_cond_var(
+  df = income_stats[income_stats$Geslacht == "male",],
+  nested_cond_attr_list = list(c("Leeftijd: 0 tot 15 jaar" ,"Leeftijd: 15 tot 25 jaar", "Leeftijd: 25 tot 45 jaar" ,
+                                 "Leeftijd: 45 tot 65 jaar" , "Leeftijd: 65 jaar of ouder"),
+                               c("Migratieachtergrond: Nederland" , "Migratieachtergrond: westers", "Migratieachtergrond: niet-westers")),
+  cond_var_names = c("age", "migrationbackground"),
+  cond_attr_column = "Title",
+  var_for_pred = "PersonenMetPersoonlijkInkomen_2",
+  total_population = "Personen_1")
+maleincome$sex = "male"
 
-#social support
+femaleincome = strat_prop_from_sep_cond_var(
+  df = income_stats[income_stats$Geslacht == "female",],
+  nested_cond_attr_list = list(c("Leeftijd: 0 tot 15 jaar" ,"Leeftijd: 15 tot 25 jaar", "Leeftijd: 25 tot 45 jaar" ,
+                                 "Leeftijd: 45 tot 65 jaar" , "Leeftijd: 65 jaar of ouder"),
+                               c("Migratieachtergrond: Nederland" , "Migratieachtergrond: westers", "Migratieachtergrond: niet-westers")),
+  cond_var_names = c("age", "migrationbackground"),
+  cond_attr_column = "Title",
+  var_for_pred = "PersonenMetPersoonlijkInkomen_2",
+  total_population = "Personen_1")
+femaleincome$sex = "female"
+
+income_strat = rbind(maleincome, femaleincome)
+
+income_strat$average_income_standardised = NA
+income_strat$average_income_personal = NA
+for(i in 1:nrow(income_strat)){
+  income_strat$average_income_standardised[i] = mean(c(as.numeric(income_stats[which((income_stats$Geslacht == income_strat$sex[i]) & (income_stats$Title == income_strat$age[i])), "GemiddeldGestandaardiseerdInkomen_4"]),   
+                                          as.numeric(income_stats[which((income_stats$Geslacht == income_strat$sex[i]) & (income_stats$Title == income_strat$migrationbackground[i])), "GemiddeldGestandaardiseerdInkomen_4"])))
+  income_strat$average_income_personal[i] = mean(c(as.numeric(income_stats[which((income_stats$Geslacht == income_strat$sex[i]) & (income_stats$Title == income_strat$age[i])), "GemiddeldPersoonlijkInkomen_6"]),   
+                                                       as.numeric(income_stats[which((income_stats$Geslacht == income_strat$sex[i]) & (income_stats$Title == income_strat$migrationbackground[i])), "GemiddeldPersoonlijkInkomen_6"])))
+}
+
+income_strat$age = gsub("Leeftijd: ", "k_", income_strat$age)
+income_strat$age = gsub(" tot ", "Tot", income_strat$age)
+income_strat$age = gsub(" jaar", "Jaar", income_strat$age)
+income_strat$age = gsub(" of ouder", "OfOuder", income_strat$age)
+income_strat$migrationbackground = gsub("Migratieachtergrond: Nederland", "Dutch", income_strat$migrationbackground)
+income_strat$migrationbackground = gsub("Migratieachtergrond: westers", "Western", income_strat$migrationbackground)
+income_strat$migrationbackground = gsub("Migratieachtergrond: niet-westers", "Non-Western", income_strat$migrationbackground)
+
+
+income_strat = income_strat[,c("sex", "age", "migrationbackground", "prop_PersonenMetPersoonlijkInkomen_2", "average_income_standardised", "average_income_personal")]
+colnames(income_strat) = c("sex", "age_group", "migrationbackground", "prop_personal_income", "average_income_standardised", "average_income_personal")
+
+write.csv(income_strat, "stratified_income_stats.csv", row.names = F)
+income_strat = read.csv("stratified_income_stats.csv")
+x = merge(agents_clean, income_strat, by = c("sex", "age_group", "migrationbackground"))
+
+colnames(neigh_stats3)[2] = "neighb_code"
+agents_clean = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+         "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype")]
+   
+colnames(neigh_stats)
+x = distr_attr_strat_neigh_stats_binary(
+  agent_df = x,
+  neigh_df = neigh_stats,
+  neigh_ID = "neighb_code",
+  variable = "personal_income",
+  list_var_classes_neigh_df = c("AantalInkomensontvangers_67"),
+  list_agent_propens = "prop_personal_income",
+  list_class_names = c("has_personal_income", "no_personal_income")
+)
+
+x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+         "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","average_income_standardised", 
+         "average_income_personal", "personal_income")]
+
+
+
+income_data2 = read.csv("83931NED_UntypedDataSet_27102022_224122.csv", sep = ";")
+
+income_data2$Geslacht = gsub("3000", "male",income_data2$Geslacht)
+income_data2$Geslacht = gsub("4000", "female",income_data2$Geslacht)
+income_data2$Geslacht = gsub("male   ", "male",income_data2$Geslacht)
+income_data2$Geslacht = gsub("female   ", "female",income_data2$Geslacht)
+
+income_data2$Inkomensbegrippen = gsub("A043963", "Persoonlijk inkomen",income_data2$Inkomensbegrippen)
+
+income_data2 = income_data2[income_data2$Inkomensbegrippen == "Persoonlijk inkomen",]
+income_data2 = income_data2[income_data2$Geslacht != "T001038",]
+
+income_data2 = merge(income_data2, personal_attributes, by.x = "KenmerkenVanPersonen",by.y= "Persoonskenmerken", all.x = T, all.y = F)
+income_data2 = income_data2[!is.na(income_data2$Title),]
+
+
+income_data2$Title = gsub("Leeftijd: ", "k_", income_data2$Title)
+income_data2$Title = gsub(" tot ", "Tot", income_data2$Title)
+income_data2$Title = gsub(" jaar", "Jaar", income_data2$Title)
+income_data2$Title = gsub(" of ouder", "OfOuder", income_data2$Title)
+income_data2$Title = gsub("Migratieachtergrond: Nederland", "Dutch", income_data2$Title)
+income_data2$Title = gsub("Migratieachtergrond: westers", "Western", income_data2$Title)
+income_data2$Title = gsub("Migratieachtergrond: niet-westers", "Non-Western", income_data2$Title)
+
+income_codes = read.csv("income_codes.csv")
+income_data2 = merge(income_data2, income_codes, by.x = "Inkomensklassen",by.y= "ï..income_code", all.x = T, all.y = F)
+
+colnames(income_data2)
+income_data2 = income_data2[,c("Geslacht", "Title", "income_class", "PersonenMetInkomen_1", "GemiddeldInkomen_2")]
+income_data2_strat = restructure_one_var_marginal(df= income_data2, variable = "income_class", countsname = "PersonenMetInkomen_1")
+income_data2 = merge(income_data2, income_stats[,c("Title", "Geslacht", "Personen_1")], by= c("Title", "Geslacht"), all.x = T, all.y = F)
+
+uniq_combi = unique(income_data2[,c("Geslacht", "Title")])
+uniq_combi$Nr_people = NA
+for(i in 1:nrow(uniq_combi)){
+  uniq_combi$Nr_people[i] = sum(as.numeric(income_data2$PersonenMetInkomen_1[which((income_data2$Geslacht == uniq_combi$Geslacht[i])& (income_data2$Title == uniq_combi$Title[i]))]))
+}
+income_data2 = merge(income_data2, uniq_combi, by = c("Geslacht", "Title"))
+income_data2$Nr_people = income_data2$Nr_people/2
+income_data2$perc_people = income_data2$PersonenMetInkomen_1/income_data2$Nr_people
+
+income_data2_strat = income_strat[,c("sex", "age_group", "migrationbackground")]
+
+
+incomeclass_orig = unique(income_data2$income_class)
+incomeclass = incomeclass_orig
+incomeclass = gsub("Inkomen: ", "income", incomeclass)
+incomeclass = gsub(" ", "", incomeclass)
+incomeclass = gsub("10%-groep", "Decile", incomeclass)
+incomeclass = gsub("\\(laaginkomen\\)", "", incomeclass)
+incomeclass = gsub("\\(hooginkomen\\)", "", incomeclass)
+
+?distr_attr_strat_neigh_stats_binary
+
+income_data2_strat[,incomeclass] = NA
+for(i in 1:nrow(income_data2_strat)){
+  for(indx in 1:length(incomeclass)){
+    income_data2_strat[i, incomeclass[indx]] = mean(c(as.numeric(income_data2[which((income_data2$Geslacht == income_data2_strat$sex[i]) & (income_data2$Title == income_data2_strat$age[i]) & (income_data2$income_class == incomeclass_orig[indx])), "perc_people"]),   
+                                                               as.numeric(income_data2[which((income_data2$Geslacht == income_data2_strat$sex[i]) & (income_data2$Title == income_data2_strat$migrationbackground[i]) & (income_data2$income_class == incomeclass_orig[indx])), "perc_people"])))
+  }
+}
+
+write.csv(income_data2_strat, "income_class_propensities.csv", row.names = F)
+
+x = merge(x, income_data2_strat, by = c("sex", "age_group", "migrationbackground"))
+?GenSynthPop::distr_attr_cond_prop
+incomeclass
+x$no_income = 0
+x$no_income[x$personal_income == "no_personal_income"]=1
+
+
+x = distr_attr_cond_prop(
+  agent_df = x,
+  variable = "incomeclass",
+  list_agent_propens = c("income1eDecile","income2eDecile", 
+                         "income3eDecile" ,"income4eDecile",
+                         "income5eDecile" ,"income6eDecile",
+                         "income7eDecile","income8eDecile",
+                         "income9eDecile","income10eDecile" ),
+  list_class_names = c("income1eDecile","income2eDecile", 
+                       "income3eDecile" ,"income4eDecile",
+                       "income5eDecile" ,"income6eDecile",
+                       "income7eDecile","income8eDecile",
+                       "income9eDecile","income10eDecile" ),
+  agent_exclude = "no_income"
+)
+
+x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+         "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income", "incomeclass")]
+
+x$incomeclass_int = gsub("income", "", x$incomeclass)
+x$incomeclass_int = gsub("eDecile", "", x$incomeclass_int)
+
+setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population")
+write.csv(x, "Agent_pop.csv", row.names = FALSE)
+agents_clean = read.csv("Agent_pop.csv")
+agents_clean$agesexgroup = NA
+
+agents_clean$agesexgroup[which(agents_clean$age %in% 0:09)] = "0-9_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 10:17)] = "10-17_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 18:34)] = "18-34_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 35:49)] = "35-49_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 50:64)] = "50-64_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 65:110)] = "65-110_"
+agents_clean$agesexgroup = paste0(agents_clean$agesexgroup, agents_clean$sex)
+
+write.csv(agents_clean, "Agent_pop.csv", row.names = FALSE)
+agents_clean = read.csv("Agent_pop.csv")
+
+#social supporti
 c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSociaalMinimum_80", "HuishoudensTot120VanSociaalMinimum_81" ,"MediaanVermogenVanParticuliereHuish_82",
   "PersonenPerSoortUitkeringBijstand_83" , "PersonenPerSoortUitkeringAO_84", "PersonenPerSoortUitkeringWW_85" , "PersonenPerSoortUitkeringAOW_86", "JongerenMetJeugdzorgInNatura_87",
   "PercentageJongerenMetJeugdzorg_88")

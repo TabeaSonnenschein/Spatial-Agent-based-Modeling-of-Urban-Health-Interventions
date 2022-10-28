@@ -47,7 +47,7 @@ for(i in 1:length(mode_names)){
 }
 
 table(ODIN$mode_name)
-
+ 
 
 ODIN$modes_simple = ""
 ODIN$modes_simple[ODIN$mode_name %in% c("Personenauto", "Bestelauto", "Vrachtwagen", "Landbouwvoertuig", "Gehandicaptenvervoermiddel met motor")] = "car"

@@ -22,6 +22,26 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population/Agent_pop_GAMA.csv</location>
 		</link>
 		<link>
+			<name>external/AirPollDeterm_grid.tif</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/AirPollDeterm_grid.tif</location>
+		</link>
+		<link>
+			<name>external/AirPollDeterm_grid50.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/AirPollDeterm_grid50.csv</location>
+		</link>
+		<link>
+			<name>external/AirPollDeterm_grid50_baselineNO2.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/AirPollDeterm_grid50_baselineNO2.csv</location>
+		</link>
+		<link>
+			<name>external/AirPollDeterm_grid50_clean.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/AirPollDeterm_grid50_clean.shp</location>
+		</link>
+		<link>
 			<name>external/Amsterdam Diemen Oude Amstel Extent.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp</location>
@@ -87,9 +107,29 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Diemen_Buildings.shp</location>
 		</link>
 		<link>
+			<name>external/Green Spaces_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew.shp</location>
+		</link>
+		<link>
 			<name>external/Green Spaces_RDNew_window.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew_window.shp</location>
+		</link>
+		<link>
+			<name>external/ModalChoice_determ_200.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/ModalChoice_determ_200.csv</location>
+		</link>
+		<link>
+			<name>external/ModalChoice_determ_200.tif</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/ModalChoice_determ_200.tif</location>
+		</link>
+		<link>
+			<name>external/ModalChoice_determ_200_clean.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/ModalChoice_determ_200_clean.csv</location>
 		</link>
 		<link>
 			<name>external/OSRM_bike.R</name>
@@ -130,6 +170,11 @@
 			<name>external/Subsetting_Synthetic_AgentPop_for_GAMA.R</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/ABM_models/GAMA_Models/External_Scripts_for_GAMA_Models/Subsetting_Synthetic_AgentPop_for_GAMA.R</location>
+		</link>
+		<link>
+			<name>external/Weather_Amsterdam18_19.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Weather/Weather_Amsterdam18_19.csv</location>
 		</link>
 		<link>
 			<name>external/adult_schedule.txt</name>

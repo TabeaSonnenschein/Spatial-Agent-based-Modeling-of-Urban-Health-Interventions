@@ -1,28 +1,3 @@
-#criteria
-
-#1 Population density
-#2 Density of retail and service destinations (retail environment)
-#3 Land-use mix (commercial, cultural) Shannon Entropy
-#4 Street connectivity (intersection density)
-#5 Green space
-#6 Side walk density
-#7 Public Transport Density
-
-
-#optional criteria
-
-# Safety from crime
-# Traffic safety
-# Traffic volume and speed
-# Pedestrian crossing availability
-# Aesthetics
-# Air quality
-# Shade or sun in appropriate seasons
-# Street furniture
-# Wind conditions
-# Specific walking destinations such as light rail stops and bus stops (Brown et al., 2009)
-# Job density
-
 
 pkgs = c("maptools","raster", "rgdal","sp", "sf", "jpeg", "data.table", "purrr", "rgeos" , "leaflet", "RColorBrewer",
          "ggplot2", "lattice",  "raster",  "spatialEco", "rjson", "jsonlite","EconGeo", "dplyr",
@@ -705,7 +680,9 @@ walkability_grid = readOGR(dsn=getwd(),layer="ModalChoice_determ_200")
 walkability_grid$PrkPricPos[is.na(walkability_grid$PrkPricPos)] = 0
 walkability_grid$PrkPricPre[is.na(walkability_grid$PrkPricPre)] = 0
 write.csv(as.data.frame(walkability_grid), "ModalChoice_determ_200.csv", row.names = F)
-
+walkability_grid = read.csv("ModalChoice_determ_200.csv")
+walkability_grid= walkability_grid[,2:ncol(walkability_grid)]
+write.csv(walkability_grid, "ModalChoice_determ_200_clean.csv", row.names = F)
 
 summary(walkability_grid$popDns)
 summary(walkability_grid$greenCovr)
