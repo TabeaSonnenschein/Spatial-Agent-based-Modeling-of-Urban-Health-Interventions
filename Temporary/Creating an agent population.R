@@ -973,7 +973,7 @@ write.csv(agents_clean, "Agent_pop.csv", row.names = FALSE)
 
 setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population")
 agents_clean = read.csv("Agent_pop.csv")
-
+x = as.data.frame(table(agents_clean$neighb_code))
 # employment
 c("NettoArbeidsparticipatie_67" , "PercentageWerknemers_68", "PercentageZelfstandigen_69" )
 
@@ -1272,6 +1272,14 @@ agents_clean$agesexgroup = paste0(agents_clean$agesexgroup, agents_clean$sex)
 write.csv(agents_clean, "Agent_pop.csv", row.names = FALSE)
 agents_clean = read.csv("Agent_pop.csv")
 
+agents_clean$edu_int = agents_clean$absolved_education
+agents_clean$edu_int[agents_clean$edu_int == 0] = 1
+agents_clean$edu_int[agents_clean$edu_int == "low"] = 1
+agents_clean$edu_int[agents_clean$edu_int == "middle"] = 2
+agents_clean$edu_int[agents_clean$edu_int == "high"] = 3
+
+
+
 #social supporti
 c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSociaalMinimum_80", "HuishoudensTot120VanSociaalMinimum_81" ,"MediaanVermogenVanParticuliereHuish_82",
   "PersonenPerSoortUitkeringBijstand_83" , "PersonenPerSoortUitkeringAO_84", "PersonenPerSoortUitkeringWW_85" , "PersonenPerSoortUitkeringAOW_86", "JongerenMetJeugdzorgInNatura_87",
@@ -1454,8 +1462,8 @@ agents = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_
 ######################## car ownership ##############################
 c("PersonenautoSTotaal_99", "PersonenautoSBrandstofBenzine_100" , "PersonenautoSOverigeBrandstof_101", "PersonenautoSPerHuishouden_102" , "PersonenautoSNaarOppervlakte_103" , "Motorfietsen_104" )
 
-setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ODIN/2019")
-ODIN = read.csv("ODIN2019_Studyarea_with_outsidetrips.csv")
+setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ODIN/2018")
+ODIN = read.csv("ODIN2018_Studyarea_with_outsidetrips.csv")
 
 ODIN$car_access = 0
 ODIN$car_access[ODIN$Nr_cars_hh > 0] = 1
@@ -1511,8 +1519,163 @@ agents_clean$education_int[agents_clean$education_int  == "high"] = 3
 
 table(ODIN$education_agent)
 
+agegroups = unique(agents_clean$age_group)
+agegroups
+
+ODIN$age_group = ""
+ODIN$age_group[ODIN$age %in% 0:14] = "k_0Tot15Jaar"
+ODIN$age_group[ODIN$age %in% 15:24] = "k_15Tot25Jaar"
+ODIN$age_group[ODIN$age %in% 25:44] = "k_25Tot45Jaar"
+ODIN$age_group[ODIN$age %in% 45:64] = "k_45Tot65Jaar"
+ODIN$age_group[ODIN$age %in% 65:120] = "k_65JaarOfOuder"
+
+ODIN$incomeclass = 0
+ODIN$incomeclass[ODIN$income %in% 1:4] = 1
+ODIN$incomeclass[ODIN$income %in% 5:8] = 2
+ODIN$incomeclass[ODIN$income %in% 9:10] = 3
+
+ODIN$sex[ODIN$sex == "1"] ="male"
+ODIN$sex[ODIN$sex == "2"] ="female"
+
+ODIN_strat_agreg = unique(ODIN[,c( "sex", "age_group", "single_hh", "education_agent")])
+colnames(ODIN_strat_agreg) = c("sex", "age_group", "hh_single", "education_int")
+table(ODIN_strat_agreg$sex)
+table(ODIN_strat_agreg$age_group)
+table(ODIN_strat_agreg$single_hh)
+table(ODIN_strat_agreg$education_agent)
+
+ODIN_strat_agreg$peoplewithcars = 0
+ODIN_strat_agreg$totalpeople = 0
+
+for(i in 1:nrow(ODIN_strat_agreg)){
+  x = which((ODIN$sex == ODIN_strat_agreg$sex[i]) &
+          (ODIN$age_group == ODIN_strat_agreg$age_group[i]) &
+          (ODIN$education_agent == ODIN_strat_agreg$education_int[i])&
+          (ODIN$single_hh == ODIN_strat_agreg$hh_single[i]))
+  ODIN_strat_agreg$totalpeople[i] = length(x) 
+  ODIN_strat_agreg$peoplewithcars[i] = length(which(ODIN$car_access[x] == 1))
+}
+
+ODIN_strat_agreg$prop_car_access = ODIN_strat_agreg$peoplewithcars/ODIN_strat_agreg$totalpeople
+
+colnames(agents_clean)
+agents_clean = merge(agents_clean, ODIN_strat_agreg, by = c("sex", "age_group", "hh_single", "education_int"), all.x = T)
 
 
+colnames(neigh_stats2)
+neigh_stats2 = neigh_stats2[, c("Codering_3","AantalInwoners_5", "PersonenautoSTotaal_99","PersonenautoSBrandstofBenzine_100" ,
+                                "PersonenautoSOverigeBrandstof_101","PersonenautoSPerHuishouden_102", 
+                                "PersonenautoSNaarOppervlakte_103")]
 
+neigh_stats2$people_with_caraccess = as.numeric(neigh_stats2$PersonenautoSPerHuishouden_102) * as.numeric(neigh_stats2$AantalInwoners_5)
+neigh_stats2$people_with_caraccess = as.integer(neigh_stats2$people_with_caraccess)
+neigh_stats2$peoplewithout_car = neigh_stats2$AantalInwoners_5 - neigh_stats2$people_with_caraccess
+neigh_stats2$peoplewithout_car[neigh_stats2$peoplewithout_car < 0] = 0
+
+colnames(neigh_stats2)[1] = "neighb_code"
+
+?distr_attr_strat_neigh_stats_binary
+neigh_stats2 = neigh_stats2[!is.na(neigh_stats2$peoplewithout_car),]
+agents_clean = distr_attr_strat_neigh_stats_binary(
+              agent_df = agents_clean,
+              neigh_df = neigh_stats2,
+              neigh_ID = "neighb_code",
+              variable = "car_access",
+              list_var_classes_neigh_df = c("people_with_caraccess", "peoplewithout_car" ),
+              list_agent_propens = c("prop_car_access"),
+              list_class_names = c("has_car_access","no_car_access"))
+
+
+agents_clean$prop_car_access = agents_clean$peoplewithcars/agents_clean$totalpeople
+agents_clean$random_scores[agents_clean$car_access == 0] = sample(seq(from= 0, to = 1, by= 0.01), length(agents_clean$random_scores[agents_clean$car_access == 0]), replace = T)
+agents_clean$random_scores[agents_clean$car_access == 0] 
+agents_clean$needsscore = 0
+agents_clean$needsscore[agents_clean$car_access == 0] = 1
+agents_clean$car_access[agents_clean$needsscore == 1] = "no_car_access"
+agents_clean$car_access[which((agents_clean$needsscore == 1)&(agents_clean$random_scores<agents_clean$prop_car_access))] = "has_car_access"
+
+
+sample(seq(from= 0, to = 1, by= 0.01), 49, replace = T)
+?sample
+table(agents_clean$car_access)
+agents_clean$car_access[agents_clean$car_access == "no_car_access"] = 0
+agents_clean$car_access[agents_clean$car_access == "has_car_access"] = 1
+
+agents_clean = agents_clean[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+                 "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income", "incomeclass", "agesexgroup","edu_int", "car_access")]
+
+colnames(agents_clean)  
 agents$agent_ID = paste("Agent_",1:tot_pop, sep="")
-write.csv(agents, "Agent_pop.csv")
+write.csv(agents, "Agent_pop.csv", row.names = F)
+write.csv(agents_clean, "Agent_pop.csv", row.names = F)
+
+agents_clean = read.csv("Agent_pop.csv")
+
+
+
+ODIN_strat_agreg = unique(ODIN[,c( "sex", "age_group",  "education_agent", "car_access")])
+colnames(ODIN_strat_agreg) = c("sex", "age_group", "edu_int", "car_access")
+table(ODIN_strat_agreg$sex)
+table(ODIN_strat_agreg$age_group)
+table(ODIN_strat_agreg$hh_single)
+table(ODIN_strat_agreg$edu_int)
+table(ODIN_strat_agreg$car_access)
+
+ODIN_strat_agreg$totalpeople = 0
+ODIN_strat_agreg$peoplewith_carhabit = 0
+ODIN_strat_agreg$peoplewith_bikehabit = 0
+ODIN_strat_agreg$peoplewith_transithabit = 0
+
+for(i in 1:nrow(ODIN_strat_agreg)){
+  x = which((ODIN$sex == ODIN_strat_agreg$sex[i]) &
+              (ODIN$age_group == ODIN_strat_agreg$age_group[i]) &
+              (ODIN$education_agent == ODIN_strat_agreg$edu_int[i])&
+              # (ODIN$single_hh == ODIN_strat_agreg$hh_single[i])&
+              (ODIN$car_access == ODIN_strat_agreg$car_access[i]))
+  ODIN_strat_agreg$totalpeople[i] = length(x) 
+  ODIN_strat_agreg$peoplewith_carhabit[i] = length(which(ODIN$driving_habit[x] == 1))
+  ODIN_strat_agreg$peoplewith_bikehabit[i] = length(which(ODIN$biking_habit[x] == 1))
+  ODIN_strat_agreg$peoplewith_transithabit[i] = length(which(ODIN$transit_habit[x] == 1))
+}
+
+ODIN_strat_agreg$prop_bikehabit = ODIN_strat_agreg$peoplewith_bikehabit/ODIN_strat_agreg$totalpeople
+ODIN_strat_agreg$prop_drivehabit = ODIN_strat_agreg$peoplewith_carhabit/ODIN_strat_agreg$totalpeople
+ODIN_strat_agreg$prop_transithabit = ODIN_strat_agreg$peoplewith_transithabit/ODIN_strat_agreg$totalpeople
+
+agents_clean = merge(agents_clean, ODIN_strat_agreg, by = c("sex", "age_group", "car_access", "edu_int"), all.x = T)
+
+?distr_attr_cond_prop
+
+agents_clean = distr_attr_cond_prop(
+  agent_df = agents_clean,
+  variable = "bike_habit",
+  list_agent_propens = c("prop_bikehabit"),
+  list_class_names = c("has_habit", "no_habit")
+)
+
+agents_clean = distr_attr_cond_prop(
+  agent_df = agents_clean,
+  variable = "transit_habit",
+  list_agent_propens = c("prop_transithabit"),
+  list_class_names = c("has_habit", "no_habit")
+)
+
+agents_clean = distr_attr_cond_prop(
+  agent_df = agents_clean,
+  variable = "car_habit",
+  list_agent_propens = c("prop_drivehabit"),
+  list_class_names = c("has_habit", "no_habit")
+)
+
+agents_clean$car_habit[agents_clean$car_habit =="has_habit"] = 1
+agents_clean$car_habit[agents_clean$car_habit =="no_habit"] = 0
+agents_clean$transit_habit[agents_clean$transit_habit =="has_habit"] = 1
+agents_clean$transit_habit[agents_clean$transit_habit =="no_habit"] = 0
+agents_clean$bike_habit[agents_clean$bike_habit =="has_habit"] = 1
+agents_clean$bike_habit[agents_clean$bike_habit =="no_habit"] = 0
+
+
+
+agents_clean = agents_clean[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+                               "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income", "incomeclass", 
+                               "agesexgroup","edu_int", "car_access", "bike_habit", "car_habit", "transit_habit")]

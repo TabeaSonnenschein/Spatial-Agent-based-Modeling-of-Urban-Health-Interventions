@@ -683,6 +683,7 @@ write.csv(as.data.frame(walkability_grid), "ModalChoice_determ_200.csv", row.nam
 walkability_grid = read.csv("ModalChoice_determ_200.csv")
 walkability_grid= walkability_grid[,2:ncol(walkability_grid)]
 write.csv(walkability_grid, "ModalChoice_determ_200_clean.csv", row.names = F)
+walkability_grid = read.csv("ModalChoice_determ_200_clean.csv")
 
 summary(walkability_grid$popDns)
 summary(walkability_grid$greenCovr)

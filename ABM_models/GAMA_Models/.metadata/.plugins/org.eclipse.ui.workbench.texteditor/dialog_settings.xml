@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="traveling"/>
+		<item key="selection" value=""/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="float "/>
+			<item value=";"/>
+			<item value="per_car"/>
+			<item value="car_"/>
+			<item value="assumed_travel"/>
+			<item value="assumed"/>
 			<item value="commuting"/>
 			<item value="weightgroup"/>
 			<item value="hh_single"/>
@@ -17,19 +23,19 @@
 			<item value="affordability"/>
 			<item value="base"/>
 			<item value="pop"/>
-			<item value="float "/>
 		</list>
 		<list key="replacehistory">
+			<item value=""/>
+			<item value=" &lt;- airpoll_matrix[1, indx];"/>
 			<item value="traveling"/>
 			<item value="agesexgroup"/>
 			<item value="greenCovr"/>
 			<item value="popDns"/>
-			<item value=""/>
 		</list>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
-		<item key="DIALOG_X_ORIGIN" value="1044"/>
-		<item key="DIALOG_Y_ORIGIN" value="359"/>
+		<item key="DIALOG_X_ORIGIN" value="1230"/>
+		<item key="DIALOG_Y_ORIGIN" value="323"/>
 		<item key="DIALOG_WIDTH" value="385"/>
 		<item key="DIALOG_HEIGHT" value="553"/>
 		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-18|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
