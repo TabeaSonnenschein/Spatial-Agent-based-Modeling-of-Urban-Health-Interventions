@@ -8,52 +8,52 @@ import pandas as pd
 import numpy as np
 from networkx.algorithms import bipartite
 #
-# os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-# evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2.csv")
-# evidence_instances_full.replace({"-100": 'NaN'}, regex=False, inplace=True)
-# evidence_instances_full.fillna("NaN")
-# print(evidence_instances_full.head())
-#
-# evidence_instances_full['sign_consist'] = [1 if (evidence_instances_full['stat_significance'].iloc[i] == "significant")
-#                                                 or (evidence_instances_full['stat_consistency'].iloc[i] == "consistent" )
-#                                            else 0 for i in range(0,len(evidence_instances_full['stat_consistency']))]
-# print("edgelist length", len(evidence_instances_full))
-# uniq_edgelist = evidence_instances_full[["BehaviorOption","BehaviorDeterminant", "Studygroup", "Moderator", "sign_consist"]].drop_duplicates()
-# uniq_edgelist["BehaviorDeterminant"] = [i.lower() for i in uniq_edgelist["BehaviorDeterminant"]]
-# uniq_edgelist["Studygroup"].iloc[uniq_edgelist["Studygroup"]== "NaN"] = "general population"
-# uniq_edgelist["Studygroup"] = [i.lower() for i in uniq_edgelist["Studygroup"]]
-# print(uniq_edgelist["Studygroup"] )
-# uniq_edgelist["BehaviorOption"] = [i.lower() for i in uniq_edgelist["BehaviorOption"]]
-# uniq_edgelist = uniq_edgelist.drop_duplicates()
-# print("unique edgelist length",len(uniq_edgelist))
-#
-# uniq_edgelist[["counts_mention", "counts_articles"]] = 1
-# for x in range(0,len(uniq_edgelist['BehaviorOption'])):
-#     mentions = list(np.where((evidence_instances_full["BehaviorOption"] == uniq_edgelist["BehaviorOption"].iloc[x]) &
-#                                                   (evidence_instances_full["BehaviorDeterminant"] == uniq_edgelist["BehaviorDeterminant"].iloc[x]) &
-#                                                   (evidence_instances_full["Studygroup"] == uniq_edgelist["Studygroup"].iloc[x]) &
-#                                                   (evidence_instances_full["Moderator"] == uniq_edgelist["Moderator"].iloc[x]) &
-#                                                   (evidence_instances_full["sign_consist"] == uniq_edgelist["sign_consist"].iloc[x]))[0])
-#     uniq_edgelist["counts_mention"].iloc[x] = len(mentions)
-#     uniq_edgelist["counts_articles"].iloc[x] = len(set(evidence_instances_full["DOI"].iloc[mentions]))
-#
-#
-# print(uniq_edgelist)
-# print(uniq_edgelist[uniq_edgelist["counts_mention"]>1])
-#
-# def assign_keys_to_uniq_var(df, column, key_prefix):
-#     uniq_val = set(uniq_edgelist[column])
-#     uniq_keys = [key_prefix + str(i) for i in range(1,(len(uniq_val)+1))]
-#     print("Nr of unique keys", len(uniq_keys))
-#     df[key_prefix+"keys"] = [uniq_keys[i] for x in df[column] for i,f in enumerate(uniq_val) if x == f]
-#     return df
-#
-# uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "BehaviorOption", "BO_")
-# uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "BehaviorDeterminant", "BD_")
-# uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "Studygroup", "SG_")
-# uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "Moderator", "MO_")
-#
-# uniq_edgelist.to_csv("full_edgelist.csv", index=False)
+os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
+evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2.csv")
+evidence_instances_full.replace({"-100": 'NaN'}, regex=False, inplace=True)
+evidence_instances_full.fillna("NaN")
+print(evidence_instances_full.head())
+
+evidence_instances_full['sign_consist'] = [1 if (evidence_instances_full['stat_significance'].iloc[i] == "significant")
+                                                or (evidence_instances_full['stat_consistency'].iloc[i] == "consistent" )
+                                           else 0 for i in range(0,len(evidence_instances_full['stat_consistency']))]
+print("edgelist length", len(evidence_instances_full))
+uniq_edgelist = evidence_instances_full[["BehaviorOption","BehaviorDeterminant", "Studygroup", "Moderator", "sign_consist"]].drop_duplicates()
+uniq_edgelist["BehaviorDeterminant"] = [i.lower() for i in uniq_edgelist["BehaviorDeterminant"]]
+uniq_edgelist["Studygroup"].iloc[uniq_edgelist["Studygroup"]== "NaN"] = "general population"
+uniq_edgelist["Studygroup"] = [i.lower() for i in uniq_edgelist["Studygroup"]]
+print(uniq_edgelist["Studygroup"] )
+uniq_edgelist["BehaviorOption"] = [i.lower() for i in uniq_edgelist["BehaviorOption"]]
+uniq_edgelist = uniq_edgelist.drop_duplicates()
+print("unique edgelist length",len(uniq_edgelist))
+
+uniq_edgelist[["counts_mention", "counts_articles"]] = 1
+for x in range(0,len(uniq_edgelist['BehaviorOption'])):
+    mentions = list(np.where((evidence_instances_full["BehaviorOption"] == uniq_edgelist["BehaviorOption"].iloc[x]) &
+                                                  (evidence_instances_full["BehaviorDeterminant"] == uniq_edgelist["BehaviorDeterminant"].iloc[x]) &
+                                                  (evidence_instances_full["Studygroup"] == uniq_edgelist["Studygroup"].iloc[x]) &
+                                                  (evidence_instances_full["Moderator"] == uniq_edgelist["Moderator"].iloc[x]) &
+                                                  (evidence_instances_full["sign_consist"] == uniq_edgelist["sign_consist"].iloc[x]))[0])
+    uniq_edgelist["counts_mention"].iloc[x] = len(mentions)
+    uniq_edgelist["counts_articles"].iloc[x] = len(set(evidence_instances_full["DOI"].iloc[mentions]))
+
+
+print(uniq_edgelist)
+print(uniq_edgelist[uniq_edgelist["counts_mention"]>1])
+
+def assign_keys_to_uniq_var(df, column, key_prefix):
+    uniq_val = set(uniq_edgelist[column])
+    uniq_keys = [key_prefix + str(i) for i in range(1,(len(uniq_val)+1))]
+    print("Nr of unique keys", len(uniq_keys))
+    df[key_prefix+"keys"] = [uniq_keys[i] for x in df[column] for i,f in enumerate(uniq_val) if x == f]
+    return df
+
+uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "BehaviorOption", "BO_")
+uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "BehaviorDeterminant", "BD_")
+uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "Studygroup", "SG_")
+uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "Moderator", "MO_")
+
+uniq_edgelist.to_csv("full_edgelist.csv", index=False)
 #
 # # Output dataframes can be read by gephi and when installing EventGraphLayout plugin transformed to bipartite graph visualization
 # def prepare_output_tables_Gephi_subgraphBOBD(df, subset_keys, graph_name, Source_col, Target_col, Source_label, Target_label):
