@@ -9,16 +9,17 @@ import numpy as np
 from networkx.algorithms import bipartite
 #
 os.chdir(r"D:\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2.csv")
+evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2_harmonised_BO_manualclean.csv")
 evidence_instances_full.replace({"-100": 'NaN'}, regex=False, inplace=True)
 evidence_instances_full.fillna("NaN")
 print(evidence_instances_full.head())
 
 evidence_instances_full['sign_consist'] = [1 if (evidence_instances_full['stat_significance'].iloc[i] == "significant")
-                                                or (evidence_instances_full['stat_consistency'].iloc[i] == "consistent" )
+                                                or (evidence_instances_full['stat_consistency'].iloc[i] == "consistent")
+                                                or (evidence_instances_full['stat_correl'].iloc[i] == "correlated")
                                            else 0 for i in range(0,len(evidence_instances_full['stat_consistency']))]
 print("edgelist length", len(evidence_instances_full))
-uniq_edgelist = evidence_instances_full[["BehaviorOption","BehaviorDeterminant", "Studygroup", "Moderator", "sign_consist"]].drop_duplicates()
+uniq_edgelist = evidence_instances_full[["BehaviorOption", "BehaviorOptionHarmon", "BehaviorDeterminant", "Studygroup", "Moderator", "sign_consist"]].drop_duplicates()
 uniq_edgelist["BehaviorDeterminant"] = [i.lower() for i in uniq_edgelist["BehaviorDeterminant"]]
 uniq_edgelist["Studygroup"].iloc[uniq_edgelist["Studygroup"]== "NaN"] = "general population"
 uniq_edgelist["Studygroup"] = [i.lower() for i in uniq_edgelist["Studygroup"]]
@@ -77,8 +78,11 @@ def prepare_output_tables_Gephi_subgraphBOBD(df, subset_keys, graph_name, Source
         (graph_name + "_edgelist.csv"), index=False)
     nodes.to_csv((graph_name+"_nodeslist.csv"), index=False)
 #
-def prepare_output_tables_Gephi_subgraph_all(df, subset_keys, graph_name):
-    sub_graph_edgelist = df.iloc[[count for count, value in enumerate(df["BehaviorOption"]) if any(True for x in subset_keys if x in value)]]
+def prepare_output_tables_Gephi_subgraph_all(df, subset_keys, graph_name, harmon_BOs = False):
+    if harmon_BOs:
+        sub_graph_edgelist = df.iloc[np.where(df['BehaviorOptionHarmon'] == subset_keys[0])[0]]
+    else:
+        sub_graph_edgelist = df.iloc[[count for count, value in enumerate(df["BehaviorOption"]) if any(True for x in subset_keys if x in value)]]
     sub_graph_edgelist1 = sub_graph_edgelist[['BO_keys', 'BD_keys', 'sign_consist', 'counts_mention', 'counts_articles']].rename(columns={'BO_keys': 'Source', 'BD_keys': 'Target'})
     sub_graph_edgelist2 = sub_graph_edgelist[['BD_keys', 'SG_keys', 'sign_consist', 'counts_mention', 'counts_articles']].rename(columns={'BD_keys': 'Source', 'SG_keys': 'Target'})
     nodes = pd.concat([sub_graph_edgelist[['BO_keys', 'BehaviorOption']].rename(columns={'BO_keys':'Id', 'BehaviorOption': 'Label' }),
@@ -104,11 +108,15 @@ def prepare_output_tables_Gephi_subgraph_all(df, subset_keys, graph_name):
 # # prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["walk"],
 # #                             graph_name = "walk")
 #
-prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["bike", "biking", "cycl"],
-                            graph_name = "bike")
+#prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["bike", "biking", "cycl"],
+ #                           graph_name = "bike")
 
-prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["public", "transit", "bus", "subway", "tram"],
-                            graph_name = "activeTravel")
+prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["biking"],
+                            graph_name = "bike", harmon_BOs=True)
+
+
+# prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["public", "transit", "bus", "subway", "tram"],
+  #                          graph_name = "activeTravel")
 
 
 # prepare_output_tables_Gephi_subgraphBOBD(df = uniq_edgelist, subset_keys = ["walk"],
