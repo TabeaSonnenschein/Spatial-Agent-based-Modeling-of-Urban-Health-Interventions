@@ -136,6 +136,11 @@ evidence_instances = evidence_instances_full[['DOI', 'Sentence', 'Fullsentence',
 AddEvidenceInstancesAndRelations(evidence_df = evidence_instances_full,
                                  article_df= meta_review_details,harmon_BO_classes = True)
 
+## Change the ontology annotation to reflect the behavior choice
+BehaviorChoice = "Choice of Mode of Transport"
+print(onto.comment)
+onto.comment.append("This is the BehaviorChoiceDeterminantsOntology populated with evidence on the " + BehaviorChoice)
+
 
 #### want to synchronize reasoner to save inferred facts
 #### despite following the instructions of the documentations, it does not work
