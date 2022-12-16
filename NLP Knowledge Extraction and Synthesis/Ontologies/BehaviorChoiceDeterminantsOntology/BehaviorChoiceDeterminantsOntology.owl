@@ -7,7 +7,7 @@
      xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
      xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
     <owl:Ontology rdf:about="http://www.semanticweb.org/behavior_choice_determinants_ontology">
-        <rdfs:comment>The upperlevel ontology is the BehaviorChoiceDeterminantsOntology, developed by Sonnenschein et al. (2023). It can be populated using extracted evidence from published scientific articles about determinants of a specific behavior choice. Once populated, it functions as a knowledge base of behavioral evidence that can be queried to inform or validate the structure of behavior models.</rdfs:comment>
+        <rdfs:comment>The upperlevel ontology is the BehaviorChoiceDeterminantsOntology, developed by T. Sonnenschein, G. Ardine de Wit, N. R. den Braver, R. Vermeulen and S. Scheider in 2022. It can be populated using extracted evidence from published scientific articles about determinants of a specific behavior choice. Once populated, it functions as a knowledge base of behavioral evidence that can be queried to inform or validate the structure of behavior models.</rdfs:comment>
     </owl:Ontology>
     
 
