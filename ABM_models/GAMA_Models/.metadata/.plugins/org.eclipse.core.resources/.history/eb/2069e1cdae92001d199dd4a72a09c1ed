@@ -144,7 +144,7 @@ global skills: [RSkill]{
     
     // set time and date
 //    float step <- 1 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
-    int nb_humans <- 40000;
+    int nb_humans <- 2000;
     float step <- 5 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
     float steps_minute <- 5;
     date starting_date <- date([2018,1,1,6,50,0]); //correspond the 1st of January 2019, at 6:00:00
