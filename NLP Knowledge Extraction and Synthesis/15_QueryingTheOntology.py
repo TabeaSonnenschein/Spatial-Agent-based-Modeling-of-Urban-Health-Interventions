@@ -58,6 +58,25 @@ SELECT DISTINCT ?study WHERE
 ?evidence bmo:foundSignificantBy ?study.
 }
 """
+
+queries['Find studies with significant evidence for walking']="""
+SELECT DISTINCT ?cite WHERE 
+{
+?a a bmo:walking; bmo:studiedChoiceOption ?evidence.
+?evidence bmo:foundSignificantBy ?study.
+?study bmo:hasCitation ?cite.
+
+}
+"""
+queries['Find all significant behavior determinants for walking?']="""
+SELECT DISTINCT ?det WHERE 
+{
+?a a bmo:walking; bmo:studiedChoiceOption ?evidence.
+?evidence bmo:foundSignificantBy ?study.
+?evidence bmo:regardsDeterminant ?det.
+}
+"""
+
 queries['Find all significant behavior determinants for biking?']="""
 SELECT DISTINCT ?det WHERE 
 {
@@ -80,17 +99,23 @@ ORDER BY DESC(?count_choice)
 limit 10
 """
 
-
-queries['Which determinants for walking are inconsistent?']="""
-SELECT DISTINCT ?det (GROUP_CONCAT(DISTINCT STR( ?study )) AS ?studies )
-WHERE 
-{
-?a a bmo:walking; bmo:studiedChoiceOption ?evidence.
-?evidence bmo:foundInconsistentBy ?study.
-?evidence bmo:regardsDeterminant ?det.
+queries['Which determinants for walking are inconsistent or insignificant?']="""
+SELECT DISTINCT ?det ?study
+WHERE {
+    ?a a bmo:walking; bmo:studiedChoiceOption ?evidence.
+    ?evidence bmo:foundInconsistentBy|bmo:foundInsignificantBy  ?study.
+    ?evidence bmo:regardsDeterminant ?det.
 }
 """
 
+queries['Which determinants for walking are inconsistent?']="""
+SELECT DISTINCT ?det ?study
+WHERE {
+    ?a a bmo:walking; bmo:studiedChoiceOption ?evidence.
+    ?evidence bmo:foundInconsistentBy  ?study.
+    ?evidence bmo:regardsDeterminant ?det.
+}
+"""
 
 
 def test(g, t = testquery):
