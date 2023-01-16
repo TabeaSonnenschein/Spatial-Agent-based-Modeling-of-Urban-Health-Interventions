@@ -2,27 +2,31 @@ import os
 import pandas as pd
 import numpy as np
 
-#
+# Reading the evidence data
 os.chdir(r"D:\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2_harmonised_BO_manualclean.csv")
+
+# Preparing the data
 evidence_instances_full.replace({"-100": 'NaN'}, regex=False, inplace=True)
 evidence_instances_full.fillna("NaN")
 print(evidence_instances_full.head())
-
 evidence_instances_full['sign_consist'] = [1 if (evidence_instances_full['stat_significance'].iloc[i] == "significant")
                                                 or (evidence_instances_full['stat_consistency'].iloc[i] == "consistent")
                                                 or (evidence_instances_full['stat_correl'].iloc[i] == "correlated")
                                            else 0 for i in range(0,len(evidence_instances_full['stat_consistency']))]
-print("edgelist length", len(evidence_instances_full))
+evidence_instances_full["BehaviorDeterminant"] = [i.lower() for i in evidence_instances_full["BehaviorDeterminant"]]
+evidence_instances_full["Studygroup"].iloc[evidence_instances_full["Studygroup"] == "NaN"] = "general population"
+evidence_instances_full["Studygroup"] = [i.lower() for i in evidence_instances_full["Studygroup"]]
+print(list(evidence_instances_full["Studygroup"]))
+evidence_instances_full["BehaviorOption"] = [i.lower() for i in evidence_instances_full["BehaviorOption"]]
 uniq_edgelist = evidence_instances_full[["BehaviorOption", "BehaviorOptionHarmon", "BehaviorDeterminant", "Studygroup", "Moderator", "sign_consist"]].drop_duplicates()
-uniq_edgelist["BehaviorDeterminant"] = [i.lower() for i in uniq_edgelist["BehaviorDeterminant"]]
-uniq_edgelist["Studygroup"].iloc[uniq_edgelist["Studygroup"]== "NaN"] = "general population"
-uniq_edgelist["Studygroup"] = [i.lower() for i in uniq_edgelist["Studygroup"]]
-print(uniq_edgelist["Studygroup"] )
-uniq_edgelist["BehaviorOption"] = [i.lower() for i in uniq_edgelist["BehaviorOption"]]
 uniq_edgelist = uniq_edgelist.drop_duplicates()
+
+print("edgelist length", len(evidence_instances_full))
 print("unique edgelist length",len(uniq_edgelist))
 
+
+# Add data on frequency of evidence across articles
 uniq_edgelist[["counts_mention", "counts_articles"]] = 1
 for x in range(0,len(uniq_edgelist['BehaviorOption'])):
     mentions = list(np.where((evidence_instances_full["BehaviorOption"] == uniq_edgelist["BehaviorOption"].iloc[x]) &
@@ -33,9 +37,10 @@ for x in range(0,len(uniq_edgelist['BehaviorOption'])):
     uniq_edgelist["counts_mention"].iloc[x] = len(mentions)
     uniq_edgelist["counts_articles"].iloc[x] = len(set(evidence_instances_full["DOI"].iloc[mentions]))
 
-
-print(uniq_edgelist)
-print(uniq_edgelist[uniq_edgelist["counts_mention"]>1])
+print("counts mention distribution:")
+print(uniq_edgelist["counts_mention"].value_counts())
+print("counts articles distribution:")
+print(uniq_edgelist["counts_articles"].value_counts())
 
 def assign_keys_to_uniq_var(df, column, key_prefix):
     uniq_val = set(uniq_edgelist[column])
@@ -48,8 +53,7 @@ uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "BehaviorOption", "BO_")
 uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "BehaviorDeterminant", "BD_")
 uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "Studygroup", "SG_")
 uniq_edgelist = assign_keys_to_uniq_var(uniq_edgelist, "Moderator", "MO_")
-
-# uniq_edgelist.to_csv("full_edgelist.csv", index=False)
+uniq_edgelist.to_csv("full_edgelist.csv", index=False)
 
 # Output dataframes can be read by gephi and when installing EventGraphLayout plugin transformed to bipartite graph visualization
 def prepare_output_tables_Gephi_subgraphBOBD(df, subset_keys, graph_name, Source_col, Target_col, Source_label, Target_label):
@@ -111,6 +115,7 @@ def prepare_output_tables_Gephi_subgraph_all(df, subset_keys, graph_name, harmon
 
 prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["walking"],
                             graph_name = "walking", harmon_BOs=True)
+
 # prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["public", "transit", "bus", "subway", "tram"],
   #                          graph_name = "activeTravel")
 
