@@ -1,12 +1,7 @@
-import itertools
-import matplotlib.pyplot as plt
-import networkx as nx
-from dash import Dash, html
-import dash_cytoscape as cyto
 import os
 import pandas as pd
 import numpy as np
-from networkx.algorithms import bipartite
+
 #
 os.chdir(r"D:\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2_harmonised_BO_manualclean.csv")
@@ -111,10 +106,11 @@ def prepare_output_tables_Gephi_subgraph_all(df, subset_keys, graph_name, harmon
 #prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["bike", "biking", "cycl"],
  #                           graph_name = "bike")
 
-prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["biking"],
-                            graph_name = "bike", harmon_BOs=True)
+# prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["biking"],
+#                             graph_name = "bike", harmon_BOs=True)
 
-
+prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["walking"],
+                            graph_name = "walking", harmon_BOs=True)
 # prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["public", "transit", "bus", "subway", "tram"],
   #                          graph_name = "activeTravel")
 
@@ -179,88 +175,3 @@ prepare_output_tables_Gephi_subgraph_all(df = uniq_edgelist, subset_keys = ["bik
 #                             Target_col = "BD_keys", Source_label = "BehaviorOption",
 #                             Target_label = "BehaviorDeterminant")
 
-#
-# graph = nx.from_pandas_edgelist(df = uniq_edgelist[["BehaviorOption","BO_keys", "BehaviorDeterminant", "BD_keys", "sign_consist", "counts_articles"]], source = "BO_keys", target="BD_keys", edge_attr= ["sign_consist","counts_articles"])
-#
-# graph = nx.Graph()
-# # Add nodes with the node attribute "bipartite"
-# graph.add_nodes_from(set(uniq_edgelist["BO_keys"]), bipartite=0)
-# graph.add_nodes_from(set(uniq_edgelist["BD_keys"]), bipartite=1)
-# # Add edges only between nodes of opposite node sets
-# # print([(a,b) for a,b in uniq_edgelist[["BO_keys", "BD_keys"]]])
-# graph.add_edges_from(list(uniq_edgelist[["BO_keys", "BD_keys"]].itertuples(index=False, name=None)))
-#
-# nx.draw(graph)
-# plt.show()
-# #
-# # nx.draw_kamada_kawai(graph)
-# # plt.show()
-#
-# subset_color = ["limegreen", "darkorange"]
-# color = [subset_color[data["layer"]] for v, data in graph.nodes(data=True)]
-# pos = nx.multipartite_layout(graph, subset_key="layer")
-# nx.draw(graph, pos, node_color=color, with_labels=False)
-#
-# plt.axis("equal")
-#
-# plt.show()
-
-
-#
-#
-# plt.rcParams["figure.figsize"] = [7.50, 3.50]
-# plt.rcParams["figure.autolayout"] = True
-#
-# subset_sizes = [len(set(uniq_edgelist['BehaviorOption'])),
-#                 len(set(uniq_edgelist['BehaviorDeterminant'])),
-#                 len(set(uniq_edgelist['Studygroup'])),
-#                 len(set(uniq_edgelist['Moderator']))]
-# subset_color = [
-#    "gold",
-#    "violet",
-#    "limegreen",
-#    "darkorange",
-# ]
-#
-# def multilayered_graph(*subset_sizes):
-#    extents = nx.utils.pairwise(itertools.accumulate((0,) + subset_sizes))
-#    layers = [range(start, end) for start, end in extents]
-#    G = nx.Graph()
-#    for (i, layer) in enumerate(layers):
-#       G.add_nodes_from(layer, layer=i)
-#    for layer1, layer2 in nx.utils.pairwise(layers):
-#       G.add_edges_from(itertools.product(layer1, layer2))
-#    return G
-#
-# G = multilayered_graph(*subset_sizes)
-# color = [subset_color[data["layer"]] for v, data in G.nodes(data=True)]
-# pos = nx.multipartite_layout(G, subset_key="layer")
-# nx.draw(G, pos, node_color=color, with_labels=False)
-#
-# plt.axis("equal")
-#
-# plt.show()
-
-#
-#
-#
-# app = Dash(__name__)
-#
-# app.layout = html.Div([
-#     html.P("Dash Cytoscape:"),
-#     cyto.Cytoscape(
-#         id='cytoscape',
-#         elements=[
-#             {'data': {'id': 'ca', 'label': 'Canada'}},
-#             {'data': {'id': 'on', 'label': 'Ontario'}},
-#             {'data': {'id': 'qc', 'label': 'Quebec'}},
-#             {'data': {'source': 'ca', 'target': 'on'}},
-#             {'data': {'source': 'ca', 'target': 'qc'}}
-#         ],
-#         layout={'name': 'breadthfirst'},
-#         style={'width': '400px', 'height': '500px'}
-#     )
-# ])
-#
-#
-# app.run_server(debug=True)
