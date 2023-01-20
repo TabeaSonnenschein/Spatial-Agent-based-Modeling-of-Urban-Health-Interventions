@@ -8,14 +8,23 @@ import wordninja
 import re
 from math import log
 
+
+def tryPdfReader(file):
+    try:
+        pdfreader = PyPDF2.PdfFileReader(open(os.path.join(os.getcwd(), ("pdf/" + file)), "rb"))
+    except PyPDF2.utils.PdfReadError:
+        print("invalid PDF file")
+        pdfreader = 0
+    else:
+        pass
+    return pdfreader
+
+
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
 listOfFiles = os.listdir(path='C:/Users/Tabea/Documents/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/CrossrefResults/pdf')
 print(listOfFiles)
 
-full_abbr = []
-full_fullnames =[]
-full_doitracking = []
-
+full_abbr,full_fullnames, full_doitracking = [], [], []
 for file in listOfFiles:
     try:
         pdfreader = PyPDF2.PdfFileReader(open(os.path.join(os.getcwd(), ("pdf/" + file)), "rb"))
