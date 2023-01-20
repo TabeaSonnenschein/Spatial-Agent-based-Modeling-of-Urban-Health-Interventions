@@ -55,9 +55,7 @@ def IdentifyAbbreviations(sentence):
         min_length = min(len(openbrackets), len(closebrackets))
         for abbr_indx in range(0, min_length):
             if sentence[openbrackets[abbr_indx] + 1:closebrackets[abbr_indx]].replace(" ", "").isupper() or (
-                    sentence[openbrackets[abbr_indx] + 1:(closebrackets[abbr_indx] - 1)].replace(" ","").isupper() and sentence[(closebrackets[
-                                                                                                                               abbr_indx] - 1):
-                                                                                                                   closebrackets[abbr_indx]] == "s"):
+                    sentence[openbrackets[abbr_indx] + 1:(closebrackets[abbr_indx] - 1)].replace(" ","").isupper() and sentence[(closebrackets[abbr_indx] - 1):closebrackets[abbr_indx]] == "s"):
                 if sentence[openbrackets[abbr_indx] + 1:closebrackets[abbr_indx]].replace(" ", "").isalpha() and (
                         len(sentence[openbrackets[abbr_indx] + 1:closebrackets[abbr_indx]]) > 1):
                     abbr = sentence[openbrackets[abbr_indx] + 1:closebrackets[abbr_indx]].replace(" ", "")
@@ -82,14 +80,21 @@ def IdentifyAbbreviations(sentence):
                                 fullname = " ".join(wordsbefore[count:])
                                 possible_fullnames.append(fullname)
                     if (possible_fullnames):
-                        fullnames.append(min(possible_fullnames, key=len))
-                        abbreviations.append(abbr)
-                        doi_tracking.append(file)
+                        fullname =  min(possible_fullnames, key=len)
+                    else:
+                        fullname = 0
                         print(abbreviations[-1])
                         print(fullnames[-1])
                         sentence = "".join([sentence[:openbrackets[abbr_indx]], sentence[closebrackets[abbr_indx] + 1:]])
                         print()
-    return fullnames, abbreviations, doi_tracking, sentence
+                else:
+                    return fullname, abbr, file, sentence
+            else:
+                return 0, 0, 0, 0
+    else:
+        return 0, 0, 0, 0
+
+
 
 def ReplaceAbbrevWithFullName(abbreviations, fullnames, sentence):
     '''Replaces any abbreviation with the previously identified fullnames of the document.'''
@@ -170,10 +175,10 @@ def AddressCommonWordsplitBugs(clean_sentence):
 ## Execution
 
 # Identify the pdf documents that should be extracting by giving direction of folder in which they are contained
-os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-listOfFiles = os.listdir(path='C:/Users/Tabea/Documents/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/CrossrefResults/pdf')
+os.chdir(r"D:\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\newCrossRef")
+listOfFiles = os.listdir(path='D:/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/newCrossRef/pdf')
 print(listOfFiles)
-textDocFolder = "C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults\txt"
+textDocFolder = "D:/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/newCrossRef/text"
 
 # applying extraction and preparation algorithms
 full_abbr,full_fullnames, full_doitracking = [], [], []
@@ -194,8 +199,12 @@ for file in listOfFiles:
                     file1 = open(os.path.join(textDocFolder +'doi_' + filename + '.txt'), "a", errors="replace")
                     for sentence in sentences:
                         if len(sentence.strip()) != 0:
-                            fullnames, abbreviations, doi_tracking, sentence = IdentifyAbbreviations(sentence)
-                            abbr_replaced = False
+                            fullname, abbr, file, sentence = IdentifyAbbreviations(sentence)
+                            if fullname != 0:
+                                fullnames.append(fullname)
+                                abbreviations.append(abbr)
+                                doi_tracking.append(file)
+                                print(fullnames)
                             if bool(abbreviations):
                                 sentence = ReplaceAbbrevWithFullName(abbreviations, fullnames, sentence)
                             wordlist = SplittingSentenceStringIntoWords(sentence)
@@ -219,4 +228,4 @@ abbreviation_def_df = pd.DataFrame(
     })
 
 folder= "C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper"
-abbreviation_def_df.to_csv(os.path.join(folder+"abbreviation_replacements_pdftxt.csv"), index=False)
+abbreviation_def_df.to_csv(os.path.join(folder+"abbreviation_replacements_pdftxt4.csv"), index=False)
