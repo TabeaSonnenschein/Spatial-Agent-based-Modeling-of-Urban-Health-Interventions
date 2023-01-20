@@ -117,6 +117,8 @@ def SplittingSentenceStringIntoWords(sentence):
     return wordlist
 
 def AddressCommonWordsplitBugs(clean_sentence):
+    '''Also with the wordsplit function "wordninja", there are some common bugs.
+       Here I tried addressing the most common ones across the extracted articles.'''
     finalsliff = [("en v iron mental", "environmental"), ("car poole r", "carpooler"),("sign i cant ly", "significantly"),
                   ("in u en ce", "influence"), ("modi fic a t ion", "modification"), ("di e ren", "differen"),
                   ("die ren", "differen"),("di cult", "difficult"), (" n ding", " finding"), ("e ect size", "effect size"),
