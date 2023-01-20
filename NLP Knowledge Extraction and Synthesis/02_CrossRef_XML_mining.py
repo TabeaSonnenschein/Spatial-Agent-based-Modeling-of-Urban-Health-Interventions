@@ -3,81 +3,98 @@ import os
 import pandas as pd
 import requests
 import numpy as np
-import itertools
-import elsapy
+from crossref.restful import Works
+works = Works()
 
-os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref")
-paper_DOIs = pd.read_csv("WOS_references_search5_metareviews_DOIs.csv")
-print(paper_DOIs.iloc[:,0])
+## To facilitate the download of the articles and the text processing,
+## please find here automatic PDF and XML request functions using the Crossref API
+## in combination with an optional Elsevier license.
 
-
-# ## Load configuration
-# con_file = open("config.json")
-# config = json.load(con_file)
-# con_file.close()
-#
-# ## Initialize client
-# client = ElsClient(config['b4392aff9fe5150839817eb72bc2b70b'])
-# client.inst_token = config['insttoken']
-#
-# ## ScienceDirect (full-text) document example using DOI
-# doi_doc = FullDoc(doi = '10.1016/S1525-1578(10)60571-5')
-# if doi_doc.read(client):
-#     print ("doi_doc.title: ", doi_doc.title)
-#     doi_doc.write()
-# else:
-#     print ("Read document failed.")
-#
-# doi=10.1016/S0014-5793(01)03313-0&httpAccept=text/html&apiKey=b4392aff9fe5150839817eb72bc2b70b
-# token=760D92F8EE4F3B8D114DC8BF760C9EC781A25C0739D519AE653F97CE8BED11B9C65401E6212228C7E0C62989491C07CE
-
-paperLinks = []
-requiredlicenses = []
-for paper in paper_DOIs.iloc[:,0]:
-    opener = urllib.request.build_opener()
-    opener.addheaders = [('Accept', 'application/vnd.crossref.unixsd+xml')]
+# Functions
+def tryCrossRefDoi (doi):
+    '''Tries whether Crossref has a the metadata and link information on the article
+       and fetches that information when available.'''
     try:
-        r = opener.open('http://dx.doi.org/' + str(paper))
+        r = works.doi(str(doi))
     except urllib.error.HTTPError or TimeoutError:
-        print("cannot find: " + str(paper ))
+        print("cannot find: " + str(doi ))
+        r = 0
     else:
         pass
-        paperLinks.append(r.info()['Link'])
-        array = np.char.split(np.array(r.info()['Link'], dtype=str), sep = ";").tolist()
-        print(array)
-        if any("xml" in s for s in array):
-            print("has xml")
-            xmlLink = np.char.split(np.array([s for s in array if "xml" in s][0]), sep = ",").tolist()[1]
-            xmlLink = xmlLink.replace("<", "").replace(">", "")
-            if any("elsevier" in s for s in array):
-                xmlLink= (xmlLink+"&apiKey=b4392aff9fe5150839817eb72bc2b70b&insttoken=6ec21df6f452c6f1e466640cd0b51bfd")
-            print(xmlLink)
-            xmldoc = requests.get(xmlLink)
-            paper_file = (paper.replace("/", "_") + '.txt')
-#            with open(os.path.join(os.getcwd(),'CrossrefResults/xml/', paper_file), 'wb') as f:
-#                f.write(xmldoc.content)
-        if any("pdf" in s for s in array):
-            print("has pdf")
-            if any("creativecommons" in s for s in array):
-                pdfLink = np.char.split(np.array([s for s in [s for s in array if "pdf" in s] if "http" in s]), sep=",").tolist()[0][1]
-                pdfLink = pdfLink.replace("<", "").replace(">", "")
-                print(pdfLink)
-                pdf = requests.get(pdfLink)
-                paper_file = (paper.replace("/", "_") + '.pdf')
-                with open(os.path.join(os.getcwd(),'CrossrefResults/pdf/', paper_file), 'wb') as f:
-                    f.write(pdf.content)
-            else:
-                license = np.array([s for s in np.array([s for s in array if "license" in s]) if "http" in s])
-                requiredlicenses.append(license)
-                print("required lincese: " + str(license))
-        if any("elsevier" in s for s in array):
-            pdfLink= xmlLink.replace("text/xml", "application/pdf")
-            print(pdfLink)
-            pdf = requests.get(pdfLink)
-            paper_file = (paper.replace("/", "_") + '.pdf')
-            with open(os.path.join(os.getcwd(), 'CrossrefResults/pdf/', paper_file), 'wb') as f:
-                f.write(pdf.content)
+    return r
 
-# csv = os.path.join(os.getcwd(),"paperlinks.csv")
-# pd.DataFrame(paperLinks).to_csv(csv)
+def retrieveOpenSourcePdf(CrossrefOutputArray):
+    '''Retrieve the pdf link from the CrossRef information
+       and download the document'''
+    pdfLink = [x for s in CrossrefOutputArray for x in s if ("http" in x and "pdf" in x)]
+    for link in pdfLink:
+        try:
+            pdf = requests.get(link)
+        except TimeoutError:
+            print("Needs license")
+        else:
+            pass
+            paper_file = (paper.replace("/", "_") + '.pdf')
+            with open(os.path.join(docfolder, 'pdf/', paper_file), 'wb') as f:
+                f.write(pdf.content)
+            return print("retrieved", link)
+
+def retrieveElsevierXMLPDF(CrossrefOutputArray):
+    '''Retrieve the XML link and download the document and save it in a text file.
+       Elsevier offers fulltext XML with an authentication key, which can be requested.
+       With the same link but a different url ending one can also fetch the pdfs.'''
+    xmlLink = [x for s in CrossrefOutputArray for x in s if ("http" in x and "xml" in x)][0]
+    if "elsevier" in xmlLink:
+        xmlLink = (xmlLink + "&apiKey="+ElsAPIkey+ "&insttoken="+ InstitutToken+ "6ec21df6f452c6f1e466640cd0b51bfd")
+        pdfLink = xmlLink.replace("text/xml", "application/pdf")
+        pdf = requests.get(pdfLink)
+        paper_file = (paper.replace("/", "_") + '.pdf')
+        with open(os.path.join(docfolder, 'pdf/', paper_file), 'wb') as f:
+            f.write(pdf.content)
+            print("retrieved", pdfLink)
+    try:
+        xmldoc = requests.get(xmlLink)
+    except TimeoutError:
+        print("Needs license")
+    else:
+        pass
+        paper_file = (paper.replace("/", "_") + '.txt')
+        with open(os.path.join(docfolder, 'xml/', paper_file), 'wb') as f:
+            f.write(xmldoc.content)
+    return print("retrieved", xmlLink)
+
+
+## Execution
+
+# Read the list of DOIs
+os.chdir(r"D:\PhD EXPANSE\Literature\WOS_ModalChoice_Ref")
+paper_DOIs = pd.read_csv("exampleDois.csv")
+print(paper_DOIs.iloc[:,0])
+
+# Set the folder where the documents should be safed
+# Make sure to create a pdf and xml subfolder for the respective files
+docfolder = "D:/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/newCrossRef"
+
+# Set Elsevier API and Institution keys
+ElsAPIkey = ""
+InstitutToken = ""
+
+paperLinks = []
+for paper in paper_DOIs.iloc[:,0]:
+    r = tryCrossRefDoi(paper)
+    if r and r != 0:
+        if 'URL' in r:
+            paperLinks.append(r['URL'])
+        if 'link' in r:
+            array = np.char.split(np.array(r['link'], dtype=str), sep="'").tolist()
+            print(array)
+            if any("text/xml" in s for s in array):
+                print("has xml")
+                retrieveElsevierXMLPDF(array)
+            if any(x in s for s in array for x in ["application/pdf", "unspecified"]):
+                print("has pdf")
+                retrieveOpenSourcePdf(array)
+
+csv = os.path.join(docfolder,"paperlinks.csv")
+pd.DataFrame(paperLinks).to_csv(csv)
 
