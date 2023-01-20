@@ -207,6 +207,7 @@ for file in listOfFiles:
                                 print(fullnames)
                             if bool(abbreviations):
                                 sentence = ReplaceAbbrevWithFullName(abbreviations, fullnames, sentence)
+                            print(sentence)
                             wordlist = SplittingSentenceStringIntoWords(sentence)
                             clean_sentence = (" ".join(wordlist)) + ". "
                             clean_sentence = AddressCommonWordsplitBugs(clean_sentence)
