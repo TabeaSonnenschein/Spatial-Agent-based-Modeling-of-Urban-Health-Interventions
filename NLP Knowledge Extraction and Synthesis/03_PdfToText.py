@@ -234,5 +234,5 @@ abbreviation_def_df = pd.DataFrame(
      'fullname': full_fullnames
     })
 
-folder= "C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/"
-abbreviation_def_df.to_csv(os.path.join(folder+"abbreviation_replacements_pdftxt4.csv"), index=False)
+folder= "D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/"
+abbreviation_def_df.to_csv(os.path.join(folder+"abbreviation_replacements_pdftxt.csv"), index=False)
