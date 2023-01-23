@@ -1,4 +1,4 @@
-#Thu Jan 12 22:02:55 CET 2023
+#Mon Jan 23 16:12:54 CET 2023
 \!/=
 /instance/org.eclipse.core.resources/pathvariable.CACHE_LOC=C\:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/ABM_models/GAMA_Models/.cache
 /instance/org.eclipse.core.resources/version=1
@@ -6,6 +6,7 @@
 /instance/org.eclipse.ui.editors/overviewRuler_migration=migrated_3.1
 /instance/org.eclipse.ui.ide/PROBLEMS_FILTERS_MIGRATE=true
 /instance/org.eclipse.ui.ide/platformState=1637682881623
+/instance/org.eclipse.ui.workbench//org.eclipse.ui.commands/state/org.eclipse.ui.navigator.resources.nested.changeProjectPresentation/org.eclipse.ui.commands.radioState=false
 /instance/org.eclipse.ui.workbench/ENABLED_DECORATORS=org.eclipse.ui.LinkedResourceDecorator\:false,org.eclipse.ui.SymlinkDecorator\:true,org.eclipse.ui.VirtualResourceDecorator\:false,org.eclipse.ui.ContentTypeDecorator\:true,org.eclipse.ui.ResourceFilterDecorator\:false,msi.gama.application.decorator\:true,msi.gama.application.date.decorator\:false,msi.gama.light.decorator\:true,
 /instance/org.eclipse.ui.workbench/UIActivities.disabled2=true
 /instance/org.eclipse.ui.workbench/UIActivities.org.eclipse.xtext.ui=false

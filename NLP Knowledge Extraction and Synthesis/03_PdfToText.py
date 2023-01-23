@@ -16,7 +16,7 @@ def tryPdfReader(file):
         pdfreader = PyPDF2.PdfFileReader(open(os.path.join(os.getcwd(), ("pdf/" + file)), "rb"))
     except PyPDF2.utils.PdfReadError:
         print("invalid PDF file")
-        pdfreader = 0
+        pdfreader = []
     else:
         pass
     return pdfreader
@@ -48,8 +48,7 @@ def addressCommonTextExtractBugs(text):
 
 def IdentifyAbbreviations(sentence):
     '''Identifies Abbreviation based on Syntax.'''
-    if ("(" and ")" in sentence):
-        # print(sentence)
+    if (("(" in sentence) and ( ")" in sentence)):
         openbrackets = [m.start() for m in re.finditer("[(]", sentence)]
         closebrackets = [m.start() for m in re.finditer("[)]", sentence)]
         min_length = min(len(openbrackets), len(closebrackets))
@@ -79,20 +78,20 @@ def IdentifyAbbreviations(sentence):
                                     abbr[1]:
                                 fullname = " ".join(wordsbefore[count:])
                                 possible_fullnames.append(fullname)
-                    if (possible_fullnames):
+                    if len(possible_fullnames) > 0:
                         fullname =  min(possible_fullnames, key=len)
                     else:
                         fullname = 0
-                        print(abbreviations[-1])
-                        print(fullnames[-1])
-                        sentence = "".join([sentence[:openbrackets[abbr_indx]], sentence[closebrackets[abbr_indx] + 1:]])
+                        # sentence = "".join([sentence[:openbrackets[abbr_indx]], sentence[closebrackets[abbr_indx] + 1:]])
                         print()
+                    return fullname, abbr
+
                 else:
-                    return fullname, abbr, file, sentence
+                    return 0, 0
             else:
-                return 0, 0, 0, 0
+                return 0, 0
     else:
-        return 0, 0, 0, 0
+        return 0, 0
 
 
 
@@ -121,10 +120,7 @@ def SplittingSentenceStringIntoWords(sentence):
                 wordlist.insert(wordidx - 1, value)
     return wordlist
 
-def AddressCommonWordsplitBugs(clean_sentence):
-    '''Also with the wordsplit function "wordninja", there are some common bugs.
-       Here I tried addressing the most common ones across the extracted articles.'''
-    finalsliff = [("en v iron mental", "environmental"), ("car poole r", "carpooler"),("sign i cant ly", "significantly"),
+finalsliff = [("en v iron mental", "environmental"), ("car poole r", "carpooler"),("sign i cant ly", "significantly"),
                   ("in u en ce", "influence"), ("modi fic a t ion", "modification"), ("di e ren", "differen"),
                   ("die ren", "differen"),("di cult", "difficult"), (" n ding", " finding"), ("e ect size", "effect size"),
                   ("eec t size", "effect size"), ("coe cie nt", "coefficient"),
@@ -165,26 +161,35 @@ def AddressCommonWordsplitBugs(clean_sentence):
                   ("? ex i bil it y", "flexibility"), ("ident i ? cation", "identification"),
                   ("car pool er", "carpooler"), ("just i ? abl", "justifiabl"), ("class i ? cat", "classificat"),
                   ("M ov ability", "Movability"), ("random is ed", "randomised")]
-    for a, b in finalsliff:
+
+def AddressCommonWordsplitBugs( clean_sentence, wordreplace_map = finalsliff):
+    '''Also with the wordsplit function "wordninja", there are some common bugs.
+       Here I tried addressing the most common ones across the extracted articles.'''
+    for a, b in wordreplace_map:
         clean_sentence = clean_sentence.replace(a, b).strip()
-        fullnames = [name.replace(a, b) for name in fullnames]
     return clean_sentence
 
+def AddressCommonWordsplitBugs_list( fullnames, wordreplace_map = finalsliff):
+    '''Also with the wordsplit function "wordninja", there are some common bugs.
+       Here I tried addressing the most common ones across the extracted articles.'''
+    for a, b in wordreplace_map:
+        fullnames = [name.replace(a, b) for name in fullnames]
+    return fullnames
 
 
 ## Execution
 
 # Identify the pdf documents that should be extracting by giving direction of folder in which they are contained
-os.chdir(r"D:\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\newCrossRef")
-listOfFiles = os.listdir(path='D:/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/newCrossRef/pdf')
+os.chdir(r"D:\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
+listOfFiles = os.listdir(path='D:/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/CrossrefResults/pdf')
 print(listOfFiles)
-textDocFolder = "D:/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/newCrossRef/text"
+textDocFolder = "D:/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/newCrossRef/text/"
 
 # applying extraction and preparation algorithms
 full_abbr,full_fullnames, full_doitracking = [], [], []
 for file in listOfFiles:
     pdfreader = tryPdfReader(file)
-    if pdfreader != 0:
+    if pdfreader != []:
         x = pdfreader.numPages
         print(str(x) + " Number of pages")
         abbreviations, fullnames, doi_tracking = [], [], []
@@ -199,18 +204,19 @@ for file in listOfFiles:
                     file1 = open(os.path.join(textDocFolder +'doi_' + filename + '.txt'), "a", errors="replace")
                     for sentence in sentences:
                         if len(sentence.strip()) != 0:
-                            fullname, abbr, file, sentence = IdentifyAbbreviations(sentence)
+                            fullname, abbr = IdentifyAbbreviations(str(sentence))
                             if fullname != 0:
                                 fullnames.append(fullname)
                                 abbreviations.append(abbr)
                                 doi_tracking.append(file)
                                 print(fullnames)
                             if bool(abbreviations):
-                                sentence = ReplaceAbbrevWithFullName(abbreviations, fullnames, sentence)
-                            print(sentence)
-                            wordlist = SplittingSentenceStringIntoWords(sentence)
+                                sentence = ReplaceAbbrevWithFullName(abbreviations, fullnames, str(sentence))
+                            wordlist = SplittingSentenceStringIntoWords(str(sentence))
                             clean_sentence = (" ".join(wordlist)) + ". "
                             clean_sentence = AddressCommonWordsplitBugs(clean_sentence)
+                            fullnames = AddressCommonWordsplitBugs_list(fullnames)
+                            print("cleansentence: ", clean_sentence)
                             file1.writelines(clean_sentence + " ")
                 else:
                     print(str(file) + " has only words shorter than 5")
@@ -228,5 +234,5 @@ abbreviation_def_df = pd.DataFrame(
      'fullname': full_fullnames
     })
 
-folder= "C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper"
+folder= "C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/"
 abbreviation_def_df.to_csv(os.path.join(folder+"abbreviation_replacements_pdftxt4.csv"), index=False)
