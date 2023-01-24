@@ -83,6 +83,7 @@ def tokenize_and_preserve_labels(sentence, text_labels):
     return tokenized_sentence, labels
 
 def PlotLearningCurve(unique_labels, F1_per_class,F1_score_values, loss_values, validation_loss_values, accuracy_values):
+    ''' Takes the BERT output and plots it into a single figure with performance over epochs differentiated by labels. '''
     # Use plot styling from seaborn.
     sns.set(style='darkgrid')
     # Increase the plot size and font size.
@@ -104,7 +105,7 @@ def PlotLearningCurve(unique_labels, F1_per_class,F1_score_values, loss_values, 
     return plt
 
 
-## Execution
+## Setting Params
 
 ## hardware settings
 print(torch.cuda.is_available())
@@ -126,6 +127,9 @@ nr_articles_labeled = 5
 pretrained_model = "bert-base-cased"
 # pretrained_model = "bert-base-uncased"
 
+
+## Execution
+
 ## loading and preparing data
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
 # data = pd.read_csv("manually_labeled/labeled_articles_joined_IOB.csv", encoding="latin1").fillna("O")
@@ -133,7 +137,7 @@ data = pd.read_csv("manually_labeled/labeled_articles_joined_IO.csv", encoding="
 print(data.head(10))
 
 sentences, labels = GetSentencesLables(data)
-tag_values, tag2idx =  PrepareDumpTagValues(data)
+tag_values, tag2idx = PrepareDumpTagValues(data)
 unique_labels = GetUniqueLabes(data)
 
 
