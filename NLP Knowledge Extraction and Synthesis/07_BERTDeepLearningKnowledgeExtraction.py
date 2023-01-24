@@ -19,6 +19,93 @@ logging.set_verbosity_warning()
 torch.__version__
 transformers.__version__
 
+## Functions
+
+class SentenceGetter(object):
+    '''New class of a sentence Getter'''
+    def __init__(self, data):
+        self.n_sent = 1
+        self.data = data
+        self.empty = False
+        agg_func = lambda s: [(w, p, t) for w, p, t in zip(s["Word"].values.tolist(),
+                                                           s["POS"].values.tolist(),
+                                                           s["Tag"].values.tolist())]
+        self.grouped = self.data.groupby("Sentence #").apply(agg_func)
+        self.sentences = [s for s in self.grouped]
+    def get_next(self):
+        try:
+            s = self.grouped["Sentence: {}".format(self.n_sent)]
+            self.n_sent += 1
+            return s
+        except:
+            return None
+
+def GetSentencesLables(data):
+    ''' Applies Sentence Getter to data and generates sentences and labels lists.'''
+    getter = SentenceGetter(data)
+    sentences = [[word[0] for word in sentence] for sentence in getter.sentences]
+    print("Example sentence:", sentences[1])
+    labels = [[s[2] for s in sentence] for sentence in getter.sentences]
+    print("Example labels:", labels[1])
+    print()
+    return sentences, labels
+
+def PrepareDumpTagValues(data):
+    '''Gets the Tag values and saves them as a pickle file.
+       Also generates the tag to index map (tag2idx).'''
+    tag_values = list(set(data["Tag"].values))
+    tag_values.append("PAD")
+    open_file = open("tag_values.pkl", "wb")
+    pickle.dump(tag_values, open_file)
+    open_file.close()
+    tag2idx = {t: i for i, t in enumerate(tag_values)}
+    print("List of tag values:", tag_values)
+    return tag_values, tag2idx
+
+def GetUniqueLabes(data):
+    '''Gets the unique tag labels.'''
+    unique_labels = list(set(data["Tag"].values))
+    unique_labels.remove("O")
+    print("uniq Tags:", unique_labels)
+    return unique_labels
+
+def tokenize_and_preserve_labels(sentence, text_labels):
+    tokenized_sentence = []
+    labels = []
+    for word, label in zip(sentence, text_labels):
+        # Tokenize the word and count # of subwords the word is broken into
+        tokenized_word = tokenizer.tokenize(word)
+        n_subwords = len(tokenized_word)
+        # Add the tokenized word to the final tokenized word list
+        tokenized_sentence.extend(tokenized_word)
+        # Add the same label to the new list of labels `n_subwords` times
+        labels.extend([label] * n_subwords)
+    return tokenized_sentence, labels
+
+def PlotLearningCurve(unique_labels, F1_per_class,F1_score_values, loss_values, validation_loss_values, accuracy_values):
+    # Use plot styling from seaborn.
+    sns.set(style='darkgrid')
+    # Increase the plot size and font size.
+    sns.set(font_scale=1.5)
+    plt.rcParams["figure.figsize"] = (12, 6)
+    colorset = ["#663300", "#004C99", "#FF8000", "#009999", "#FF33FF"]
+    for count, value in enumerate(unique_labels):
+        plt.plot([x[count] for x in F1_per_class], "--o", color=colorset[count],
+                 label=("F1-" + value.replace("I-", "")))
+    plt.plot(F1_score_values, "--^", color="#009900", linewidth=3, markersize=13, label="F1-score weighted total")
+    plt.plot(loss_values, color="#0000FF", linewidth=2.5, label="training loss")
+    plt.plot(validation_loss_values, color="#CC0000", linewidth=2.5, label="validation loss")
+    plt.plot(accuracy_values, color="#6600CC", linewidth=2.5, label="validation accuracy")
+    plt.title("Learning curve")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.legend(bbox_to_anchor=(1.02, 1), borderaxespad=0)  # legend in upper right corner outside plot
+    plt.tight_layout()
+    return plt
+
+
+## Execution
+
 ## hardware settings
 print(torch.cuda.is_available())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -38,85 +125,28 @@ nr_articles_labeled = 5
 
 pretrained_model = "bert-base-cased"
 # pretrained_model = "bert-base-uncased"
-# 'allenai/scibert_scivocab_uncased'
+
 ## loading and preparing data
-
-
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
 # data = pd.read_csv("manually_labeled/labeled_articles_joined_IOB.csv", encoding="latin1").fillna("O")
 data = pd.read_csv("manually_labeled/labeled_articles_joined_IO.csv", encoding="latin1").fillna("O")
 print(data.head(10))
 
-class SentenceGetter(object):
+sentences, labels = GetSentencesLables(data)
+tag_values, tag2idx =  PrepareDumpTagValues(data)
+unique_labels = GetUniqueLabes(data)
 
-    def __init__(self, data):
-        self.n_sent = 1
-        self.data = data
-        self.empty = False
-        agg_func = lambda s: [(w, p, t) for w, p, t in zip(s["Word"].values.tolist(),
-                                                           s["POS"].values.tolist(),
-                                                           s["Tag"].values.tolist())]
-        self.grouped = self.data.groupby("Sentence #").apply(agg_func)
-        self.sentences = [s for s in self.grouped]
-
-    def get_next(self):
-        try:
-            s = self.grouped["Sentence: {}".format(self.n_sent)]
-            self.n_sent += 1
-            return s
-        except:
-            return None
-
-
-getter = SentenceGetter(data)
-
-sentences = [[word[0] for word in sentence] for sentence in getter.sentences]
-print("Example sentence:", sentences[1])
-
-labels = [[s[2] for s in sentence] for sentence in getter.sentences]
-print("Example labels:", labels[1])
-print()
-
-tag_values = list(set(data["Tag"].values))
-tag_values.append("PAD")
-open_file = open("tag_values.pkl", "wb")
-pickle.dump(tag_values, open_file)
-open_file.close()
-tag2idx = {t: i for i, t in enumerate(tag_values)}
-print("List of tag values:", tag_values)
-
-unique_labels = list(set(data["Tag"].values))
-unique_labels.remove("O")
-print("uniq Tags:", unique_labels)
 
 ## applying BERT
 # Prepare the sentences and labels
 tokenizer = BertTokenizer.from_pretrained(pretrained_model, do_lower_case=False)
 # tokenizer = AutoTokenizer.from_pretrained(pretrained_model, do_lower_case= True)
 
-
-def tokenize_and_preserve_labels(sentence, text_labels):
-    tokenized_sentence = []
-    labels = []
-
-    for word, label in zip(sentence, text_labels):
-
-        # Tokenize the word and count # of subwords the word is broken into
-        tokenized_word = tokenizer.tokenize(word)
-        n_subwords = len(tokenized_word)
-
-        # Add the tokenized word to the final tokenized word list
-        tokenized_sentence.extend(tokenized_word)
-
-        # Add the same label to the new list of labels `n_subwords` times
-        labels.extend([label] * n_subwords)
-
-    return tokenized_sentence, labels
-
 tokenized_texts_and_labels = [
     tokenize_and_preserve_labels(sent, labs)
     for sent, labs in zip(sentences, labels)
 ]
+
 tokenized_texts = [token_label_pair[0] for token_label_pair in tokenized_texts_and_labels]
 labels = [token_label_pair[1] for token_label_pair in tokenized_texts_and_labels]
 
@@ -307,35 +337,11 @@ output_model = ('C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behaviou
 torch.save(model.state_dict(),output_model)
 
 # Visualize the training loss
-# Use plot styling from seaborn.
-sns.set(style='darkgrid')
-
-# Increase the plot size and font size.
-sns.set(font_scale=1.5)
-plt.rcParams["figure.figsize"] = (12,6)
-
-
-# Plot the learning curve.
-colorset = ["#663300", "#004C99", "#FF8000", "#009999", "#FF33FF"]
-for count,value in enumerate(unique_labels):
-    plt.plot([x[count] for x in F1_per_class], "--o",color=colorset[count], label=("F1-"+ value.replace("I-","")))
-plt.plot(F1_score_values, "--^", color="#009900", linewidth=3, markersize = 13,label="F1-score weighted total")
-plt.plot(loss_values, color="#0000FF", linewidth=2.5, label="training loss")
-plt.plot(validation_loss_values, color="#CC0000", linewidth=2.5, label="validation loss")
-plt.plot(accuracy_values, color="#6600CC", linewidth=2.5, label="validation accuracy")
-
-# Label the plot.
-plt.title("Learning curve")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-# plt.legend(loc='upper right') # legend in upper right corner inside plot
-plt.legend(bbox_to_anchor=(1.02, 1),  borderaxespad=0) # legend in upper right corner outside plot
-# plt.legend(loc='center right') # legend in center right
-# plt.legend(loc='best', bbox_to_anchor=(0.6, 0.6, 0.4, 0.3))
-plt.tight_layout()
-plt.savefig("C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_final_bs"+str(bs)+"_ep"+str(epochs)+ "_lr"+ str(learning_rate)+ "_art"+ str(nr_articles_labeled)+".png",
-            dpi=350)
+plt = PlotLearningCurve(unique_labels, F1_per_class,F1_score_values, loss_values, validation_loss_values, accuracy_values)
+plt.savefig("D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_final_bs" + str(
+        bs) + "_ep" + str(epochs) + "_lr" + str(learning_rate) + "_art" + str(nr_articles_labeled) + ".png",dpi=350)
 plt.show()
+
 
 ## Applying the model to a new sentence
 # test_sentence = """
