@@ -1,11 +1,9 @@
 import os
-from typing import List, Any
 import pandas as pd
 import numpy as np
 import nltk
-from utils.TokentoRelatUtils import *
 
-
+# Functions
 def IOB_sequence_tracing(B_indx_list, I_index_list, Words_data):
     tags = []
     for indx in B_indx_list:
@@ -221,6 +219,19 @@ def AddLinkedQualitiesAT(labeled_data):
     labeled_data['Tag'].iloc[x] = 'I-assocType'
     return labeled_data
 
+
+def UniqueLabelsFreq(phraselist):
+    Labels, freq_Labels = [], []
+    for instance in phraselist:
+        Labels.extend(instance.split(" ; "))
+    unique_Labels = list(dict.fromkeys(Labels))
+    for Label in unique_Labels:
+        freq_Labels.append(Labels.count(Label))
+    return unique_Labels, freq_Labels
+
+
+# Execution
+
 ############ Abbreviation list
 ## ST = study, BD = Behavior Determinant, BO = Behavior Choice Option, AT = Association Type, SG = Study Group, MO = Moderator
 
@@ -228,7 +239,7 @@ def AddLinkedQualitiesAT(labeled_data):
 # mode = "IOB"
 mode = "IO"
 TagToWordExtension = False     # Do you want that labeled phrases are extended to all equivalent words in the rest of the document?
-manual_label = False
+manual_label = False           # Do you want to summarize the manually labeled data
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
 if manual_label == True:
@@ -311,54 +322,40 @@ for file in listOfFiles:
     len_instance_before = len(instance_AT)
 
 
+# make dataframe
+Evidence_instances_df = pd.DataFrame({'DOI': instance_ST, 'Sentence': sentenceid, 'BehaviorOption': instance_BO, 'BehaviorDeterminant': instance_BD, 'AssociationType': instance_AT, 'Studygroup': instance_SG, 'Moderator': instance_MO ,  'Fullsentence': fullsentence, 'BO_POS': BO_POS, 'BD_POS': BD_POS, 'AT_POS': AT_POS, 'sentence_POS': sentence_POS })
+print(Evidence_instances_df.head())
+
+# write dataframe
 if TagToWordExtension:
     file_name_suffix = "_enhanced"
 else:
     file_name_suffix = ""
-
 
 if manual_label:
     file_name_suffix2 = "_ManualLabel"
 else:
     file_name_suffix2 = ""
 
-Evidence_instances_df = pd.DataFrame({'DOI': instance_ST, 'Sentence': sentenceid, 'BehaviorOption': instance_BO, 'BehaviorDeterminant': instance_BD, 'AssociationType': instance_AT, 'Studygroup': instance_SG, 'Moderator': instance_MO ,  'Fullsentence': fullsentence, 'BO_POS': BO_POS, 'BD_POS': BD_POS, 'AT_POS': AT_POS, 'sentence_POS': sentence_POS })
-print(Evidence_instances_df.head())
-
-
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 csv = os.path.join(os.getcwd(), ("Evidence_instances_df"+ file_name_suffix2 +file_name_suffix + ".csv"))
 Evidence_instances_df.to_csv(csv, index=False)
 
+# subselect evidence instances with at least a behavior determinant and an association type
+# This is the minimum requirement for a complete evidence instance
 complete_evidence_Instances = Evidence_instances_df.iloc[list(np.where((Evidence_instances_df['BehaviorDeterminant'] != "") & (Evidence_instances_df['AssociationType'] != ""))[0])]
 print(complete_evidence_Instances.head())
 csv = os.path.join(os.getcwd(), ("Complete_evidence_Instances"+ file_name_suffix2 +file_name_suffix + ".csv"))
 complete_evidence_Instances.to_csv(csv, index=False)
 
-
+# write the unique labels and their frequency
 if manual_label == False:
-    BDs, freq_BD = [], []
-    for BD_instance in complete_evidence_Instances['BehaviorDeterminant']:
-        BDs.extend(BD_instance.split(" ; "))
-    unique_BD = list(dict.fromkeys(BDs))
-    for BD in unique_BD:
-        freq_BD.append(BDs.count(BD))
-    csv = os.path.join(os.getcwd(), ("unique_BehaviorDeterminants.csv"))
-    pd.DataFrame({'BehaviorDeterm': unique_BD, 'Freq': freq_BD}).to_csv(csv, index=False)
+    unique_BD, freq_BD = UniqueLabelsFreq(complete_evidence_Instances['BehaviorDeterminant'])
+    pd.DataFrame({'BehaviorDeterm': unique_BD, 'Freq': freq_BD}).to_csv(os.path.join(os.getcwd(), ("unique_BehaviorDeterminants.csv")), index=False)
 
-    BOs, freq_BO = [], []
-    for BO_instance in complete_evidence_Instances['BehaviorOption']:
-        BOs.extend(BO_instance.split(" ; "))
-    unique_BO = list(dict.fromkeys(BOs))
-    for BO in unique_BO:
-        freq_BO.append(BOs.count(BO))
-    csv = os.path.join(os.getcwd(), ("unique_BehaviorOptions.csv"))
-    pd.DataFrame({'BehaviorOption': unique_BO, 'Freq': freq_BO} ).to_csv(csv, index=False)
+    unique_BO, freq_BO = UniqueLabelsFreq(complete_evidence_Instances['BehaviorOption'])
+    pd.DataFrame({'BehaviorOption': unique_BO, 'Freq': freq_BO}).to_csv(os.path.join(os.getcwd(), ("unique_BehaviorOptions.csv")), index=False)
 
-    unique_AT = []
-    for AT_instance in complete_evidence_Instances['AssociationType']:
-        unique_AT.extend(AT_instance.split(" ; "))
-    unique_AT = list(dict.fromkeys(unique_AT))
-    csv = os.path.join(os.getcwd(), ("unique_AssociationTypes.csv"))
-    pd.DataFrame(unique_AT).to_csv(csv, index=False)
+    unique_AT, freq_AT = UniqueLabelsFreq(complete_evidence_Instances['AssociationType'])
+    pd.DataFrame(unique_AT).to_csv(os.path.join(os.getcwd(), ("unique_AssociationTypes.csv")), index=False)
 
