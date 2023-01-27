@@ -20,7 +20,7 @@ transformers.__version__
 
 ## Functions
 class SentenceGetter(object):
-    '''New class of a sentence Getter'''
+    """New class of a sentence Getter"""
     def __init__(self, data):
         self.n_sent = 1
         self.data = data
@@ -39,7 +39,7 @@ class SentenceGetter(object):
             return None
 
 def GetSentencesLables(data):
-    ''' Applies Sentence Getter to data and generates sentences and labels lists.'''
+    """ Applies Sentence Getter to data and generates sentences and labels lists."""
     getter = SentenceGetter(data)
     sentences = [[word[0] for word in sentence] for sentence in getter.sentences]
     print("Example sentence:", sentences[1])
@@ -49,8 +49,8 @@ def GetSentencesLables(data):
     return sentences, labels
 
 def PrepareDumpTagValues(data):
-    '''Gets the Tag values and saves them as a pickle file.
-       Also generates the tag to index map (tag2idx).'''
+    """Gets the Tag values and saves them as a pickle file.
+       Also generates the tag to index map (tag2idx)."""
     tag_values = list(set(data["Tag"].values))
     tag_values.append("PAD")
     open_file = open("tag_values.pkl", "wb")
@@ -61,7 +61,7 @@ def PrepareDumpTagValues(data):
     return tag_values, tag2idx
 
 def GetUniqueLabes(data):
-    '''Gets the unique tag labels.'''
+    """Gets the unique tag labels."""
     unique_labels = list(set(data["Tag"].values))
     unique_labels.remove("O")
     print("uniq Tags:", unique_labels)
@@ -81,7 +81,7 @@ def tokenize_and_preserve_labels(sentence, text_labels):
     return tokenized_sentence, labels
 
 def PlotLearningCurve(unique_labels, F1_per_class,F1_score_values, loss_values, validation_loss_values, accuracy_values):
-    ''' Takes the BERT output and plots it into a single figure with performance over epochs differentiated by labels. '''
+    """ Takes the BERT output and plots it into a single figure with performance over epochs differentiated by labels. """
     # Use plot styling from seaborn.
     sns.set(style='darkgrid')
     # Increase the plot size and font size.
