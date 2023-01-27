@@ -9,11 +9,11 @@ import pickle
 
 # Functions
 def flatten(listOfLists):
-    "Flatten one level of nesting"
+    """Flatten one level of nesting"""
     return list(chain.from_iterable(listOfLists))
 
 def predict_labels(doc):
-    '''Predict the labels for all sentences of a document.'''
+    """Predict the labels for all sentences of a document."""
     labels, tags, sentenceid = [], [], []
     for count, value in enumerate(dict.fromkeys(doc["Sentence #"])):
         subset = doc.iloc[doc.index[doc["Sentence #"] == value]]
