@@ -7,13 +7,13 @@ import re
 
 ## Functions
 def extractMaiTextbody(file):
-    '''This funcion extracts the text from xml documents that are in between the "<body" and </body> params.'''
+    """This funcion extracts the text from xml documents that are in between the "<body" and </body> params."""
     file = file[int([m.start() for m in re.finditer('<body', file)][0]):int([m.start() for m in re.finditer('</body>', file)][0])]
     return file
 
 def substituteXMLparams(file):
-    '''This function takes a text including XML params and
-       transforms the params (e.g. <ce:label>) into fluent natural language text.'''
+    """This function takes a text including XML params and
+       transforms the params (e.g. <ce:label>) into fluent natural language text."""
     file = file.replace("</ce:section-title>", ". ")
     labelnr_starts = [m.start() for m in re.finditer('<ce:label>', file)]
     for times in range(0, len(labelnr_starts)):
@@ -30,7 +30,7 @@ def substituteXMLparams(file):
     return fulltext
 
 def FindAbbrev(sentence):
-    '''Identifies Abbreviation based on Syntax.'''
+    """Identifies Abbreviation based on Syntax."""
     if len(sentence.strip()) != 0:
         if ("(" and ")" in sentence):
             open_brackets = [m.start() for m in re.finditer("[(]", sentence)]
@@ -83,7 +83,7 @@ def FindAbbrev(sentence):
 
 
 def FindNReplaceAbbr(textdoc):
-    '''Replaces the appreviations with the full text counterparts.'''
+    """Replaces the appreviations with the full text counterparts."""
     sentences = textdoc.split(".")
     abbreviations, fullnames = [], []
     new_fulltext = ""
@@ -106,8 +106,8 @@ def FindNReplaceAbbr(textdoc):
 
 
 def fixPunctuation(text):
-    '''Replaces common abbreviations that are not usually officially introduced in scientific articles
-       with full text counterparts. This allows use punctuation to identify sentences (where it starts and ends).'''
+    """Replaces common abbreviations that are not usually officially introduced in scientific articles
+       with full text counterparts. This allows use punctuation to identify sentences (where it starts and ends)."""
     text = text.replace(" %", "%").replace("i. e.", "id est").replace("e. g.", "for example").replace("al. ", "al").replace("AL. ", "al").replace("i.e.", "id est").replace("e.g.", "for example")
     text = text.replace("Fig. ", "Figure ").replace("Tab. ", "Table ").replace("p. ", "p").replace(" vs. ", " versus ").replace("pp.", "pp").replace("Vol.", "Vol").replace("No.", "No").replace("U.S.", "US")
     return text
