@@ -11,15 +11,15 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 ## Functions
 def addPOSTag(df):
-    ''' This function adds POS Tags to a dataframe of words using the nltk library.
-       Part-of-speech (POS) tagging = labelling words in context with their grammatical category.'''
+    """ This function adds POS Tags to a dataframe of words using the nltk library.
+       Part-of-speech (POS) tagging = labelling words in context with their grammatical category."""
     POS = list(nltk.pos_tag(df['Word']))
     POS = pd.DataFrame(data= POS, columns= ["Word", "POS_tag"])
     df['POS'] = POS["POS_tag"]
     return df
 
 def structureWordsSentencesIntoDf(wordlist, sentencelist):
-    '''Hierarchical sentence, word restructuring'''
+    """Hierarchical sentence, word restructuring"""
     word_id = list(range(1, (len(wordlist) + (len(sentencelist) * 2))))
     df = pd.DataFrame(data=word_id, columns=["word_id"])
     df['Sentence #'] = ""
@@ -37,11 +37,11 @@ def structureWordsSentencesIntoDf(wordlist, sentencelist):
 
 
 def LengthCondition(x, max_words_in_sentence):
-    '''Checks whether sentence has words more than the max words parameter.'''
+    """Checks whether sentence has words more than the max words parameter."""
     return len(x.split(" ")) > max_words_in_sentence
 
 def SplitTooLongSentence(sentences):
-    '''Splits sentences when they are too long.'''
+    """Splits sentences when they are too long."""
     toolongsentence = [idx for idx, element in enumerate(sentences) if LengthCondition(element, max_words_in_sentence)]
     print(toolongsentence)
     print("nr sentences before: ", len(sentences))
