@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from tqdm import tqdm, trange
+from tqdm import trange
 import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 import transformers
@@ -12,15 +12,13 @@ from sklearn.metrics import f1_score as f1sc
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-from itertools import chain
 import pickle
-import utils.BERTconfig
+
 logging.set_verbosity_warning()
 torch.__version__
 transformers.__version__
 
 ## Functions
-
 class SentenceGetter(object):
     '''New class of a sentence Getter'''
     def __init__(self, data):
@@ -131,8 +129,7 @@ pretrained_model = "bert-base-cased"
 ## Execution
 
 ## loading and preparing data
-os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-# data = pd.read_csv("manually_labeled/labeled_articles_joined_IOB.csv", encoding="latin1").fillna("O")
+os.chdir(r"D:\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
 data = pd.read_csv("manually_labeled/labeled_articles_joined_IO.csv", encoding="latin1").fillna("O")
 print(data.head(10))
 
@@ -144,7 +141,6 @@ unique_labels = GetUniqueLabes(data)
 ## applying BERT
 # Prepare the sentences and labels
 tokenizer = BertTokenizer.from_pretrained(pretrained_model, do_lower_case=False)
-# tokenizer = AutoTokenizer.from_pretrained(pretrained_model, do_lower_case= True)
 
 tokenized_texts_and_labels = [
     tokenize_and_preserve_labels(sent, labs)
@@ -188,14 +184,11 @@ valid_dataloader = DataLoader(valid_data, sampler=valid_sampler, batch_size=bs)
 
 # Setup the Bert model for finetuning
 model = BertForTokenClassification.from_pretrained(
-# model = AutoModelForTokenClassification.from_pretrained(
     pretrained_model,
     num_labels=len(tag2idx),
     output_attentions = False,
     output_hidden_states = False
 )
-
-
 
 model.cuda();
 
@@ -220,8 +213,6 @@ optimizer = AdamW(
     weight_decay=weight_decay
 )
 
-
-
 max_grad_norm = 1.0
 
 # Total number of training steps is number of batches * number of epochs.
@@ -237,7 +228,7 @@ scheduler = get_linear_schedule_with_warmup(
 # Fit BERT for named entity recognition
 ## Store the average loss after each epoch so we can plot them.
 loss_values, validation_loss_values, F1_score_values, accuracy_values, F1_per_class = [], [], [], [], []
-
+best_F1sc, best_epoch = 0, 0
 for _ in trange(epochs, desc="Epoch"):
     # ========================================
     #               Training
@@ -337,71 +328,31 @@ for _ in trange(epochs, desc="Epoch"):
     accuracy_values.append(accuracy_score(pred_tags, valid_tags))
     print()
 
-output_model = ('C:/Users/Tabea/Documents/PhD EXPANSE/Written Paper/02- Behavioural Model paper/modelfinal_' + str(epochs) + '.bin')
-torch.save(model.state_dict(),output_model)
+    # save model if better than former versions
+    if f1_weighted_mean > best_F1sc:
+        best_model = model
+        best_epoch = _
+        best_F1sc = f1_weighted_mean
+
+
+# Save the final model and tokenizer as well as tag values with it
+model.tokenizer = tokenizer
+model.tag_values = tag_values
+
+output_model = ('D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/modelfinal_' + str(epochs) + '.pickle')
+pickle.dump(model, open(output_model, 'wb'))
+
+# Save the best model and tokenizer as well as tag values with it
+best_model.tokenizer = tokenizer
+best_model.tag_values = tag_values
+best_F1sc = str(best_F1sc).replace(".","_")
+
+output_model = ('D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/bestmodel' + str(best_epoch) +'_' + best_F1sc + '.pickle')
+pickle.dump(best_model, open(output_model, 'wb'))
+
 
 # Visualize the training loss
 plt = PlotLearningCurve(unique_labels, F1_per_class,F1_score_values, loss_values, validation_loss_values, accuracy_values)
-plt.savefig("D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_final_bs" + str(
+plt.savefig("D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/ModelLearningCurve_finalNEW_bs" + str(
         bs) + "_ep" + str(epochs) + "_lr" + str(learning_rate) + "_art" + str(nr_articles_labeled) + ".png",dpi=350)
 plt.show()
-
-
-## Applying the model to a new sentence
-# test_sentence = """
-# Of the 11 demographic/biological variables examined, evidence for consistent positive associations were found for employment
-# status and home ownership (those who were employed and those who owned their own home had higher levels of overall walking).
-# """
-
-def flatten(listOfLists):
-    "Flatten one level of nesting"
-    return list(chain.from_iterable(listOfLists))
-
-def predict_labels(doc):
-    labels, tags, sentenceid = [], [], []
-    for count, value in enumerate(dict.fromkeys(doc["Sentence #"])):
-        subset = doc.iloc[doc.index[doc["Sentence #"] == value]]
-        test_sentence = " ".join(str(item) for item in subset['Word'])
-        tokenized_sentence = tokenizer.encode(test_sentence)
-        input_ids = torch.tensor([tokenized_sentence]).cuda()
-        with torch.no_grad():
-            output = model(input_ids)
-        label_indices = np.argmax(output[0].to('cpu').numpy(), axis=2)
-
-        # join bpe split tokens
-        tokens = tokenizer.convert_ids_to_tokens(input_ids.to('cpu').numpy()[0])
-        new_tokens, new_labels = [], []
-        for token, label_idx in zip(tokens, label_indices[0]):
-            if token.startswith("##"):
-                new_tokens[-1] = new_tokens[-1] + token[2:]
-            else:
-                new_labels.append(tag_values[label_idx])
-                new_tokens.append(token)
-        # for token, label in zip(new_tokens, new_labels):
-            # print("{}\t{}".format(label, token))
-        labels.append(new_labels)
-        tags.append(new_tokens)
-        # sentenceid.append(value.extend([value] * len(new_tokens)))
-        sentenceid.append([value] * len(new_tokens))
-    return pd.DataFrame({'Sentence': flatten(sentenceid), 'Tag': flatten(labels),'Word': flatten(tags)})
-
-
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "xml_csvs"))
-for file in listOfFiles:
-    doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("xml_csvs/" + file)), encoding="latin1")
-    d = predict_labels(doc_txt)
-    print(file)
-    # print(d)
-    d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
-
-listOfFiles = os.listdir(path=os.path.join(os.getcwd(), "pdftxt_csvs"))
-xml_doclist = os.listdir(path=os.path.join(os.getcwd(), "xml_csvs"))
-for file in listOfFiles:
-    if file in xml_doclist:
-        print("file already labeled")
-    else:
-        doc_txt = pd.read_csv(os.path.join(os.getcwd(), ("pdftxt_csvs/" + file)), encoding="latin1")
-        d = predict_labels(doc_txt)
-        print(file)
-        # print(d)
-        d.to_csv(os.path.join(os.getcwd(), ("predict_labeled/" + file)), index=False)
