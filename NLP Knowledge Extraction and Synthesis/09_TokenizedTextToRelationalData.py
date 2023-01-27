@@ -5,6 +5,8 @@ import nltk
 
 # Functions
 def IOB_sequence_tracing(B_indx_list, I_index_list, Words_data):
+    """Identify phrases based on continues labeling of word sequences with the same tag
+       for IOB labeling."""
     tags = []
     for indx in B_indx_list:
         tag_string = str(Words_data.iloc[indx])
@@ -25,6 +27,8 @@ def IOB_sequence_tracing(B_indx_list, I_index_list, Words_data):
     return tags
 
 def IO_sequence_tracing(indx_list, Words_data):
+    """Identify phrases based on continues labeling of word sequences with the same tag
+       for IO labeling."""
     tags = []
     if len(indx_list) > 1:
         already_included = -1
@@ -47,6 +51,8 @@ def IO_sequence_tracing(indx_list, Words_data):
 
 
 def IO_sequence_tracingopt(indx_list, Words_data):
+    """Identify phrases based on continues labeling of word sequences with the same tag
+       for IO labeling. This function is designed to be used dynamically in other functions."""
     tags = []
     if len(indx_list) > 1:
         nested_worldlength = [indx_list]
@@ -74,6 +80,7 @@ def IO_sequence_tracingopt(indx_list, Words_data):
 
 
 def extendTagsToAllEqualWordSeq(dataframe):
+    """Extend labels of all phrases to equivalent phrases in the rest of the document."""
     labels = list(dict.fromkeys(dataframe['Tag']))
     labels.remove('O')
     for label in labels:
@@ -92,6 +99,7 @@ def extendTagsToAllEqualWordSeq(dataframe):
     return dataframe
 
 def extendSpecificTagsToAllEqualWordSeq(dataframe, Tagname):
+    """Extend all phrases of a specific Label to equivalent phrases in the rest of the document."""
     label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
     unique_labeled_words = list(dict.fromkeys(IO_sequence_tracingopt(indx_list=label_indices, Words_data=dataframe['Word'])))
     [unique_labeled_words.remove(el) for el in ["-", "the", "a"] if el in unique_labeled_words]
@@ -108,6 +116,7 @@ def extendSpecificTagsToAllEqualWordSeq(dataframe, Tagname):
 
 
 def addPOS(dataframe):
+    """ Add a part of speech tag to a list of words in sentences. """
     POS = list(nltk.pos_tag([str(word) for word in dataframe['Word']]))
     POS = pd.DataFrame(data=POS, columns=["Word", "POS_tag"])
     dataframe['POS'] = POS["POS_tag"]
@@ -117,6 +126,7 @@ def addPOS(dataframe):
     return dataframe
 
 def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
+    """Extend Labeled Phrases to neighboring adjectives or nouns to be sure to capture the whole variable name."""
     for Tagname in Tagnames:
         for turn in [1,2,3,4]:
             label_indices = list(np.where(dataframe['Tag'] == Tagname)[0])
@@ -160,6 +170,7 @@ def extendVariableNamesToNeighboringAdjectNouns(dataframe, Tagnames):
     return dataframe
 
 def extendAssociationTypesToNeighboringAdjectNegatives(dataframe):
+    """Extend Association Type phrases to neighboring adjectives and negatives."""
     for turn in [1,2,3]:
         label_indices = list(np.where(dataframe['Tag'] == 'I-assocType')[0])
         label_indices_post = [i+1 for i in label_indices]
@@ -186,6 +197,7 @@ def extendAssociationTypesToNeighboringAdjectNegatives(dataframe):
     return dataframe
 
 def LabelAssocTypeWords(labeled_data):
+    """Label words that are obviously describing statistical associations based on keywords."""
     x = list(np.where((labeled_data['Word'] == 'significant') | (
                             labeled_data['Word'] == 'insignificant') | (
                             labeled_data['Word'] == 'consistent') | (
@@ -203,6 +215,7 @@ def LabelAssocTypeWords(labeled_data):
     return labeled_data
 
 def ExtendATwordsToNegation(labeled_data):
+    """Identify linked negation words and label them to make sure the correct association type is identified."""
     AT_words = list(np.where(labeled_data['Tag'] == 'I-assocType')[0])
     x = []
     x.extend(idx - 1 for idx in AT_words if
@@ -212,7 +225,8 @@ def ExtendATwordsToNegation(labeled_data):
     labeled_data['Tag'].iloc[x] = 'I-assocType'
     return labeled_data
 
-def AddLinkedQualitiesAT(labeled_data):
+def FillLinkingATs(labeled_data):
+    """Identify linking words between 2 AT phrases and label them to unify the phrase."""
     AT_words = list(np.where(labeled_data['Tag'] == 'I-assocType')[0])
     x = [x+1 for x in AT_words if (x+2 in AT_words) and (labeled_data['Word'].iloc[x+1] in ["of", ",", "and", "for", "to", "a", "the"])]
     x.extend((x+2 for x in AT_words if (x+3 in AT_words) and (labeled_data['Word'].iloc[x+1] in ["of", ",", "and", "for", "to", "a", "the"]) and (labeled_data['Word'].iloc[x+2] in ["of", ",", "and", "for", "to", "a", "the"])))
@@ -221,6 +235,7 @@ def AddLinkedQualitiesAT(labeled_data):
 
 
 def UniqueLabelsFreq(phraselist):
+    """Find unique Labels and count their frequency"""
     Labels, freq_Labels = [], []
     for instance in phraselist:
         Labels.extend(instance.split(" ; "))
@@ -265,7 +280,7 @@ for file in listOfFiles:
     # we extend the association types to relevant neighbors and keywords
     labeled_data = LabelAssocTypeWords(labeled_data)
     labeled_data = ExtendATwordsToNegation(labeled_data)
-    labeled_data = AddLinkedQualitiesAT(labeled_data)
+    labeled_data = FillLinkingATs(labeled_data)
 
     # we extent the other labels to full variable name phrases
     dataframe = extendVariableNamesToNeighboringAdjectNouns(labeled_data, ["I-behavDeterm", "I-behavOption", "I-moderator"])
