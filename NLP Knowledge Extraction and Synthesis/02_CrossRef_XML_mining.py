@@ -12,8 +12,8 @@ works = Works()
 
 # Functions
 def tryCrossRefDoi (doi):
-    '''Tries whether Crossref has a the metadata and link information on the article
-       and fetches that information when available.'''
+    """Tries whether Crossref has a the metadata and link information on the article
+       and fetches that information when available."""
     try:
         r = works.doi(str(doi))
     except urllib.error.HTTPError or TimeoutError:
@@ -24,8 +24,8 @@ def tryCrossRefDoi (doi):
     return r
 
 def retrieveOpenSourcePdf(CrossrefOutputArray):
-    '''Retrieve the pdf link from the CrossRef information
-       and download the document'''
+    """Retrieve the pdf link from the CrossRef information
+       and download the document"""
     pdfLink = [x for s in CrossrefOutputArray for x in s if ("http" in x and "pdf" in x)]
     for link in pdfLink:
         try:
@@ -40,9 +40,9 @@ def retrieveOpenSourcePdf(CrossrefOutputArray):
             return print("retrieved", link)
 
 def retrieveElsevierXMLPDF(CrossrefOutputArray):
-    '''Retrieve the XML link and download the document and save it in a text file.
+    """Retrieve the XML link and download the document and save it in a text file.
        Elsevier offers fulltext XML with an authentication key, which can be requested.
-       With the same link but a different url ending one can also fetch the pdfs.'''
+       With the same link but a different url ending one can also fetch the pdfs."""
     xmlLink = [x for s in CrossrefOutputArray for x in s if ("http" in x and "xml" in x)][0]
     if "elsevier" in xmlLink:
         xmlLink = (xmlLink + "&apiKey="+ElsAPIkey+ "&insttoken="+ InstitutToken+ "6ec21df6f452c6f1e466640cd0b51bfd")

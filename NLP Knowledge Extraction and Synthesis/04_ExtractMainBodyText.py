@@ -7,7 +7,7 @@ import re
 
 # Functions
 def cleanPunctuation(file):
-    '''This function fixed all punctuation and spacing issues caused by Citation formats, and common abbreviations.'''
+    """This function fixed all punctuation and spacing issues caused by Citation formats, and common abbreviations."""
     file = re.sub(r'(\d+)(\.\s)(\d+)', r'\1.\3', file.strip().replace("  ", " ").replace("  ", " "))
     file = re.sub(r'(\d+)(\. )(\d+)', r'\1.\3', file)
     file = file.replace(" %", "%").replace("i. e.", "id est").replace("e. g.", "for example").replace(" ? s ","'s ").replace(
@@ -31,8 +31,8 @@ def cleanPunctuation(file):
     return file
 
 def StartFromIntro(file):
-    '''This function checks whether there is an Introduction section
-     and cuts out the content from before, which is usually noise text.'''
+    """This function checks whether there is an Introduction section
+     and cuts out the content from before, which is usually noise text."""
     intro_start = [m.start() for m in re.finditer('Introduction', file)]
     if bool(intro_start):
         print(intro_start)
@@ -42,8 +42,8 @@ def StartFromIntro(file):
     return file
 
 def CutTextFromReferencesAcknowledgem(file):
-    '''This function tries to find the beginning of the References or Acknowledgements section
-       and then cuts out the text from thereon, since there is no evidence to be expected in these sections.'''
+    """This function tries to find the beginning of the References or Acknowledgements section
+       and then cuts out the text from thereon, since there is no evidence to be expected in these sections."""
     reference_start = [m.start() for m in re.finditer('References', file)]
     acknowledge_start = [m.start() for m in re.finditer('Acknowledgement', file)]
     if bool(reference_start):

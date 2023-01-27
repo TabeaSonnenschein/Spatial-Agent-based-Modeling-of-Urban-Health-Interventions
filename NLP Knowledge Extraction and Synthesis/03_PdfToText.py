@@ -11,7 +11,7 @@ import re
 ## Functions
 
 def tryPdfReader(file):
-    '''Tried reading the PDF'''
+    """Tried reading the PDF"""
     try:
         pdfreader = PyPDF2.PdfFileReader(open(os.path.join(os.getcwd(), ("pdf/" + file)), "rb"))
     except PyPDF2.utils.PdfReadError:
@@ -22,15 +22,15 @@ def tryPdfReader(file):
     return pdfreader
 
 def extractEncodeText(pdfreader):
-    '''Extracts the text from the PDF and encodes it in ASCII.'''
+    """Extracts the text from the PDF and encodes it in ASCII."""
     pageobj = pdfreader.getPage(i)
     text = pageobj.extractText()
     text = text.encode("ascii", "replace").decode()
     return text
 
 def addressCommonTextExtractBugs(text):
-    '''Most relevant cases where it misreads "fi" as "?".
-       This function replaces those cases with the correct ones.'''
+    """Most relevant cases where it misreads "fi" as "?".
+       This function replaces those cases with the correct ones."""
     replacements = [("igni?can", "ignifican"), ("n?uen", "nfluen"), ("denti?e", "dentifie"), ("?rst", "first"),
                     ("ci?cation", "cification"), ("raf?c", "raffic"), ("f?cien", "fficien"), ("peci?c", "pecific"),
                     ("i?e", "ifie"), ("?nanc", "financ"), ("?nish", "finish"), ("?ve", "five"), ("bene?t", "benefit"),
@@ -47,7 +47,7 @@ def addressCommonTextExtractBugs(text):
 
 
 def IdentifyAbbreviations(sentence):
-    '''Identifies Abbreviation based on Syntax.'''
+    """Identifies Abbreviation based on Syntax."""
     if (("(" in sentence) and ( ")" in sentence)):
         openbrackets = [m.start() for m in re.finditer("[(]", sentence)]
         closebrackets = [m.start() for m in re.finditer("[)]", sentence)]
@@ -96,7 +96,7 @@ def IdentifyAbbreviations(sentence):
 
 
 def ReplaceAbbrevWithFullName(abbreviations, fullnames, sentence):
-    '''Replaces any abbreviation with the previously identified fullnames of the document.'''
+    """Replaces any abbreviation with the previously identified fullnames of the document."""
     sorted_abbr = sorted(abbreviations, reverse=True, key=len)
     order = [sorted_abbr.index(x) for x in abbreviations]
     print("order: ", order, "abbrev: ", abbreviations)
@@ -106,7 +106,7 @@ def ReplaceAbbrevWithFullName(abbreviations, fullnames, sentence):
     return sentence
 
 def SplittingSentenceStringIntoWords(sentence):
-    '''Splits Sentences into Words using wordninja.'''
+    """Splits Sentences into Words using wordninja."""
     wordlist = wordninja.split(sentence)
     stringlength, wordidx = 0, 0
     for count, value in enumerate(sentence.strip().replace("\n", "")):
@@ -163,15 +163,15 @@ finalsliff = [("en v iron mental", "environmental"), ("car poole r", "carpooler"
                   ("M ov ability", "Movability"), ("random is ed", "randomised")]
 
 def AddressCommonWordsplitBugs( clean_sentence, wordreplace_map = finalsliff):
-    '''Also with the wordsplit function "wordninja", there are some common bugs.
-       Here I tried addressing the most common ones across the extracted articles.'''
+    """Also with the wordsplit function "wordninja", there are some common bugs.
+       Here I tried addressing the most common ones across the extracted articles."""
     for a, b in wordreplace_map:
         clean_sentence = clean_sentence.replace(a, b).strip()
     return clean_sentence
 
 def AddressCommonWordsplitBugs_list( fullnames, wordreplace_map = finalsliff):
-    '''Also with the wordsplit function "wordninja", there are some common bugs.
-       Here I tried addressing the most common ones across the extracted articles.'''
+    """Also with the wordsplit function "wordninja", there are some common bugs.
+       Here I tried addressing the most common ones across the extracted articles."""
     for a, b in wordreplace_map:
         fullnames = [name.replace(a, b) for name in fullnames]
     return fullnames
