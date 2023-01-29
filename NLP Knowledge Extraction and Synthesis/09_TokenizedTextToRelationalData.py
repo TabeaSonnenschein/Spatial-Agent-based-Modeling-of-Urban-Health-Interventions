@@ -245,6 +245,28 @@ def UniqueLabelsFreq(phraselist):
     return unique_Labels, freq_Labels
 
 
+def FindIndexesPerLabel_IO(labeled_data, sentence_idx_range):
+    AT_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-assocType")[0])
+    BO_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption")[0])
+    BD_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm")[0])
+    SG_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-studygroup")[0])
+    MO_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-moderator")[0])
+    return AT_indx, BO_indx, BD_indx, SG_indx, MO_indx
+
+
+def FindIndexesPerLabel_IOB(labeled_data, sentence_idx_range):
+    AT_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-assocType")[0])
+    AT_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-assocType")[0])
+    BO_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavOption")[0])
+    BO_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption")[0])
+    BD_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavDeterm")[0])
+    BD_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm")[0])
+    SG_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-studygroup")[0])
+    SG_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-studygroup")[0])
+    MO_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-moderator")[0])
+    MO_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-moderator")[0])
+    return AT_indx_B, AT_indx_I, BO_indx_B, BO_indx_I, BD_indx_B, BD_indx_I, SG_indx_B, SG_indx_I, MO_indx_B, MO_indx_I
+
 # Execution
 
 ############ Abbreviation list
@@ -297,16 +319,7 @@ for file in listOfFiles:
         if any(labeled_data['Tag'].iloc[sentence_idx_range] != 'O'):
             if mode == "IOB":
                 # if IOB has sufficient quality to distinguish ingroup classification
-                AT_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-assocType")[0])
-                AT_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range]== "I-assocType")[0])
-                BO_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavOption")[0])
-                BO_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption")[0])
-                BD_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavDeterm")[0])
-                BD_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm")[0])
-                SG_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-studygroup")[0])
-                SG_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-studygroup")[0])
-                MO_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-moderator")[0])
-                MO_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-moderator")[0])
+                AT_indx_B, AT_indx_I, BO_indx_B, BO_indx_I, BD_indx_B, BD_indx_I, SG_indx_B, SG_indx_I, MO_indx_B, MO_indx_I = FindIndexesPerLabel_IOB(labeled_data,sentence_idx_range)
                 instance_AT.append(" ; ".join(IOB_sequence_tracing(B_indx_list=AT_indx_B, I_index_list=AT_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_BO.append(" ; ".join(IOB_sequence_tracing(B_indx_list=BO_indx_B, I_index_list=BO_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_BD.append(" ; ".join(IOB_sequence_tracing(B_indx_list=BD_indx_B, I_index_list=BD_indx_I, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
@@ -315,11 +328,7 @@ for file in listOfFiles:
 
             if mode == "IO":
                 # if IOB has not sufficient quality to distinguish ingroup classification, or IO labeling was used
-                AT_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-assocType")[0])
-                BO_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption")[0])
-                BD_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm")[0])
-                SG_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-studygroup")[0])
-                MO_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-moderator")[0])
+                AT_indx, BO_indx, BD_indx, SG_indx, MO_indx = FindIndexesPerLabel_IO(labeled_data, sentence_idx_range)
                 instance_AT.append(" ; ".join(IO_sequence_tracing(indx_list= AT_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_BO.append(" ; ".join(IO_sequence_tracing(indx_list=BO_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
                 instance_BD.append(" ; ".join(IO_sequence_tracing(indx_list=BD_indx, Words_data=labeled_data['Word'].iloc[sentence_idx_range])))
