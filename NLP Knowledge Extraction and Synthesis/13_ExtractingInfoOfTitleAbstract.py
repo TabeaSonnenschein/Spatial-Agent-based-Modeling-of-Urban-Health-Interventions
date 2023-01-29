@@ -5,16 +5,10 @@ from itertools import chain
 
 pd.options.display.max_colwidth = 100000
 
-os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper\modalchoice literature search")
-article_data = pd.read_csv("metareview_details.csv")
-article_data['filename'] = [( doi.replace("/", "_")) for doi in article_data['doi']]
+## This script can be used to extract Information on Behavior Options
+## and Studygroups of Analysis from the Title and Abstract of a Scientific artile
 
-os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-labeled_words = pd.read_csv("Evidence_instances_df.csv")
-labeled_words['filename'] = [doi.replace(".csv", "").replace("doi_", "") for doi in labeled_words['DOI']]
-evidence_instances = pd.read_csv("unique_evidence_instances.csv")
-evidence_instances['DOI'] = [doi.replace(".csv", "").replace("doi_", "") for doi in evidence_instances['DOI']]
-
+#Functions
 def extendInfofromTitleAbstract(articlesdata, fulllabeledtext, evidenceinstance_df):
     labeled_papers = list(dict.fromkeys(evidenceinstance_df['DOI']))
     evidenceinstance_df[['Title', 'Abstract', 'NrBO_inArticle', 'NrTitleBOappears', 'NrSG_inArticle', 'BehavOptionsInTitle', 'BehavOptionsInAbstract', 'StudyGroupInTitle', 'StudyGroupInAbstract']] = ""
@@ -146,6 +140,19 @@ def select_correct_imputation(evidenceinstance_df):
             evidenceinstance_df["SGimputed"].iloc[count] = 1
 
     return evidenceinstance_df
+
+
+# Execution
+os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper\modalchoice literature search")
+article_data = pd.read_csv("metareview_details.csv")
+article_data['filename'] = [( doi.replace("/", "_")) for doi in article_data['doi']]
+
+os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
+labeled_words = pd.read_csv("Evidence_instances_df.csv")
+labeled_words['filename'] = [doi.replace(".csv", "").replace("doi_", "") for doi in labeled_words['DOI']]
+evidence_instances = pd.read_csv("unique_evidence_instances.csv")
+evidence_instances['DOI'] = [doi.replace(".csv", "").replace("doi_", "") for doi in evidence_instances['DOI']]
+
 
 evidence_instances = extendInfofromTitleAbstract(articlesdata = article_data, fulllabeledtext = labeled_words, evidenceinstance_df= evidence_instances)
 evidence_instances = find_lastBO_for_missing_BO_info(fulllabeledtext = labeled_words, evidenceinstance_df= evidence_instances)

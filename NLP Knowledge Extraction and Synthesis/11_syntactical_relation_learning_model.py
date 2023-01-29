@@ -39,24 +39,24 @@ X_train, X_test, y_train, y_test = train_test_split(X, y,
         stratify=y)
 
 
-# print("Gradient Boosting")
-# print("===============")
-# # evaluate the model
-# model = GradientBoostingClassifier()
-# cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
-# n_scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
-# print('Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
-# n_scores = cross_val_score(model, X, y, scoring='f1_weighted', cv=cv, n_jobs=-1, error_score='raise')
-# print('F1 Score: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
-# n_scores = cross_val_score(model, X, y, scoring='f1', cv=cv, n_jobs=-1, error_score='raise')
-# print('F1 Score: %.3f (%.3f)' % ( mean(n_scores), std(n_scores)))
-#
-# # fit the model on the whole dataset
-# model = GradientBoostingClassifier()
-# model.fit(X_train, y_train)
-# prediction = model.predict(X_test)
-# report = classification_report(y_test, prediction)
-# print(report)
+print("Gradient Boosting")
+print("===============")
+# evaluate the model
+model = GradientBoostingClassifier()
+cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+n_scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+print('Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
+n_scores = cross_val_score(model, X, y, scoring='f1_weighted', cv=cv, n_jobs=-1, error_score='raise')
+print('F1 Score: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
+n_scores = cross_val_score(model, X, y, scoring='f1', cv=cv, n_jobs=-1, error_score='raise')
+print('F1 Score: %.3f (%.3f)' % ( mean(n_scores), std(n_scores)))
+
+# fit the model on the whole dataset
+model = GradientBoostingClassifier()
+model.fit(X_train, y_train)
+prediction = model.predict(X_test)
+report = classification_report(y_test, prediction)
+print(report)
 
 
 print("Random Forest")
@@ -77,46 +77,46 @@ model.fit(X_train.values, y_train.values)
 prediction = model.predict(X_test.values)
 report = classification_report(y_test.values, prediction)
 print(report)
-#
-# print("Multi-layer Perceptron")
-# print("===============")
-# # evaluate the model
-# model = MLPClassifier(solver='lbfgs',  max_iter= 1000, hidden_layer_sizes=(5, 2))
-# cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
-# n_scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
-# print('Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
-# n_scores = cross_val_score(model, X, y, scoring='f1_weighted', cv=cv, n_jobs=-1, error_score='raise')
-# print('F1 Score: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
-# n_scores = cross_val_score(model, X, y, scoring='f1', cv=cv, n_jobs=-1, error_score='raise')
-# print('F1 Score: %.3f (%.3f)' % ( mean(n_scores), std(n_scores)))
-#
-# # fit the model on the whole dataset
-# model = MLPClassifier(solver='lbfgs',  max_iter= 1000, hidden_layer_sizes=(5, 2), random_state=1)
-# model.fit(X_train, y_train)
-# prediction = model.predict(X_test)
-# report = classification_report(y_test, prediction)
-# print(report)
-#
-#
-#
-# print("Support vector machines")
-# print("===============")
-# # evaluate the model
-# model = svm.SVC()
-# cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
-# n_scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
-# print('Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
-# n_scores = cross_val_score(model, X, y, scoring='f1_weighted', cv=cv, n_jobs=-1, error_score='raise')
-# print('F1 Score: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
-# n_scores = cross_val_score(model, X, y, scoring='f1', cv=cv, n_jobs=-1, error_score='raise')
-# print('F1 Score: %.3f (%.3f)' % ( mean(n_scores), std(n_scores)))
-#
-# # fit the model on the whole dataset
-# model = svm.SVC()
-# model.fit(X_train, y_train)
-# prediction = model.predict(X_test)
-# report = classification_report(y_test, prediction)
-# print(report)
+
+print("Multi-layer Perceptron")
+print("===============")
+# evaluate the model
+model = MLPClassifier(solver='lbfgs',  max_iter= 1000, hidden_layer_sizes=(5, 2))
+cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+n_scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+print('Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
+n_scores = cross_val_score(model, X, y, scoring='f1_weighted', cv=cv, n_jobs=-1, error_score='raise')
+print('F1 Score: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
+n_scores = cross_val_score(model, X, y, scoring='f1', cv=cv, n_jobs=-1, error_score='raise')
+print('F1 Score: %.3f (%.3f)' % ( mean(n_scores), std(n_scores)))
+
+# fit the model on the whole dataset
+model = MLPClassifier(solver='lbfgs',  max_iter= 1000, hidden_layer_sizes=(5, 2), random_state=1)
+model.fit(X_train, y_train)
+prediction = model.predict(X_test)
+report = classification_report(y_test, prediction)
+print(report)
+
+
+
+print("Support vector machines")
+print("===============")
+# evaluate the model
+model = svm.SVC()
+cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+n_scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+print('Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
+n_scores = cross_val_score(model, X, y, scoring='f1_weighted', cv=cv, n_jobs=-1, error_score='raise')
+print('F1 Score: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
+n_scores = cross_val_score(model, X, y, scoring='f1', cv=cv, n_jobs=-1, error_score='raise')
+print('F1 Score: %.3f (%.3f)' % ( mean(n_scores), std(n_scores)))
+
+# fit the model on the whole dataset
+model = svm.SVC()
+model.fit(X_train, y_train)
+prediction = model.predict(X_test)
+report = classification_report(y_test, prediction)
+print(report)
 
 
 # #

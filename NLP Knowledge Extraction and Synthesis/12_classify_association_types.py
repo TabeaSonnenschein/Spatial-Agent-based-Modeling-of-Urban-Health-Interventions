@@ -17,10 +17,8 @@ evidence_instances["stat_direction"] = ""
 evidence_instances["stat_correl"] = ""
 
 for count, value in enumerate(evidence_instances['AssociationType']):
-    statrelat = None
-    statconsist = None
-    statdirect = None
-    statcorrel = None
+    statrelat, statconsist, statdirect, statcorrel = None, None, None, None
+
     if ("inconsistent" in value.lower()) or ("not" in value.lower() and "consistent" in value.lower()):
         statconsist = "inconsistent"
     elif "consistent" in value.lower():
