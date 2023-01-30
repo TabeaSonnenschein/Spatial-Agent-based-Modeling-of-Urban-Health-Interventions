@@ -5,8 +5,10 @@ from itertools import chain
 
 pd.options.display.max_colwidth = 100000
 
+######################################################################
 ## This script can be used to extract Information on Behavior Options
 ## and Studygroups of Analysis from the Title and Abstract of a Scientific artile
+#################################################################################
 
 #Functions
 def extendInfofromTitleAbstract(articlesdata, fulllabeledtext, evidenceinstance_df):
