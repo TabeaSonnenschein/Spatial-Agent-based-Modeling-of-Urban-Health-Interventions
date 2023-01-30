@@ -246,6 +246,7 @@ def UniqueLabelsFreq(phraselist):
 
 
 def FindIndexesPerLabel_IO(labeled_data, sentence_idx_range):
+    """ Composes lists of indices per label for IO labeling. """
     AT_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-assocType")[0])
     BO_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavOption")[0])
     BD_indx = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-behavDeterm")[0])
@@ -255,6 +256,7 @@ def FindIndexesPerLabel_IO(labeled_data, sentence_idx_range):
 
 
 def FindIndexesPerLabel_IOB(labeled_data, sentence_idx_range):
+    """ Composes lists of indices per label for IOB labeling. """
     AT_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-assocType")[0])
     AT_indx_I = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "I-assocType")[0])
     BO_indx_B = list(np.where(labeled_data['Tag'].iloc[sentence_idx_range] == "B-behavOption")[0])
