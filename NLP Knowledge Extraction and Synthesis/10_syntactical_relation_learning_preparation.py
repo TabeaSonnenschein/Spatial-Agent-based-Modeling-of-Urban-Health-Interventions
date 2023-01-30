@@ -9,14 +9,22 @@ import re
 import pandas as pd
 import numpy as np
 
+
+## This script creates 71 syntactical properties of the labeled sentences to infer which phrase
+## relates to which other to create an evidence instance. The property enriched dataframe can
+## then be used to train a feature based machine learning model.
+
 # Functions
 def SelectGrammCompleteSent(df):
+    """tests which sentences contain at least a verb as a minimum grammatical requirement for a complete
+       sentence and then subselects only these sentences."""
     gramm_complete_sentences = [x for i in ['VB', 'VBG', 'VBD', 'VBN', 'VBP', 'VBZ'] for x, y in
                                 enumerate(df['sentence_POS']) if i in y]
     df = df.iloc[gramm_complete_sentences]
     return df
 
 def FixBracketsInVariableNames(df):
+    """Remove brackets from phrase names of association types and behavior determinants"""
     df['AssociationType'] = [x.replace("; ( ", "; ").replace(" ) ;", " ;").replace(" ) ", " ; ").replace(" ( ", " ; ").replace("( ","").replace(
             " )", "").replace("(", "").replace(")", "").replace("  ", " ") for x in df['AssociationType']]
     df['BehaviorDeterminant'] = [x.replace("; ( ", "; ").replace(" ) ;", " ;").replace(" ) ", " ; ").replace(" ( ", " ; ").replace("( ","").replace(
@@ -24,6 +32,7 @@ def FixBracketsInVariableNames(df):
     return df
 
 def replace_spacestr_NA (list):
+    """Replace a list with only an empty space with an empty list."""
     if list == [" "]:
         newlist = []
     else:
@@ -31,6 +40,7 @@ def replace_spacestr_NA (list):
     return newlist
 
 def createEntityList(df):
+    """Split the listed phrases per sentences into entities per Label"""
     AT_entities = df['AssociationType'].iloc[count].split(" ; ")
     BD_entities = df['BehaviorDeterminant'].iloc[count].split(" ; ")
     BO_entities = replace_spacestr_NA(df['BehaviorOption'].iloc[count].split(" ; "))
@@ -39,6 +49,7 @@ def createEntityList(df):
     return AT_entities, BD_entities, BO_entities, SG_entities, MO_entities
 
 def find_indices_words_in_sentence(entity_list, fullsentence):
+    """Find the index of the phrases in the sentence."""
     indx = -1
     entity_indices = []
     for entity in entity_list:
@@ -49,6 +60,7 @@ def find_indices_words_in_sentence(entity_list, fullsentence):
 
 
 def repeat_each_item_n_times_in_list (list, times):
+    """Repeat each item n times in a list"""
     rep_list = []
     for el in list:
         rep_list.extend([el] * times)
@@ -56,6 +68,8 @@ def repeat_each_item_n_times_in_list (list, times):
 
 
 def check_if_in_wordlist_and_append(list_of_lists, wordlist):
+    """Checks if any element of a list in the list of lists is in the wordlist
+       and then appends it to the output list."""
     output_list = []
     for list in list_of_lists:
         output_list.extend([el for el in list if el in wordlist])
@@ -63,6 +77,7 @@ def check_if_in_wordlist_and_append(list_of_lists, wordlist):
 
 
 def combinations(items):
+    """Creates a list with all combinations of the elements in the items list. """
     comblist = []
     for i in range(0,len(items)):
         comblist.append(items[i])
@@ -75,6 +90,8 @@ def combinations(items):
     return comblist
 
 def combinations_NANlists(items):
+    """Creates a list with all combinations of the elements in the items list,
+       dealing with the issue of NaNs. """
     if items != ["NaN"]:
         items.remove("NaN")
         comblist = combinations(items)
@@ -85,6 +102,8 @@ def combinations_NANlists(items):
     return comblist
 
 def combinations_alllists(items):
+    """Creates a nested list of lists of all combinations of
+       the elements of the items list. """
     comblist = []
     for i in range(0,len(items)):
         comblist.append([items[i]])
@@ -97,27 +116,9 @@ def combinations_alllists(items):
     return comblist
 
 
-def evidence_instance_appending_singleAT(ATs, BDs, BOs, SGs, MOs):
-    AT_extension, BD_extension, BO_extension, SG_extension, MO_extension = [],[],[],[],[]
-    AT_extension.extend([ATs] * len(BDs) * len(BOs) * len(SGs) * len(MOs))
-    BD_extension.extend((BDs) * len(BOs) * len(SGs) * len(MOs))
-    BO_extension.extend((repeat_each_item_n_times_in_list(BOs, len(BDs))) * len(SGs) * len(MOs))
-    SG_extension.extend((repeat_each_item_n_times_in_list(SGs, (len(BDs)*len(BOs)))) * len(MOs))
-    MO_extension.extend((repeat_each_item_n_times_in_list(MOs, (len(BDs)*len(BOs)*len(SGs)))))
-    return AT_extension, BD_extension, BO_extension, SG_extension, MO_extension
-
-def evidence_instance_appending_singleSG(ATs, BDs, BOs, SGs, MOs):
-    AT_extension, BD_extension, BO_extension, SG_extension, MO_extension = [],[],[],[],[]
-    AT_combinations = combinations(ATs)
-    AT_extension.extend((AT_combinations) * len(BDs) * len(BOs) * len(SGs) * len(MOs))
-    BD_extension.extend((repeat_each_item_n_times_in_list(BDs, len(AT_combinations))) * len(BOs) * len(SGs) * len(MOs))
-    BO_extension.extend((repeat_each_item_n_times_in_list(BOs, (len(BDs)*len(AT_combinations)))) * len(SGs) * len(MOs))
-    SG_extension.extend((repeat_each_item_n_times_in_list(SGs, (len(BDs)*len(BOs)*len(AT_combinations)))) * len(MOs))
-    MO_extension.extend((repeat_each_item_n_times_in_list(MOs, (len(BDs)*len(BOs)*len(SGs)*len(AT_combinations)))))
-    Nr_added = len(AT_combinations) * len(BDs) * len(BOs) * len(SGs) * len(MOs)
-    return AT_extension, BD_extension, BO_extension, SG_extension, MO_extension, Nr_added
-
 def evidence_instance_appending(ATs, BDs, BOs, SGs, MOs):
+    """Creates lists for each label with the correct number of repeats of each phrase,
+       so that when placed in a dataframe together it covers all combinations in the correct order."""
     AT_extension, BD_extension, BO_extension, SG_extension, MO_extension = [],[],[],[],[]
     AT_combinations = combinations(ATs)
     SG_combinations = combinations_NANlists(SGs)
@@ -129,8 +130,9 @@ def evidence_instance_appending(ATs, BDs, BOs, SGs, MOs):
     Nr_added = len(AT_combinations) * len(BDs) * len(BOs) * len(SG_combinations) * len(MOs)
     return AT_extension, BD_extension, BO_extension, SG_extension, MO_extension, Nr_added
 
-# checks if multiple behavior options are mentioned in one evidence instance
+
 def test_BO_joined_evidence_instance(BO_words, full_sentence, BO_indices):
+    """ Checks if multiple behavior options are mentioned in one evidence instance."""
     if len(BO_indices)>1:
         between_words = full_sentence[min(BO_indices):max(BO_indices)]
         for entity in BO_words:
@@ -145,6 +147,7 @@ def test_BO_joined_evidence_instance(BO_words, full_sentence, BO_indices):
 
 
 def check_if_varcombi_same_dependency_subtree(varlist_varcombi, totalsentence_varlist, subtrees):
+    """ Checks whether the variable combination is part of the same dependency subtree."""
     joined_instance = 0
     missing_var = "NaN"
     remaining_var = [i for i in totalsentence_varlist if (i not in varlist_varcombi) and (i != "NaN")]
@@ -162,8 +165,8 @@ def check_if_varcombi_same_dependency_subtree(varlist_varcombi, totalsentence_va
         return "0", missing_var
 
 
-# Load spacy's dependency tree into a networkx graph
 def Dependencytree_to_Graph(doc):
+    """ Load spacy's dependency tree into a networkx graph."""
     edges = []
     for token in doc:
         for child in token.children:
@@ -173,6 +176,8 @@ def Dependencytree_to_Graph(doc):
     return graph
 
 def getShortestPathbetweenPhrases(listA, listB, graph):
+    """Find the minimum, maximum and sum of shortest path between two phrases
+       (multiple words continuesly labeled with the same tag)."""
     shortestPath = []
     if not isinstance(listA, str):
         words_inlistA = list(chain.from_iterable([phrase.split(" ") for phrase in listA]))
@@ -197,6 +202,8 @@ def getShortestPathbetweenPhrases(listA, listB, graph):
     return [min(shortestPath)], [max(shortestPath)], [sum(shortestPath)]
 
 def print_summary_of_length_ofLists(list_oflists):
+    """ Prints the length of all lists and names the outlier lists.
+        Helps figuring out errors in case a target list was erroneous."""
     x = [len(element) for element in list_oflists]
     median = int(statistics.median(x))
     print("Median value: ", median, "appears", x.count(median), "times")
@@ -204,17 +211,23 @@ def print_summary_of_length_ofLists(list_oflists):
     print("outliers are", outliers)
 
 def ifnotlist_makelist(object):
+    """ Makes a list out of non-lists."""
     if not isinstance(object, list):
         return [object]
     else:
         return object
 
 def testVerbInBetween(verb_indx, idx1, idx2 ):
+    """ Tests whether there is a verb in between idx1 and idx2. """
     result = ["1" if any(True for x in verb_indx if idx1 > x < idx2
                 or idx1 < x > idx2) else "0"]
     return result
 
 def testIfAllPhrasesBeforeIdx(idx, PhraseIndices):
+    """ Tests whether all phrases in the variable combination are before a specific index
+       or all are after. The important thing is whether they are together (either before or after)
+       and not split. An example application is to test whether they are before or after
+       split propositions or semicolons."""
     if idx != 'NaN':
         if all(True if x == 'NaN' or x > idx else False for x in PhraseIndices) or all(
                 True if x == 'NaN' or x < idx else False for x in PhraseIndices):
@@ -224,6 +237,7 @@ def testIfAllPhrasesBeforeIdx(idx, PhraseIndices):
     else:
         return ["NaN"]
 
+# Execution
 
 #########################################
 ### READING AND PREPARING DATA ##########
