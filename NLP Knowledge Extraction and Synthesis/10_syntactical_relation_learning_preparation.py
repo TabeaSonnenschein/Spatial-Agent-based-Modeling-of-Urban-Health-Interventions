@@ -2,7 +2,6 @@ import os
 import spacy
 en = spacy.load('en_core_web_sm')
 from spacy import displacy
-#from utils.utils_Syntact_Learn import *
 import networkx as nx
 from itertools import chain
 import statistics
