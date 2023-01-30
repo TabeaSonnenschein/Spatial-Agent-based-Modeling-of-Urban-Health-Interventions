@@ -1,10 +1,22 @@
 import pandas as pd
 import os
 
-# set working directory
-os.chdir("D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/modalchoice literature search")
+###########################################################################
+## Translate a bibtex copy to a csv file into a bibliometric dataframe.
+## Join it with the Web of Science bibliometric file.
+## The output file can be used for populating the ontology with bibliometric data
+###############################################################################
+
+def findNrArticlesAndEndings(ref_data):
+    """find the number of rows where the "file" column starts with file.
+       find the rows where the "file" column starts with }"""
+    len = len(ref_data.loc[ref_data['input'].str.startswith("file", na=False)])
+    endings = ref_data.loc[ref_data['input'].str.startswith("}", na=False)].index.tolist()
+    endings.insert(0, -1)
+    return len, endings
 
 # read in csv file
+os.chdir("D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/modalchoice literature search")
 ref_data = pd.read_csv("search5_reference_data.csv")
 
 # find the number of rows where the "file" column starts with "file"
@@ -13,7 +25,7 @@ len = len(ref_data.loc[ref_data['input'].str.startswith("file", na=False)])
 # create a new dataframe with 14 columns and len rows
 ref_data_clean = pd.DataFrame(index=range(len), columns=["article_id", "doc_type", "title", "abstract", "author", "doi", "file", "issn", "journal", "keywords", "number", "pages", "volume", "year"])
 
-# find the rows where the "file" column starts with "}"
+
 endings = ref_data.loc[ref_data['input'].str.startswith("}", na=False)].index.tolist()
 endings.insert(0, -1)
 print(endings)

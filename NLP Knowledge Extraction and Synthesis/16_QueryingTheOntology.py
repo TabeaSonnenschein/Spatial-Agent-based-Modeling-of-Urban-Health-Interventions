@@ -5,8 +5,11 @@ from rdflib import Namespace
 from pprint import pprint
 import os
 
+################################################################################
 ## This script can be used to query the evidence knowledge graph.
 ## There are a set of example SPARQL queries, such as the ones presented in the paper.
+########################################################################################
+
 
 bmo= Namespace("https://tabeasonnenschein.github.io/ontologies/bcdo.html#")
 def prefix(g):

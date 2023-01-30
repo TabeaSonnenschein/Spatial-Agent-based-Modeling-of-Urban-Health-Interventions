@@ -7,6 +7,10 @@ import rdflib
 from rdflib.namespace import NamespaceManager
 from rdflib import BNode, Namespace, Graph
 
+######################################################################################
+## This script cam be used to populate the ontology with the extracted evidence
+## as well as the bibliometrics of the studies.
+######################################################################################
 
 ##### Define functions
 # graph = default_world.as_rdflib_graph()
