@@ -210,6 +210,22 @@ def ifnotlist_makelist(object):
     else:
         return object
 
+def testVerbInBetween(verb_indx, idx1, idx2 ):
+    result = ["1" if any(True for x in verb_indx if idx1 > x < idx2
+                or idx1 < x > idx2) else "0"]
+    return result
+
+def testIfAllPhrasesBeforeIdx(idx, PhraseIndices):
+    if idx != 'NaN':
+        if all(True if x == 'NaN' or x > idx else False for x in PhraseIndices) or all(
+                True if x == 'NaN' or x < idx else False for x in PhraseIndices):
+            return ["1"]
+        else:
+            return ["0"]
+    else:
+        return ["NaN"]
+
+
 #########################################
 ### READING AND PREPARING DATA ##########
 #########################################
@@ -422,40 +438,22 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
     #split propos index
     AT_extension_indx_alllists = ATindicelist*AT_repetition
     for i in range(0, len(AT_extension_name)):
-        indices = list(chain.from_iterable([AT_extension_indx_alllists[i], [BD_extension_indx[i]],
-                                            [BO_extension_indx[i]], ifnotlist_makelist(SG_extension_indx[i]), [MO_extension_indx[i]]]))
-        if split_prepos[0] != 'NaN':
-            if all(True if x == 'NaN' or x > split_prepos[0] else False for x in indices) or all(True if x == 'NaN'  or x < split_prepos[0] else False for x in indices ):
-                all_before_or_after_split_propos.extend(["1"])
-            else:
-                all_before_or_after_split_propos.extend(["0"])
-        else:
-            all_before_or_after_split_propos.extend(["NaN"])
-        if semicolon[0] != 'NaN':
-            if all(True if x == 'NaN' or x > semicolon[0] else False for x in indices) or all(True if x == 'NaN' or x < semicolon[0] else False for x in indices ):
-                all_before_or_after_semicolon.extend(["1"])
-            else:
-                all_before_or_after_semicolon.extend(["0"])
-        else:
-            all_before_or_after_semicolon.extend(["NaN"])
+        indices = list(chain.from_iterable([AT_extension_indx_alllists[i], [BD_extension_indx[i]],[BO_extension_indx[i]], ifnotlist_makelist(SG_extension_indx[i]), [MO_extension_indx[i]]]))
+
+        all_before_or_after_split_propos.extend(testIfAllPhrasesBeforeIdx(idx=split_prepos[0], PhraseIndices=indices))
+        all_before_or_after_semicolon.extend(testIfAllPhrasesBeforeIdx(idx=semicolon[0], PhraseIndices=indices))
 
         index_dist_ATmin_BD.extend([min(AT_extension_indx_alllists[i]) - BD_extension_indx[i]])
         index_dist_ATmax_BD.extend([max(AT_extension_indx_alllists[i]) - BD_extension_indx[i]])
-        verb_between_ATmin_BD.extend(["1" if any(True for x in verb_indx if min(AT_extension_indx_alllists[i])> x <BD_extension_indx[i]
-                                                 or min(AT_extension_indx_alllists[i])< x >BD_extension_indx[i]) else "0"])
-        verb_between_ATmax_BD.extend(["1" if any(True for x in verb_indx if max(AT_extension_indx_alllists[i])> x <BD_extension_indx[i]
-                                                 or max(AT_extension_indx_alllists[i])< x >BD_extension_indx[i]) else "0"])
+
+        verb_between_ATmin_BD.extend(testVerbInBetween(verb_indx, min(AT_extension_indx_alllists[i]), BD_extension_indx[i]))
+        verb_between_ATmax_BD.extend(testVerbInBetween(verb_indx, max(AT_extension_indx_alllists[i]), BD_extension_indx[i]))
         if BO_extension_indx[i] != "NaN":
             index_dist_ATmin_BO.extend([min(AT_extension_indx_alllists[i]) - BO_extension_indx[i]])
             index_dist_ATmax_BO.extend([max(AT_extension_indx_alllists[i]) - BO_extension_indx[i]])
-            verb_between_ATmin_BO.extend(["1" if any(True for x in verb_indx if
-                                                     min(AT_extension_indx_alllists[i]) > x < BO_extension_indx[
-                                                         i] or min(AT_extension_indx_alllists[i]) < x >
-                                                     BO_extension_indx[i]) else "0"])
-            verb_between_ATmax_BO.extend(["1" if any(True for x in verb_indx if
-                                                     max(AT_extension_indx_alllists[i]) > x < BO_extension_indx[
-                                                         i] or max(AT_extension_indx_alllists[i]) < x >
-                                                     BO_extension_indx[i]) else "0"])
+
+            verb_between_ATmin_BO.extend(testVerbInBetween(verb_indx, min(AT_extension_indx_alllists[i]), BO_extension_indx[i]))
+            verb_between_ATmax_BO.extend(testVerbInBetween(verb_indx, max(AT_extension_indx_alllists[i]), BO_extension_indx[i]))
         else:
             index_dist_ATmin_BO.extend(["NaN"])
             index_dist_ATmax_BO.extend(["NaN"])
@@ -464,14 +462,9 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
         if MO_extension_indx[i] != "NaN":
             index_dist_ATmin_MO.extend([min(AT_extension_indx_alllists[i]) - MO_extension_indx[i]])
             index_dist_ATmax_MO.extend([max(AT_extension_indx_alllists[i]) - MO_extension_indx[i]])
-            verb_between_ATmin_MO.extend(["1" if any(True for x in verb_indx if
-                                                     min(AT_extension_indx_alllists[i]) > x < MO_extension_indx[
-                                                         i] or min(AT_extension_indx_alllists[i]) < x >
-                                                     MO_extension_indx[i]) else "0"])
-            verb_between_ATmax_MO.extend(["1" if any(True for x in verb_indx if
-                                                     max(AT_extension_indx_alllists[i]) > x < MO_extension_indx[
-                                                         i] or max(AT_extension_indx_alllists[i]) < x >
-                                                     MO_extension_indx[i]) else "0"])
+
+            verb_between_ATmin_MO.extend(testVerbInBetween(verb_indx, min(AT_extension_indx_alllists[i]), MO_extension_indx[i]))
+            verb_between_ATmax_MO.extend(testVerbInBetween(verb_indx, max(AT_extension_indx_alllists[i]), MO_extension_indx[i]))
         else:
             index_dist_ATmin_MO.extend(["NaN"])
             index_dist_ATmax_MO.extend(["NaN"])
@@ -480,26 +473,14 @@ for count, value in enumerate(complete_evidence_Instances['Fullsentence']):
         if SG_extension_indx[i] != "NaN":
             index_dist_ATmin_SGmin.extend([min(AT_extension_indx_alllists[i]) - min(ifnotlist_makelist(SG_extension_indx[i]))])
             index_dist_ATmax_SGmin.extend([max(AT_extension_indx_alllists[i]) - min(ifnotlist_makelist(SG_extension_indx[i]))])
-            index_dist_ATmin_SGmax.extend(
-                [min(AT_extension_indx_alllists[i]) - max(ifnotlist_makelist(SG_extension_indx[i]))])
-            index_dist_ATmax_SGmax.extend(
-                [max(AT_extension_indx_alllists[i]) - max(ifnotlist_makelist(SG_extension_indx[i]))])
-            verb_between_ATmin_SGmin.extend(["1" if any(True for x in verb_indx if
-                                                     min(AT_extension_indx_alllists[i]) > x < min(ifnotlist_makelist(SG_extension_indx[i]))
-                                                     or min(AT_extension_indx_alllists[i]) < x >
-                                                     min(ifnotlist_makelist(SG_extension_indx[i]))) else "0"])
-            verb_between_ATmax_SGmin.extend(["1" if any(True for x in verb_indx if
-                                                     max(AT_extension_indx_alllists[i]) > x < min(ifnotlist_makelist(SG_extension_indx[i]))
-                                                     or max(AT_extension_indx_alllists[i]) < x >
-                                                     min(ifnotlist_makelist(SG_extension_indx[i]))) else "0"])
-            verb_between_ATmin_SGmax.extend(["1" if any(True for x in verb_indx if
-                                                     min(AT_extension_indx_alllists[i]) > x < max(ifnotlist_makelist(SG_extension_indx[i]))
-                                                     or min(AT_extension_indx_alllists[i]) < x >
-                                                     max(ifnotlist_makelist(SG_extension_indx[i]))) else "0"])
-            verb_between_ATmax_SGmax.extend(["1" if any(True for x in verb_indx if
-                                                     max(AT_extension_indx_alllists[i]) > x < max(ifnotlist_makelist(SG_extension_indx[i]))
-                                                     or max(AT_extension_indx_alllists[i]) < x >
-                                                     max(ifnotlist_makelist(SG_extension_indx[i]))) else "0"])
+            index_dist_ATmin_SGmax.extend([min(AT_extension_indx_alllists[i]) - max(ifnotlist_makelist(SG_extension_indx[i]))])
+            index_dist_ATmax_SGmax.extend([max(AT_extension_indx_alllists[i]) - max(ifnotlist_makelist(SG_extension_indx[i]))])
+
+            verb_between_ATmin_SGmin.extend(testVerbInBetween(verb_indx, min(AT_extension_indx_alllists[i]), min(ifnotlist_makelist(SG_extension_indx[i]))))
+            verb_between_ATmax_SGmin.extend(testVerbInBetween(verb_indx, max(AT_extension_indx_alllists[i]), min(ifnotlist_makelist(SG_extension_indx[i]))))
+            verb_between_ATmin_SGmax.extend(testVerbInBetween(verb_indx, min(AT_extension_indx_alllists[i]), max(ifnotlist_makelist(SG_extension_indx[i]))))
+            verb_between_ATmax_SGmax.extend(testVerbInBetween(verb_indx, max(AT_extension_indx_alllists[i]), max(ifnotlist_makelist(SG_extension_indx[i]))))
+
             minimum_SG_idx.extend([min(ifnotlist_makelist(SG_extension_indx[i]))])
             maximum_SG_idx.extend([max(ifnotlist_makelist(SG_extension_indx[i]))])
         else:
