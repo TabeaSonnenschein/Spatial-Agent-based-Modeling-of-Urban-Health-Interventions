@@ -340,19 +340,12 @@ for _ in trange(epochs, desc="Epoch"):
         best_F1sc = f1_weighted_mean
 
 
-# Save the final model and tokenizer as well as tag values with it
-model.tokenizer = tokenizer
-model.tag_values = tag_values
-
-output_model = ('D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/modelfinal_' + str(epochs) + '.pickle')
-pickle.dump(model, open(output_model, 'wb'))
-
 # Save the best model and tokenizer as well as tag values with it
 best_model.tokenizer = tokenizer
 best_model.tag_values = tag_values
-best_F1sc = str(best_F1sc).replace(".","_")
+best_F1sc = str(round(best_F1sc,2)).replace(".","_")
 
-output_model = ('D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/bestmodel' + str(best_epoch) +'_' + best_F1sc + '.pickle')
+output_model = ('D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/BERT_NER_epoch' + str(best_epoch) +'_wF1_' + best_F1sc + '.pickle')
 pickle.dump(best_model, open(output_model, 'wb'))
 
 
