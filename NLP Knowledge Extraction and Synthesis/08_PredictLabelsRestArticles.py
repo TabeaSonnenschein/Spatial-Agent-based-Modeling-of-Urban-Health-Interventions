@@ -47,7 +47,7 @@ def predict_labels(doc):
 
 # Load the model
 os.chdir(r"D:\PhD EXPANSE\Literature\WOS_ModalChoice_Ref\CrossrefResults")
-modelname = "bestmodel7_0_8760671346689872.pickle"
+modelname = "BERT_NER_epoch7_wF1_0_88.pickle"
 output_model = ('D:/PhD EXPANSE/Written Paper/02- Behavioural Model paper/' + modelname)
 model = pickle.load(open(output_model, 'rb'))
 tokenizer = model.tokenizer
