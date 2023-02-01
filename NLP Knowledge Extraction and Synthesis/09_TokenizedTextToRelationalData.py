@@ -3,6 +3,11 @@ import pandas as pd
 import numpy as np
 import nltk
 
+###########################################################################
+## This script transforms the labeled articles into a relational dataframe
+## of list of phrases per label per sentence per article
+###########################################################################
+
 # Functions
 def IOB_sequence_tracing(B_indx_list, I_index_list, Words_data):
     """Identify phrases based on continues labeling of word sequences with the same tag

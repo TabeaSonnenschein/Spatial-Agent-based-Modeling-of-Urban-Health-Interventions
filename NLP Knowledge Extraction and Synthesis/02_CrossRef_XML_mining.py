@@ -6,9 +6,11 @@ import numpy as np
 from crossref.restful import Works
 works = Works()
 
+############################################################################
 ## To facilitate the download of the articles and the text processing,
 ## please find here automatic PDF and XML request functions using the Crossref API
 ## in combination with an optional Elsevier license.
+#################################################################################
 
 # Functions
 def tryCrossRefDoi (doi):

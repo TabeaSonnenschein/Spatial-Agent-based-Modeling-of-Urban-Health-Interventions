@@ -5,7 +5,9 @@ import os
 from itertools import chain
 import pickle
 
+####################################################################################################
 ## This script can be used to apply the trained BERT model to other articles to predict their labels.
+####################################################################################################
 
 # Functions
 def flatten(listOfLists):

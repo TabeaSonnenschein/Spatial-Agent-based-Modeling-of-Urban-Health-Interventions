@@ -9,10 +9,11 @@ import re
 import pandas as pd
 import numpy as np
 
-
+################################################################################################
 ## This script creates 71 syntactical properties of the labeled sentences to infer which phrase
 ## relates to which other to create an evidence instance. The property enriched dataframe can
 ## then be used to train a feature based machine learning model.
+################################################################################################
 
 # Functions
 def SelectGrammCompleteSent(df):

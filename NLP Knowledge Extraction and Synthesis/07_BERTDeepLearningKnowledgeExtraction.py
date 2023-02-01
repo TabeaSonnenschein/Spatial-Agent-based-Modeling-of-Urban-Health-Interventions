@@ -18,6 +18,11 @@ logging.set_verbosity_warning()
 torch.__version__
 transformers.__version__
 
+###################################################################################################
+## This script trains a BERT Named Entity Recognition Model and saves the one with the best F1 score
+## Moreover it generates a figure with the model performance (Learning curve)
+####################################################################################################
+
 ## Functions
 class SentenceGetter(object):
     """New class of a sentence Getter"""

@@ -5,9 +5,11 @@ pd.options.mode.chained_assignment = None  # default='warn'
 ## when not having downloaded this POS tagger yet, then uncomment
 # nltk.download('averaged_perceptron_tagger')
 
+###########################################################################################################
 ## This script transforms the fluent text data into a hierarchical dataframe of sentences and words.
 ## It moreover applies a Part of speech tagger and ensures sentences do not contain more than a max number of words.
 ## The output table will be directly readable by the BERT model.
+#############################################################################################################
 
 ## Functions
 def addPOSTag(df):

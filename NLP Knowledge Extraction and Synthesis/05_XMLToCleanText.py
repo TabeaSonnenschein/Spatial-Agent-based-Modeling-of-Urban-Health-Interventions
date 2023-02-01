@@ -2,8 +2,10 @@ import os
 import pandas as pd
 import re
 
+########################################################################################################
 ## This script extracts the text from XML documents and identifies as well as substitutes abbreviations
 ## with their full names. The result will be fluent text that can be used for Natural Language Processing.
+#########################################################################################################
 
 ## Functions
 def extractMaiTextbody(file):

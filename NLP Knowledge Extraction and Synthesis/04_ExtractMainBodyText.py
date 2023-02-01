@@ -2,8 +2,10 @@
 import os
 import re
 
+###################################################################################
 ## This script helps extracting the main body of the scientific articles
 ## and formats the punctuation and spacing so that it can be used for NLP
+###################################################################################
 
 # Functions
 def cleanPunctuation(file):

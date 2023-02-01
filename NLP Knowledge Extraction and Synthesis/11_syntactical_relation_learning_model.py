@@ -20,6 +20,11 @@ from sklearn.neural_network import MLPClassifier
 from sklearn import svm
 from matplotlib import pyplot
 
+#################################################################################################
+## This script test multiple methods for feature based machine learning models that predict the
+## truthfulness of a proposed relation between phrases in sentences based on the syntactical
+## feautures of the sentence (as generated in 10_syntactical_relation_learning_preparation).
+#################################################################################################
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 # csv = os.path.join(os.getcwd(), ("possible_evidence_instances_training_data_2000.csv"))
