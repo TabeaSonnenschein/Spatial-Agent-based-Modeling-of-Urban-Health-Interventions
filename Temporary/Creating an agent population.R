@@ -971,12 +971,16 @@ agents_clean = agents[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" ,
                    "havechild", "current_education", "absolved_education" )]
 write.csv(agents_clean, "Agent_pop.csv", row.names = FALSE)
 
-
+setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population")
+agents_clean = read.csv("Agent_pop.csv")
+x = as.data.frame(table(agents_clean$neighb_code))
 # employment
 c("NettoArbeidsparticipatie_67" , "PercentageWerknemers_68", "PercentageZelfstandigen_69" )
 
+colnames(neigh_stats3)
 #income
-x = neigh_stats3[,c("AantalInkomensontvangers_67"  , "k_40PersonenMetLaagsteInkomen_70" , "k_20PersonenMetHoogsteInkomen_71",
+colnames(neigh_stats3)[2] = "neighb_code"
+neigh_stats = neigh_stats3[,c("neighb_code", "AantalInwoners_5" , "AantalInkomensontvangers_67"  , "k_40PersonenMetLaagsteInkomen_70" , "k_20PersonenMetHoogsteInkomen_71",
                     "k_40HuishoudensMetLaagsteInkomen_73",  "k_20HuishoudensMetHoogsteInkomen_74",  "HuishoudensMetEenLaagInkomen_75",
                     "HuishOnderOfRondSociaalMinimum_76")]
 
@@ -1016,8 +1020,267 @@ Inc_stats = create_stratified_prob_table(nested_cond_attr_list = list(c("Leeftij
                                          orig_df = income_stats, strat_var = "Title")
 
 
+maleincome = strat_prop_from_sep_cond_var(
+  df = income_stats[income_stats$Geslacht == "male",],
+  nested_cond_attr_list = list(c("Leeftijd: 0 tot 15 jaar" ,"Leeftijd: 15 tot 25 jaar", "Leeftijd: 25 tot 45 jaar" ,
+                                 "Leeftijd: 45 tot 65 jaar" , "Leeftijd: 65 jaar of ouder"),
+                               c("Migratieachtergrond: Nederland" , "Migratieachtergrond: westers", "Migratieachtergrond: niet-westers")),
+  cond_var_names = c("age", "migrationbackground"),
+  cond_attr_column = "Title",
+  var_for_pred = "PersonenMetPersoonlijkInkomen_2",
+  total_population = "Personen_1")
+maleincome$sex = "male"
 
-#social support
+femaleincome = strat_prop_from_sep_cond_var(
+  df = income_stats[income_stats$Geslacht == "female",],
+  nested_cond_attr_list = list(c("Leeftijd: 0 tot 15 jaar" ,"Leeftijd: 15 tot 25 jaar", "Leeftijd: 25 tot 45 jaar" ,
+                                 "Leeftijd: 45 tot 65 jaar" , "Leeftijd: 65 jaar of ouder"),
+                               c("Migratieachtergrond: Nederland" , "Migratieachtergrond: westers", "Migratieachtergrond: niet-westers")),
+  cond_var_names = c("age", "migrationbackground"),
+  cond_attr_column = "Title",
+  var_for_pred = "PersonenMetPersoonlijkInkomen_2",
+  total_population = "Personen_1")
+femaleincome$sex = "female"
+
+income_strat = rbind(maleincome, femaleincome)
+
+income_strat$average_income_standardised = NA
+income_strat$average_income_personal = NA
+for(i in 1:nrow(income_strat)){
+  income_strat$average_income_standardised[i] = mean(c(as.numeric(income_stats[which((income_stats$Geslacht == income_strat$sex[i]) & (income_stats$Title == income_strat$age[i])), "GemiddeldGestandaardiseerdInkomen_4"]),   
+                                          as.numeric(income_stats[which((income_stats$Geslacht == income_strat$sex[i]) & (income_stats$Title == income_strat$migrationbackground[i])), "GemiddeldGestandaardiseerdInkomen_4"])))
+  income_strat$average_income_personal[i] = mean(c(as.numeric(income_stats[which((income_stats$Geslacht == income_strat$sex[i]) & (income_stats$Title == income_strat$age[i])), "GemiddeldPersoonlijkInkomen_6"]),   
+                                                       as.numeric(income_stats[which((income_stats$Geslacht == income_strat$sex[i]) & (income_stats$Title == income_strat$migrationbackground[i])), "GemiddeldPersoonlijkInkomen_6"])))
+}
+
+income_strat$age = gsub("Leeftijd: ", "k_", income_strat$age)
+income_strat$age = gsub(" tot ", "Tot", income_strat$age)
+income_strat$age = gsub(" jaar", "Jaar", income_strat$age)
+income_strat$age = gsub(" of ouder", "OfOuder", income_strat$age)
+income_strat$migrationbackground = gsub("Migratieachtergrond: Nederland", "Dutch", income_strat$migrationbackground)
+income_strat$migrationbackground = gsub("Migratieachtergrond: westers", "Western", income_strat$migrationbackground)
+income_strat$migrationbackground = gsub("Migratieachtergrond: niet-westers", "Non-Western", income_strat$migrationbackground)
+
+
+income_strat = income_strat[,c("sex", "age", "migrationbackground", "prop_PersonenMetPersoonlijkInkomen_2", "average_income_standardised", "average_income_personal")]
+colnames(income_strat) = c("sex", "age_group", "migrationbackground", "prop_personal_income", "average_income_standardised", "average_income_personal")
+
+write.csv(income_strat, "stratified_income_stats.csv", row.names = F)
+income_strat = read.csv("stratified_income_stats.csv")
+x = merge(agents_clean, income_strat, by = c("sex", "age_group", "migrationbackground"))
+
+colnames(neigh_stats3)[2] = "neighb_code"
+agents_clean = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+         "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype")]
+   
+colnames(neigh_stats)
+neigh_stats$No_income = neigh_stats$AantalInwoners_5 - neigh_stats$AantalInkomensontvangers_67
+
+x = distr_attr_strat_neigh_stats_binary(
+  agent_df = x,
+  neigh_df = neigh_stats,
+  neigh_ID = "neighb_code",
+  variable = "personal_income",
+  list_var_classes_neigh_df = c("AantalInkomensontvangers_67", "No_income"),
+  list_agent_propens = "prop_personal_income",
+  list_class_names = c("has_personal_income", "no_personal_income")
+)
+
+x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+         "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","average_income_standardised", 
+         "average_income_personal", "personal_income")]
+
+crossvalidate = crossvalid(valid_df = neigh_stats, agent_df= x, 
+           join_var = "neighb_code", 
+           list_valid_var =  c("AantalInkomensontvangers_67", "No_income"), 
+           agent_var = "personal_income",
+           list_agent_attr =  c("has_personal_income", "no_personal_income"))
+
+
+
+?crossvalid
+
+income_data2 = read.csv("83931NED_UntypedDataSet_27102022_224122.csv", sep = ";")
+
+income_data2$Geslacht = gsub("3000", "male",income_data2$Geslacht)
+income_data2$Geslacht = gsub("4000", "female",income_data2$Geslacht)
+income_data2$Geslacht = gsub("male   ", "male",income_data2$Geslacht)
+income_data2$Geslacht = gsub("female   ", "female",income_data2$Geslacht)
+
+income_data2$Inkomensbegrippen = gsub("A043963", "Persoonlijk inkomen",income_data2$Inkomensbegrippen)
+
+income_data2 = income_data2[income_data2$Inkomensbegrippen == "Persoonlijk inkomen",]
+income_data2 = income_data2[income_data2$Geslacht != "T001038",]
+
+income_data2 = merge(income_data2, personal_attributes, by.x = "KenmerkenVanPersonen",by.y= "Persoonskenmerken", all.x = T, all.y = F)
+income_data2 = income_data2[!is.na(income_data2$Title),]
+
+
+income_data2$Title = gsub("Leeftijd: ", "k_", income_data2$Title)
+income_data2$Title = gsub(" tot ", "Tot", income_data2$Title)
+income_data2$Title = gsub(" jaar", "Jaar", income_data2$Title)
+income_data2$Title = gsub(" of ouder", "OfOuder", income_data2$Title)
+income_data2$Title = gsub("Migratieachtergrond: Nederland", "Dutch", income_data2$Title)
+income_data2$Title = gsub("Migratieachtergrond: westers", "Western", income_data2$Title)
+income_data2$Title = gsub("Migratieachtergrond: niet-westers", "Non-Western", income_data2$Title)
+
+income_codes = read.csv("income_codes.csv")
+income_data2 = merge(income_data2, income_codes, by.x = "Inkomensklassen",by.y= "ï..income_code", all.x = T, all.y = F)
+
+colnames(income_data2)
+income_data2 = income_data2[,c("Geslacht", "Title", "income_class", "PersonenMetInkomen_1", "GemiddeldInkomen_2")]
+income_data2_strat = restructure_one_var_marginal(df= income_data2, variable = "income_class", countsname = "PersonenMetInkomen_1")
+income_data2 = merge(income_data2, income_stats[,c("Title", "Geslacht", "Personen_1")], by= c("Title", "Geslacht"), all.x = T, all.y = F)
+
+uniq_combi = unique(income_data2[,c("Geslacht", "Title")])
+uniq_combi$Nr_people = NA
+for(i in 1:nrow(uniq_combi)){
+  uniq_combi$Nr_people[i] = sum(as.numeric(income_data2$PersonenMetInkomen_1[which((income_data2$Geslacht == uniq_combi$Geslacht[i])& (income_data2$Title == uniq_combi$Title[i]))]))
+}
+income_data2 = merge(income_data2, uniq_combi, by = c("Geslacht", "Title"))
+income_data2$Nr_people = income_data2$Nr_people/2
+income_data2$perc_people = income_data2$PersonenMetInkomen_1/income_data2$Nr_people
+
+income_data2_strat = income_strat[,c("sex", "age_group", "migrationbackground")]
+
+
+incomeclass_orig = unique(income_data2$income_class)
+incomeclass = incomeclass_orig
+incomeclass = gsub("Inkomen: ", "income", incomeclass)
+incomeclass = gsub(" ", "", incomeclass)
+incomeclass = gsub("10%-groep", "Decile", incomeclass)
+incomeclass = gsub("\\(laaginkomen\\)", "", incomeclass)
+incomeclass = gsub("\\(hooginkomen\\)", "", incomeclass)
+
+?distr_attr_strat_neigh_stats_binary
+
+income_data2_strat[,incomeclass] = NA
+for(i in 1:nrow(income_data2_strat)){
+  for(indx in 1:length(incomeclass)){
+    income_data2_strat[i, incomeclass[indx]] = mean(c(as.numeric(income_data2[which((income_data2$Geslacht == income_data2_strat$sex[i]) & (income_data2$Title == income_data2_strat$age[i]) & (income_data2$income_class == incomeclass_orig[indx])), "perc_people"]),   
+                                                               as.numeric(income_data2[which((income_data2$Geslacht == income_data2_strat$sex[i]) & (income_data2$Title == income_data2_strat$migrationbackground[i]) & (income_data2$income_class == incomeclass_orig[indx])), "perc_people"])))
+  }
+}
+
+write.csv(income_data2_strat, "income_class_propensities.csv", row.names = F)
+income_data2_strat = read.csv("income_class_propensities.csv")
+x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+         "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income")]
+
+x = merge(x, income_data2_strat, by = c("sex", "age_group", "migrationbackground"))
+?GenSynthPop::distr_attr_cond_prop
+incomeclass
+x$no_income = 0
+x$no_income[x$personal_income == "no_personal_income"]=1
+
+neigh_stats$lowest_40percentile_persons = as.integer((as.numeric(neigh_stats$k_40PersonenMetLaagsteInkomen_70)/100)*neigh_stats$AantalInwoners_5)
+neigh_stats$highest_20percentile_persons = as.integer((as.numeric(neigh_stats$k_20PersonenMetHoogsteInkomen_71)/100)*neigh_stats$AantalInwoners_5)
+neigh_stats$middle_40percentile = neigh_stats$AantalInwoners_5 - neigh_stats$lowest_40percentile_persons - neigh_stats$highest_20percentile_persons
+
+neigh_stats$No_income_agent_df = crossvalidate$agent_no_personal_income
+neigh_stats$lowest_40percentile_persons = neigh_stats$lowest_40percentile_persons - neigh_stats$No_income
+neigh_stats$lowest_40percentile_persons[neigh_stats$lowest_40percentile_persons<0] = 0
+
+
+?distr_attr_strat_neigh_stats_3plus
+x = distr_attr_strat_neigh_stats_3plus(
+  agent_df = x,
+  neigh_df = neigh_stats,
+  neigh_ID = "neighb_code",
+  variable = "income_group",
+  list_var_classes_neigh_df = c("lowest_40percentile_persons", "highest_20percentile_persons", "middle_40percentile"),
+  list_agent_propens = c("lowest_40percentile", "highest_20percentile", "middle_40percentile"),
+  list_class_names = c("lowest_40perc", "highest_20perc", "middle_40perc"),
+  agent_exclude = "no_income"
+)
+x = x[,1:(ncol(x)-2)]
+
+x$income_group[x$no_income == 1] = "lowest_40perc"
+
+x$highest_20percentile = x$income10eDecile + x$income9eDecile
+x$lowest_40percentile = x$income1eDecile + x$income2eDecile + x$income3eDecile + x$income4eDecile
+x$middle_40percentile = x$income5eDecile + x$income6eDecile + x$income7eDecile + x$income8eDecile
+
+
+x$perc20_10_decile = x$income10eDecile/x$highest_20percentile
+x$perc20_9_decile = x$income9eDecile/x$highest_20percentile
+x$not_updecile = 1
+x$not_updecile[x$income_group == "highest_20perc"] = 0
+x = distr_attr_cond_prop(
+  agent_df = x,
+  variable = "updecile",
+  list_agent_propens = c("perc20_9_decile", "perc20_10_decile"),
+  list_class_names = c("income9eDecile","income10eDecile" ),
+  agent_exclude = "not_updecile"
+)
+
+x$perclow40_1_decile = x$income1eDecile/x$lowest_40percentile
+x$perclow40_2_decile = x$income2eDecile/x$lowest_40percentile
+x$perclow40_3_decile = x$income3eDecile/x$lowest_40percentile
+x$perclow40_4_decile = x$income4eDecile/x$lowest_40percentile
+
+x$not_lowdecile = 1
+x$not_lowdecile[x$income_group == "lowest_40perc"] = 0
+x = distr_attr_cond_prop(
+  agent_df = x,
+  variable = "lowdecile",
+  list_agent_propens = c("perclow40_1_decile", "perclow40_2_decile", "perclow40_3_decile", "perclow40_4_decile"),
+  list_class_names = c("income1eDecile","income2eDecile","income3eDecile","income4eDecile"),
+  agent_exclude = "not_lowdecile"
+)
+
+
+x$percmiddle40_5_decile = x$income5eDecile/x$middle_40percentile
+x$percmiddle40_6_decile = x$income6eDecile/x$middle_40percentile
+x$percmiddle40_7_decile = x$income7eDecile/x$middle_40percentile
+x$percmiddle40_8_decile = x$income8eDecile/x$middle_40percentile
+
+x$not_middledecile = 1
+x$not_middledecile[x$income_group == "middle_40perc"] = 0
+x = distr_attr_cond_prop(
+  agent_df = x,
+  variable = "middledecile",
+  list_agent_propens = c("percmiddle40_5_decile", "percmiddle40_6_decile", 
+                         "percmiddle40_7_decile", "percmiddle40_8_decile"),
+  list_class_names = c("income5eDecile","income6eDecile","income7eDecile","income8eDecile"),
+  agent_exclude = "not_middledecile"
+)
+x$middledecile
+x$incomeclass = x$lowdecile
+x$incomeclass[x$updecile != 0] = x$updecile[x$updecile != 0]
+x$incomeclass[x$middledecile != 0] = x$middledecile[x$middledecile != 0]
+colnames(x)
+x = x[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+         "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income", "incomeclass")]
+
+x$incomeclass_int = gsub("income", "", x$incomeclass)
+x$incomeclass_int = gsub("eDecile", "", x$incomeclass_int)
+
+setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Population")
+write.csv(x, "Agent_pop.csv", row.names = FALSE)
+agents_clean = read.csv("Agent_pop.csv")
+agents_clean$agesexgroup = NA
+
+agents_clean$agesexgroup[which(agents_clean$age %in% 0:09)] = "0-9_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 10:17)] = "10-17_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 18:34)] = "18-34_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 35:49)] = "35-49_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 50:64)] = "50-64_"
+agents_clean$agesexgroup[which(agents_clean$age %in% 65:110)] = "65-110_"
+agents_clean$agesexgroup = paste0(agents_clean$agesexgroup, agents_clean$sex)
+
+write.csv(agents_clean, "Agent_pop.csv", row.names = FALSE)
+agents_clean = read.csv("Agent_pop.csv")
+
+agents_clean$edu_int = agents_clean$absolved_education
+agents_clean$edu_int[agents_clean$edu_int == 0] = 1
+agents_clean$edu_int[agents_clean$edu_int == "low"] = 1
+agents_clean$edu_int[agents_clean$edu_int == "middle"] = 2
+agents_clean$edu_int[agents_clean$edu_int == "high"] = 3
+
+
+
+#social supporti
 c("HuishOnderOfRondSociaalMinimum_79" , "HuishoudensTot110VanSociaalMinimum_80", "HuishoudensTot120VanSociaalMinimum_81" ,"MediaanVermogenVanParticuliereHuish_82",
   "PersonenPerSoortUitkeringBijstand_83" , "PersonenPerSoortUitkeringAO_84", "PersonenPerSoortUitkeringWW_85" , "PersonenPerSoortUitkeringAOW_86", "JongerenMetJeugdzorgInNatura_87",
   "PercentageJongerenMetJeugdzorg_88")
@@ -1199,8 +1462,220 @@ agents = distr_bin_attr_strat_n_neigh_stats(agent_df = agents, neigh_df = neigh_
 ######################## car ownership ##############################
 c("PersonenautoSTotaal_99", "PersonenautoSBrandstofBenzine_100" , "PersonenautoSOverigeBrandstof_101", "PersonenautoSPerHuishouden_102" , "PersonenautoSNaarOppervlakte_103" , "Motorfietsen_104" )
 
+setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ODIN/2018")
+ODIN = read.csv("ODIN2018_Studyarea_with_outsidetrips.csv")
+
+ODIN$car_access = 0
+ODIN$car_access[ODIN$Nr_cars_hh > 0] = 1
+
+colnames(ODIN)
+dutchnames = c("OPID", "WoPC", "Geslacht", "Leeftijd",
+               "Herkomst", "HHAuto", "HHGestInkG",
+               "BetWerk", "Opleiding", "HHPers",
+               "HHLft1", "HHLft2", "HHLft3",  "MaatsPart", 
+               "FqNEFiets", "FqEFiets", "FqBTM", "FqTrein", "FqAutoB", "FqAutoP","car_access")
+
+englishnames = c("Person_ID", "Home_postcode", "sex", "age",
+                 "migration_background", "Nr_cars_hh",
+                 "income",  "employment_status",
+                 "education_level", "HH_size",  "nr_children_yonger6",
+                 "nr_child_6_11", "nr_child_12_17", 
+                 "socialgroup", "Freq_biking", "freq_ebiking", "freq_nontrain_transit", 
+                 "freq_train_transit", "freq_driv_car", "freq_passenger_car","car_access")
+
+ODIN = ODIN[,dutchnames]
+colnames(ODIN) = englishnames
+ODIN = unique(ODIN)
+
+ODIN$single_hh = 0
+ODIN$single_hh[ODIN$HH_size == 1] = 1
+
+ODIN$student = 0
+ODIN$student[which(ODIN$socialgroup == 4)] = 1
+
+ODIN$driving_habit = 0
+ODIN$driving_habit[ODIN$freq_driv_car %in% 1:2] = 1
+
+ODIN$biking_habit = 0
+ODIN$biking_habit[ODIN$Freq_biking %in% 1:2] = 1
+ODIN$biking_habit[ODIN$freq_ebiking %in% 1:2] = 1
+
+ODIN$transit_habit = 0
+ODIN$transit_habit[ODIN$freq_train_transit %in% 1:2] = 1
+ODIN$transit_habit[ODIN$freq_nontrain_transit %in% 1:2] = 1
 
 
+
+agents_clean$absolved_education
+ODIN$education_agent = ODIN$education_level
+ODIN$education_agent[ODIN$education_agent %in% c(0,1,2,5,6,7)] = 1
+ODIN$education_agent[ODIN$education_agent == 3] = 2
+ODIN$education_agent[ODIN$education_agent == 4] = 3
+
+agents_clean$education_int = agents_clean$absolved_education
+agents_clean$education_int[agents_clean$education_int  %in% c(0, "low")] = 1
+agents_clean$education_int[agents_clean$education_int  == "middle"] = 2
+agents_clean$education_int[agents_clean$education_int  == "high"] = 3
+
+table(ODIN$education_agent)
+
+agegroups = unique(agents_clean$age_group)
+agegroups
+
+ODIN$age_group = ""
+ODIN$age_group[ODIN$age %in% 0:14] = "k_0Tot15Jaar"
+ODIN$age_group[ODIN$age %in% 15:24] = "k_15Tot25Jaar"
+ODIN$age_group[ODIN$age %in% 25:44] = "k_25Tot45Jaar"
+ODIN$age_group[ODIN$age %in% 45:64] = "k_45Tot65Jaar"
+ODIN$age_group[ODIN$age %in% 65:120] = "k_65JaarOfOuder"
+
+ODIN$incomeclass = 0
+ODIN$incomeclass[ODIN$income %in% 1:4] = 1
+ODIN$incomeclass[ODIN$income %in% 5:8] = 2
+ODIN$incomeclass[ODIN$income %in% 9:10] = 3
+
+ODIN$sex[ODIN$sex == "1"] ="male"
+ODIN$sex[ODIN$sex == "2"] ="female"
+
+ODIN_strat_agreg = unique(ODIN[,c( "sex", "age_group", "single_hh", "education_agent")])
+colnames(ODIN_strat_agreg) = c("sex", "age_group", "hh_single", "education_int")
+table(ODIN_strat_agreg$sex)
+table(ODIN_strat_agreg$age_group)
+table(ODIN_strat_agreg$single_hh)
+table(ODIN_strat_agreg$education_agent)
+
+ODIN_strat_agreg$peoplewithcars = 0
+ODIN_strat_agreg$totalpeople = 0
+
+for(i in 1:nrow(ODIN_strat_agreg)){
+  x = which((ODIN$sex == ODIN_strat_agreg$sex[i]) &
+          (ODIN$age_group == ODIN_strat_agreg$age_group[i]) &
+          (ODIN$education_agent == ODIN_strat_agreg$education_int[i])&
+          (ODIN$single_hh == ODIN_strat_agreg$hh_single[i]))
+  ODIN_strat_agreg$totalpeople[i] = length(x) 
+  ODIN_strat_agreg$peoplewithcars[i] = length(which(ODIN$car_access[x] == 1))
+}
+
+ODIN_strat_agreg$prop_car_access = ODIN_strat_agreg$peoplewithcars/ODIN_strat_agreg$totalpeople
+
+colnames(agents_clean)
+agents_clean = merge(agents_clean, ODIN_strat_agreg, by = c("sex", "age_group", "hh_single", "education_int"), all.x = T)
+
+
+colnames(neigh_stats2)
+neigh_stats2 = neigh_stats2[, c("Codering_3","AantalInwoners_5", "PersonenautoSTotaal_99","PersonenautoSBrandstofBenzine_100" ,
+                                "PersonenautoSOverigeBrandstof_101","PersonenautoSPerHuishouden_102", 
+                                "PersonenautoSNaarOppervlakte_103")]
+
+neigh_stats2$people_with_caraccess = as.numeric(neigh_stats2$PersonenautoSPerHuishouden_102) * as.numeric(neigh_stats2$AantalInwoners_5)
+neigh_stats2$people_with_caraccess = as.integer(neigh_stats2$people_with_caraccess)
+neigh_stats2$peoplewithout_car = neigh_stats2$AantalInwoners_5 - neigh_stats2$people_with_caraccess
+neigh_stats2$peoplewithout_car[neigh_stats2$peoplewithout_car < 0] = 0
+
+colnames(neigh_stats2)[1] = "neighb_code"
+
+?distr_attr_strat_neigh_stats_binary
+neigh_stats2 = neigh_stats2[!is.na(neigh_stats2$peoplewithout_car),]
+agents_clean = distr_attr_strat_neigh_stats_binary(
+              agent_df = agents_clean,
+              neigh_df = neigh_stats2,
+              neigh_ID = "neighb_code",
+              variable = "car_access",
+              list_var_classes_neigh_df = c("people_with_caraccess", "peoplewithout_car" ),
+              list_agent_propens = c("prop_car_access"),
+              list_class_names = c("has_car_access","no_car_access"))
+
+
+agents_clean$prop_car_access = agents_clean$peoplewithcars/agents_clean$totalpeople
+agents_clean$random_scores[agents_clean$car_access == 0] = sample(seq(from= 0, to = 1, by= 0.01), length(agents_clean$random_scores[agents_clean$car_access == 0]), replace = T)
+agents_clean$random_scores[agents_clean$car_access == 0] 
+agents_clean$needsscore = 0
+agents_clean$needsscore[agents_clean$car_access == 0] = 1
+agents_clean$car_access[agents_clean$needsscore == 1] = "no_car_access"
+agents_clean$car_access[which((agents_clean$needsscore == 1)&(agents_clean$random_scores<agents_clean$prop_car_access))] = "has_car_access"
+
+
+sample(seq(from= 0, to = 1, by= 0.01), 49, replace = T)
+?sample
+table(agents_clean$car_access)
+agents_clean$car_access[agents_clean$car_access == "no_car_access"] = 0
+agents_clean$car_access[agents_clean$car_access == "has_car_access"] = 1
+
+agents_clean = agents_clean[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+                 "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income", "incomeclass", "agesexgroup","edu_int", "car_access")]
+
+colnames(agents_clean)  
 agents$agent_ID = paste("Agent_",1:tot_pop, sep="")
+write.csv(agents, "Agent_pop.csv", row.names = F)
+write.csv(agents_clean, "Agent_pop.csv", row.names = F)
 
-write.csv(agents, "Agent_pop.csv")
+agents_clean = read.csv("Agent_pop.csv")
+
+
+
+ODIN_strat_agreg = unique(ODIN[,c( "sex", "age_group",  "education_agent", "car_access")])
+colnames(ODIN_strat_agreg) = c("sex", "age_group", "edu_int", "car_access")
+table(ODIN_strat_agreg$sex)
+table(ODIN_strat_agreg$age_group)
+table(ODIN_strat_agreg$hh_single)
+table(ODIN_strat_agreg$edu_int)
+table(ODIN_strat_agreg$car_access)
+
+ODIN_strat_agreg$totalpeople = 0
+ODIN_strat_agreg$peoplewith_carhabit = 0
+ODIN_strat_agreg$peoplewith_bikehabit = 0
+ODIN_strat_agreg$peoplewith_transithabit = 0
+
+for(i in 1:nrow(ODIN_strat_agreg)){
+  x = which((ODIN$sex == ODIN_strat_agreg$sex[i]) &
+              (ODIN$age_group == ODIN_strat_agreg$age_group[i]) &
+              (ODIN$education_agent == ODIN_strat_agreg$edu_int[i])&
+              # (ODIN$single_hh == ODIN_strat_agreg$hh_single[i])&
+              (ODIN$car_access == ODIN_strat_agreg$car_access[i]))
+  ODIN_strat_agreg$totalpeople[i] = length(x) 
+  ODIN_strat_agreg$peoplewith_carhabit[i] = length(which(ODIN$driving_habit[x] == 1))
+  ODIN_strat_agreg$peoplewith_bikehabit[i] = length(which(ODIN$biking_habit[x] == 1))
+  ODIN_strat_agreg$peoplewith_transithabit[i] = length(which(ODIN$transit_habit[x] == 1))
+}
+
+ODIN_strat_agreg$prop_bikehabit = ODIN_strat_agreg$peoplewith_bikehabit/ODIN_strat_agreg$totalpeople
+ODIN_strat_agreg$prop_drivehabit = ODIN_strat_agreg$peoplewith_carhabit/ODIN_strat_agreg$totalpeople
+ODIN_strat_agreg$prop_transithabit = ODIN_strat_agreg$peoplewith_transithabit/ODIN_strat_agreg$totalpeople
+
+agents_clean = merge(agents_clean, ODIN_strat_agreg, by = c("sex", "age_group", "car_access", "edu_int"), all.x = T)
+
+?distr_attr_cond_prop
+
+agents_clean = distr_attr_cond_prop(
+  agent_df = agents_clean,
+  variable = "bike_habit",
+  list_agent_propens = c("prop_bikehabit"),
+  list_class_names = c("has_habit", "no_habit")
+)
+
+agents_clean = distr_attr_cond_prop(
+  agent_df = agents_clean,
+  variable = "transit_habit",
+  list_agent_propens = c("prop_transithabit"),
+  list_class_names = c("has_habit", "no_habit")
+)
+
+agents_clean = distr_attr_cond_prop(
+  agent_df = agents_clean,
+  variable = "car_habit",
+  list_agent_propens = c("prop_drivehabit"),
+  list_class_names = c("has_habit", "no_habit")
+)
+
+agents_clean$car_habit[agents_clean$car_habit =="has_habit"] = 1
+agents_clean$car_habit[agents_clean$car_habit =="no_habit"] = 0
+agents_clean$transit_habit[agents_clean$transit_habit =="has_habit"] = 1
+agents_clean$transit_habit[agents_clean$transit_habit =="no_habit"] = 0
+agents_clean$bike_habit[agents_clean$bike_habit =="has_habit"] = 1
+agents_clean$bike_habit[agents_clean$bike_habit =="no_habit"] = 0
+
+
+
+agents_clean = agents_clean[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
+                               "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income", "incomeclass", 
+                               "agesexgroup","edu_int", "car_access", "bike_habit", "car_habit", "transit_habit")]

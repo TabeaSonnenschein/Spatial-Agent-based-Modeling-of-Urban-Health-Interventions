@@ -1,10 +1,11 @@
 #########################
 ### Load packages #######
 #########################
-pkgs = c("GA","bnlearn", "stats", "rgdal","sp", "sf", "rgeos" , "ggplot2",  "raster",  "dplyr")
+pkgs = c("GA","MetricsWeighted", "bnlearn", "stats", "rgdal","sp", "sf", "rgeos" , "ggplot2", "matrixStats",  "raster",  "dplyr")
 sapply(pkgs[which(sapply(pkgs, require, character.only = T) == FALSE)], install.packages, character.only = T)
 sapply(pkgs, require, character.only = T) #load
 rm(pkgs)
+
 
 #########################
 ### read data ###########
@@ -14,12 +15,12 @@ setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ODIN/2018")
 ODIN = read.csv("ODIN2018_Studyarea_PC6_sample.csv")
 colnames(ODIN)
 
-dutchnames = c("VerplID", "VertPC", "AankPC", "Hvm", "OPID", "Geslacht", "Leeftijd",
+dutchnames = c("VerplID", "VertPC", "AankPC", "Hvm", "OPID", "Dag", "Maand", "Jaar", "Geslacht", "Leeftijd",
                "Herkomst", "HHAuto", "HHGestInkG",
                "BetWerk", "Opleiding", "HHPers",
                "HHLft1", "HHLft2", "HHLft3", "MotiefV")
 
-englishnames = c("TripID", "orig_postcode", "dest_postcode", "modal_choice", "Person_ID", "sex", "age",
+englishnames = c("TripID", "orig_postcode", "dest_postcode", "modal_choice", "Person_ID", "Day", "Month", "Year", "sex", "age",
                  "migration_background", "Nr_cars_hh",
                  "income",  "employment_status",
                  "education_level", "HH_size",  "nr_children_yonger6",
@@ -27,6 +28,11 @@ englishnames = c("TripID", "orig_postcode", "dest_postcode", "modal_choice", "Pe
 
 ODIN = ODIN[, c("orig_PC6","dest_PC6",englishnames)]
 
+ODIN$Date = paste0(as.character(ODIN$Dag),"/",as.character(ODIN$Maand),"/",as.character(ODIN$Jaar))
+ODIN$Date = paste0(as.character(ODIN$Day),"/",as.character(ODIN$Month),"/",as.character(ODIN$Year))
+
+ODIN$car_access = 0
+ODIN$car_access[ODIN$Nr_cars_hh > 0] = 1
 
 mode_names = c("Personenauto",	"Trein",	"Bus",	"Tram",	"Metro",	"Speedpedelec",
 "Elektrische fiets",	"Niet-elektrische fiets", "Te voet","Touringcar",
@@ -41,11 +47,7 @@ for(i in 1:length(mode_names)){
 }
 
 table(ODIN$mode_name)
-
-
-ODIN$car_access = 0
-ODIN$car_access[ODIN$Nr_cars_hh > 0] = 1
-
+ 
 
 ODIN$modes_simple = ""
 ODIN$modes_simple[ODIN$mode_name %in% c("Personenauto", "Bestelauto", "Vrachtwagen", "Landbouwvoertuig", "Gehandicaptenvervoermiddel met motor")] = "car"
@@ -63,6 +65,11 @@ ODIN$CarTrip = 0
 ODIN$CarTrip[ODIN$modes_simple == "car"] = 1
 ODIN$PubTransTrip = 0
 ODIN$PubTransTrip[ODIN$modes_simple == "publicTransport"] = 1
+
+modes = as.data.frame(unique(ODIN$modes_simple))
+modes$modes_int = 1:5
+colnames(modes) = c("modes_simple", "modes_int")
+ODIN = merge(ODIN, modes, by = "modes_simple", all.x = T)
 
 
 setwd("D:")
@@ -87,9 +94,6 @@ PC6_polygonsf = st_as_sf(PC6_polygon)
 crs = "+init=EPSG:28992" #Amersfoort / RD New
 crs_name = "RDNew"
 CRS_defin = "+towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725"
-
-
-
 
 
 ##################################################
@@ -130,6 +134,64 @@ for(x in 1:nrow(ODIN)){
 plot(PC6_polygon[which(PC6_polygon$PC6 %in% route_stats$PC6),])
 plot(orig_dest_line, add = T, col = "red")
 st_length(orig_dest_line)
+
+
+######################################################
+### Read environmental trip data ####################
+####################################################
+setwd("D:/9234_Orig_Dest_TrackProperties_PC6Combinations_1")
+file_in    <- file("9234_Orig_Dest_TrackProperties_PC6Combinations_1.csv","r")
+chunk_size <- 300000 # choose the best size for you
+x          <- readLines(file_in, n=chunk_size)
+df = as.data.frame(x)
+columnnames = unlist(strsplit(df[1,], ","))
+print(x[1])
+df = data.frame(do.call("rbind", strsplit(as.character(df[2:nrow(df), "x"]), ",", fixed = TRUE)))
+colnames(df) = columnnames
+?readLines
+trackEnv = read.csv("9234_Orig_Dest_TrackProperties_PC6Combinations_1.csv")
+trackEnv = read_delim("9234_Orig_Dest_TrackProperties_PC6Combinations_1.csv", ",", col_names = TRUE)
+
+relev_PC6 = unique(unlist(c(unique(ODIN$orig_PC6), unique(ODIN$dest_PC6))))
+
+df = df[which(df$orig_PC6 %in% relev_PC6),]
+df = df[which(df$dest_PC6 %in% relev_PC6),]
+
+new_columns = colnames(df)[colnames(df) %in% c("orig_postcode","orig_PC6","dest_postcode","dest_PC6") == FALSE]
+
+opposite_colums = gsub(".orig", "xxxx", new_columns)
+opposite_colums =  gsub(".dest", ".orig", opposite_colums)
+opposite_colums =  gsub("xxxx", ".dest", opposite_colums)
+
+print(new_columns)
+print(opposite_colums)
+
+ODIN_orig_dest = ODIN
+ODIN_orig_dest[,new_columns] = NA
+for(i in 1:nrow(ODIN_orig_dest)){
+  if(length(which((df$orig_PC6 == ODIN_orig_dest[i,"orig_PC6"]) & (df$dest_PC6 == ODIN_orig_dest[i,"dest_PC6"]))) > 0){
+    ODIN_orig_dest[i, new_columns] = df[which((df$orig_PC6 == ODIN_orig_dest[i,"orig_PC6"]) & (df$dest_PC6 == ODIN_orig_dest[i,"dest_PC6"])), new_columns]
+  }
+  else if(length(which((df$orig_PC6 == ODIN_orig_dest[i,"dest_PC6"]) & (df$dest_PC6 == ODIN_orig_dest[i,"orig_PC6"]))) > 0){
+    print("its case 2")
+    ODIN_orig_dest[i, opposite_colums] = df[which((df$orig_PC6 == ODIN_orig_dest[i,"dest_PC6"]) & (df$dest_PC6 == ODIN_orig_dest[i,"orig_PC6"])), new_columns]
+  }
+}
+
+
+
+setwd("D:/")
+write.csv(ODIN_orig_dest, "ODIN_envjoin.csv", row.names = F)
+ODIN_orig_dest= read.csv("ODIN_envjoin.csv")
+
+ODIN_orig_dest = ODIN_orig_dest[!is.na(ODIN_orig_dest$DistCBD.orig),]
+##############################################
+### make sure all numeric columns are numeric #########
+###############################################
+
+str(ODIN_orig_dest)
+ODIN_orig_dest[new_columns] <- sapply(ODIN_orig_dest[new_columns],as.numeric)
+str(ODIN_orig_dest)
 
 #####################################################
 ### Initial Regression Exploration ##################
@@ -204,7 +266,7 @@ bike_lm <- lm(BikeTrip ~ sex + age + migration_background +
 
 summary(bike_lm)
 
-
+colnames(ODIN_orig_dest)
 car_lm <- lm(CarTrip ~ sex + age + migration_background +
                Nr_cars_hh +
                income +
@@ -240,6 +302,9 @@ car_lm <- lm(CarTrip ~ sex + age + migration_background +
 summary(car_lm)
 
 
+
+
+
 ############################################
 ### Behavioral Model Replica ###############
 ############################################
@@ -257,128 +322,236 @@ ODIN_orig_dest$age_group[ODIN_orig_dest$age %in% 18:35] = 2
 ODIN_orig_dest$age_group[ODIN_orig_dest$age %in% 35:50] = 3
 ODIN_orig_dest$age_group[ODIN_orig_dest$age %in% 50:65] = 4
 ODIN_orig_dest$age_group[ODIN_orig_dest$age %in% 65:100] = 5
+ODIN_orig_dest$trip_distance_km = ODIN_orig_dest$trip_distance/1000
 
-
-## parameters for calibration
-income_weight_car = 0
-trip_dist_weight_car_age = c(0,0,0,0,0)
-parking_space_weight_car = 0
-car_access_weight = 0   #test as binary or weight
-parking_price_weight_car = 0
-parking_price_weight_car_income = c(0,0,0)
-children_weight_car = 0
-DistCBD_weight_car  = 0
-
-
-trip_dist_weight_walk_age = c(0,0,0,0,0)
-DistCBD_weight_walk  = 0
-pubTraDns_orig_weight_walk  = 0
-pubTraDns_dest_weight_walk = 0
-popDns_weight_walk  = 0
-retaiDns_weight_walk = 0
-greenCovr_weight_walk = 0
-RdIntrsDns_weight_walk = 0
-TrafAccid_weight_walk = 0
-AccidPedes_weight_walk = 0
-NrTrees_weight_walk = 0
-MeanTraffV_weight_walk = 0
-HighwLen_weight_walk = 0
-PedStrWidt_weight_walk = 0
-PedStrLen_weight_walk = 0
-retailDiv_weight_walk = 0
-MaxSpeed_weight_walk = 0
-NrStrLight_weight_walk = 0
-CrimeIncid_weight_walk = 0
-MaxNoisDay_weight_walk = 0
-OpenSpace_weight_walk = 0
-PNonWester_weight_walk = 0
-PWelfarDep_weight_walk = 0
-
-trip_dist_weight_bike_age = c(0,0,0,0,0)
-LenBikRout_weight_walk = 0
-TrafAccid_weight_walk = 0
-DistCBD_weight_walk  = 0
-NrTrees_weight_walk = 0
-MeanTraffV_weight_walk = 0
-HighwLen_weight_walk = 0
-
-
-
-ODIN_orig_dest$driving_utility = (income_weight_car * ODIN_orig_dest$income) +
-                                 (trip_dist_weight_car_age[ODIN_orig_dest$age_group] * ODIN_orig_dest$trip_distance) +
-                                 (parking_space_weight_car * ODIN_orig_dest$NrParkSpac.dest) +
-                                 (parking_price_weight_car * ODIN_orig_dest$ParkingPrice.dest) +
-                                 (children_weight_car * ODIN_orig_dest$nr_children_yonger6) +
-                                 (DistCBD_weight_car * ODIN_orig_dest$DistCBD)
-
-ODIN_orig_dest$driving_utility[ODIN_orig_dest$car_access > 0]  = 0
-
-
-ODIN_orig_dest$walking_utility = (trip_dist_weight_walk_age[ODIN_orig_dest$age_group] * ODIN_orig_dest$trip_distance) +
-                                  (DistCBD_weight_walk * ODIN_orig_dest$DistCBD) +
-                                  (pubTraDns_orig_weight_walk * ODIN_orig_dest$pubTraDns.orig) +
-                                  (pubTraDns_dest_weight_walk * ODIN_orig_dest$pubTraDns.dest) +
-                                  (popDns_weight_walk * ODIN_orig_dest$popDns) +
-                                  (retaiDns_weight_walk * ODIN_orig_dest$retaiDns) +
-                                  (greenCovr_weight_walk * ODIN_orig_dest$greenCovr) +
-                                  (RdIntrsDns_weight_walk * ODIN_orig_dest$RdIntrsDns) +
-                                  (TrafAccid_weight_walk * ODIN_orig_dest$TrafAccid) +
-                                  (AccidPedes_weight_walk * ODIN_orig_dest$AccidPedes) +
-                                  (NrTrees_weight_walk * ODIN_orig_dest$NrTrees) +
-                                  (MeanTraffV_weight_walk * ODIN_orig_dest$MeanTraffV) +
-                                  (HighwLen_weight_walk * ODIN_orig_dest$HighwLen) +
-                                  (PedStrWidt_weight_walk * ODIN_orig_dest$PedStrWidt) +
-                                  (PedStrLen_weight_walk * ODIN_orig_dest$PedStrLen) +
-                                  (retailDiv_weight_walk * ODIN_orig_dest$retailDiv) +
-                                  (MaxSpeed_weight_walk * ODIN_orig_dest$MaxSpeed) +
-                                  (NrStrLight_weight_walk * ODIN_orig_dest$NrStrLight) +
-                                  (CrimeIncid_weight_walk * ODIN_orig_dest$CrimeIncid) +
-                                  (MaxNoisDay_weight_walk * ODIN_orig_dest$MaxNoisDay) +
-                                  (OpenSpace_weight_walk * ODIN_orig_dest$OpenSpace) +
-                                  (PNonWester_weight_walk * ODIN_orig_dest$PNonWester) +
-                                  (PWelfarDep_weight_walk * ODIN_orig_dest$PWelfarDep)
-
-
-
-ODIN_orig_dest$biking_utility = (trip_dist_weight_bike_age[ODIN_orig_dest$age_group] * ODIN_orig_dest$trip_distance) +
-                                  (DistCBD_weight_bike * ODIN_orig_dest$DistCBD) +
-                                  (popDns_weight_bike * ODIN_orig_dest$popDns) +
-                                  (greenCovr_weight_bike * ODIN_orig_dest$greenCovr) +
-                                  (RdIntrsDns_weight_bike * ODIN_orig_dest$RdIntrsDns) +
-                                  (TrafAccid_weight_bike * ODIN_orig_dest$TrafAccid) +
-                                  (LenBikRout_weight_walk * ODIN_orig_dest$LenBikRout) +
-                                  (NrTrees_weight_bike * ODIN_orig_dest$NrTrees) +
-                                  (MeanTraffV_weight_bike * ODIN_orig_dest$MeanTraffV) +
-                                  (HighwLen_weight_bike * ODIN_orig_dest$HighwLen) +
-                                  (MaxSpeed_weight_bike * ODIN_orig_dest$MaxSpeed) +
-                                  (NrStrLight_weight_bike * ODIN_orig_dest$NrStrLight) +
-                                  (CrimeIncid_weight_bike * ODIN_orig_dest$CrimeIncid) +
-                                  (MaxNoisDay_weight_bike * ODIN_orig_dest$MaxNoisDay) +
-                                  (OpenSpace_weight_bike * ODIN_orig_dest$OpenSpace) +
-                                  (PNonWester_weight_bike * ODIN_orig_dest$PNonWester) +
-                                  (PWelfarDep_weight_bike * ODIN_orig_dest$PWelfarDep)
-
-
+## parameter initialization for calibration
+#optional
+parking_price_weight_car_income = c(1,2,3)
 season (weather)
 
+car_params_nam = c("income_weight_car", 
+                   "parking_space_weight_car",
+                   "parking_price_weight_car", "children_weight_car",
+                   "DistCBD_weight_car")
+car_params_simple = c(1,1,1,1,1)
+
+hetero_params_nam = c("trip_dist_weight_car_age", "trip_dist_weight_walk_age", 
+                      "trip_dist_weight_bike_age", "trip_dist_weight_transit_age")
+hetero_params = list(c(1,2,3,4,5,6),c(1,2,3,4,5,6),c(1,2,3,4,5,6),c(1,2,3,4,5,6))
+
+walk_params_nam = c("DistCBD_weight_walk", "pubTraDns_orig_weight_walk", 
+                    "pubTraDns_dest_weight_walk", "popDns_weight_walk", "retaiDns_weight_walk", 
+                    "greenCovr_weight_walk", "RdIntrsDns_weight_walk", "TrafAccid_weight_walk", 
+                    "AccidPedes_weight_walk", "NrTrees_weight_walk", "MeanTraffV_weight_walk", 
+                    "HighwLen_weight_walk", "PedStrWidt_weight_walk", "PedStrLen_weight_walk", 
+                    "retailDiv_weight_walk", "MaxSpeed_weight_walk", "NrStrLight_weight_walk", 
+                    "CrimeIncid_weight_walk", "MaxNoisDay_weight_walk", "OpenSpace_weight_walk",
+                    "PNonWester_weight_walk", "PWelfarDep_weight_walk")
+
+walk_params_simple = c(0.1,0.1,0.2,0.3,0.4,0.2,0.1,0.1,0.1,0.1,0.1,1,1,1,1,1,1,1,1,1,1,1)
+
+bike_params_nam = c("LenBikRout_weight_bike", "popDns_weight_bike ", 
+                    "greenCovr_weight_bike", "RdIntrsDns_weight_bike", "TrafAccid_weight_bike", 
+                    "DistCBD_weight_bike ", "NrTrees_weight_bike", "MeanTraffV_weight_bike", 
+                    "HighwLen_weight_bike", "MaxSpeed_weight_bike", "NrStrLight_weight_bike", 
+                    "CrimeIncid_weight_bike", "MaxNoisDay_weight_bike", "OpenSpace_weight_bike", 
+                    "PNonWester_weight_bike", "PWelfarDep_weight_bike")
+bike_params_simple = c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
 
 
-## behavioral model replica
+transit_params_nam = c("age_weight_transit", "income_weight_transit", "DistCBD_weight_transit",
+                       "pubTraDns_orig_weight_transit", "pubTraDns_dest_weight_transit", 
+                       "popDns_weight_transit", "retaiDns_weight_transit", "retailDiv_weight_transit", 
+                       "NrStrLight_weight_transit", "CrimeIncid_weight_transit", "PNonWester_weight_transit", 
+                       "PWelfarDep_weight_transit")
 
-fitness <- function(x)
+transit_params_simple = c(1,1,1,1,1,1,1,1,1,1,1,1)
+
+
+## modal choice function
+calc_modal_choice = function(car_params_simple, walk_params_simple, bike_params_simple, transit_params_simple, hetero_params)
 {
-  f <- -f(x)                         # we need to maximise -f(x)
-  pen <- sqrt(.Machine$double.xmax)  # penalty term
-  penalty1 <- max(c1(x),0)*pen       # penalisation for 1st inequality constraint
-  penalty2 <- max(c2(x),0)*pen       # penalisation for 2nd inequality constraint
-  f - penalty1 - penalty2            # fitness function value
+  ODIN_orig_dest$driving_utility = (car_params_simple[1] * ODIN_orig_dest$income) +
+    (hetero_params[[1]][ODIN_orig_dest$age_group] * ODIN_orig_dest$trip_distance_km) +
+    (car_params_simple[2] * ODIN_orig_dest$NrParkSpac.dest) +
+    (car_params_simple[3] * ODIN_orig_dest$PrkPricPre.dest) +
+    (car_param_simple[4] * ODIN_orig_dest$nr_children_yonger6) +
+    (car_params_simple[5] * ODIN_orig_dest$DistCBD.orig)
+  ODIN_orig_dest$driving_utility[ODIN_orig_dest$car_access > 0]  = 0
+  
+  ODIN_orig_dest$walking_utility = (hetero_params[[2]][ODIN_orig_dest$age_group] * ODIN_orig_dest$trip_distance_km) +
+    (walk_params_simple[1] * ODIN_orig_dest$DistCBD.orig) +
+    (walk_params_simple[2] * ODIN_orig_dest$pubTraDns.orig) +
+    (walk_params_simple[3] * ODIN_orig_dest$pubTraDns.dest) +
+    (walk_params_simple[4] * ODIN_orig_dest$popDns.route) +
+    (walk_params_simple[5] * ODIN_orig_dest$retaiDns.route) +
+    (walk_params_simple[6] * ODIN_orig_dest$greenCovr.route) +
+    (walk_params_simple[7] * ODIN_orig_dest$RdIntrsDns.route) +
+    (walk_params_simple[8] * ODIN_orig_dest$TrafAccid.route) +
+    (walk_params_simple[9] * ODIN_orig_dest$AccidPedes.route) +
+    (walk_params_simple[10] * ODIN_orig_dest$NrTrees.route) +
+    (walk_params_simple[11] * ODIN_orig_dest$MeanTraffV.route) +
+    (walk_params_simple[12] * ODIN_orig_dest$HighwLen.route) +
+    (walk_params_simple[13] * ODIN_orig_dest$PedStrWidt.route) +
+    (walk_params_simple[14] * ODIN_orig_dest$PedStrLen.route) +
+    (walk_params_simple[15] * ODIN_orig_dest$retailDiv.route) +
+    (walk_params_simple[16] * ODIN_orig_dest$MaxSpeed.route) +
+    (walk_params_simple[17] * ODIN_orig_dest$NrStrLight.route) +
+    (walk_params_simple[18] * ODIN_orig_dest$CrimeIncid.route) +
+    (walk_params_simple[19] * ODIN_orig_dest$MaxNoisDay.route) +
+    (walk_params_simple[20] * ODIN_orig_dest$OpenSpace.route) +
+    (walk_params_simple[21] * ODIN_orig_dest$PNonWester.route) +
+    (walk_params_simple[22] * ODIN_orig_dest$PWelfarDep.route)
+  
+  ODIN_orig_dest$biking_utility = (hetero_params[[3]][ODIN_orig_dest$age_group]  * ODIN_orig_dest$trip_distance_km) +
+    (bike_params_simple[6] * ODIN_orig_dest$DistCBD.orig) +
+    (bike_params_simple[2] * ODIN_orig_dest$popDns.route) +
+    (bike_params_simple[3] * ODIN_orig_dest$greenCovr.route) +
+    (bike_params_simple[4] * ODIN_orig_dest$RdIntrsDns.route) +
+    (bike_params_simple[5] * ODIN_orig_dest$TrafAccid.route) +
+    (bike_params_simple[1] * ODIN_orig_dest$LenBikRout.route) +
+    (bike_params_simple[7] * ODIN_orig_dest$NrTrees.route) +
+    (bike_params_simple[8] * ODIN_orig_dest$MeanTraffV.route) +
+    (bike_params_simple[9] * ODIN_orig_dest$HighwLen.route) +
+    (bike_params_simple[10] * ODIN_orig_dest$MaxSpeed.route) +
+    (bike_params_simple[11] * ODIN_orig_dest$NrStrLight.route) +
+    (bike_params_simple[12] * ODIN_orig_dest$CrimeIncid.route) +
+    (bike_params_simple[13] * ODIN_orig_dest$MaxNoisDay.route) +
+    (bike_params_simple[14] * ODIN_orig_dest$OpenSpace.route) +
+    (bike_params_simple[15] * ODIN_orig_dest$PNonWester.route) +
+    (bike_params_simple[16] * ODIN_orig_dest$PWelfarDep.route)
+  
+  ODIN_orig_dest$transit_utility = (transit_params_simple[2] * ODIN_orig_dest$income) +
+    (transit_params_simple[1]  * ODIN_orig_dest$age) +      
+    (hetero_params[[4]][ODIN_orig_dest$age_group] * ODIN_orig_dest$trip_distance_km) +
+    (transit_params_simple[3]  * ODIN_orig_dest$DistCBD.orig) +
+    (transit_params_simple[4]  * ODIN_orig_dest$pubTraDns.orig) +
+    (transit_params_simple[5]  * ODIN_orig_dest$pubTraDns.dest) +
+    (transit_params_simple[6]  * ODIN_orig_dest$popDns.route) +
+    (transit_params_simple[7]  * ODIN_orig_dest$retaiDns.route) +
+    (transit_params_simple[8]  * ODIN_orig_dest$retailDiv.route) +
+    (transit_params_simple[9]  * ODIN_orig_dest$NrStrLight.route) +
+    (transit_params_simple[10]  * ODIN_orig_dest$CrimeIncid.route) +
+    (transit_params_simple[11]  * ODIN_orig_dest$PNonWester.route) +
+    (transit_params_simple[12]  * ODIN_orig_dest$PWelfarDep.route)
+  
+  modechoice = ODIN_orig_dest %>%
+    rowwise() %>%
+    summarise(
+      mode_choice = which.max(c(transit_utility, walking_utility, biking_utility, driving_utility))
+    ) 
+  modechoice[,c("transit_pred", "walk_pred", "bike_pred", "car_pred")] = 0
+  modechoice$transit_pred[which(modechoice$mode_choice == 1)] = 1
+  modechoice$walk_pred[which(modechoice$mode_choice == 2)] = 1
+  modechoice$bike_pred[which(modechoice$mode_choice == 3)] =1
+  modechoice$car_pred[which(modechoice$mode_choice == 4)] = 1
+  return(modechoice)
 }
 
-GA <- ga("real-valued", fitness = fitness,
-         lower = c(0,0), upper = c(1,13),
-         # selection = GA:::gareal_lsSelection_R,
-         maxiter = 1000, run = 200, seed = 123)
-summary(GA)
 
+modal_split = c(length(which(ODIN_orig_dest$WalkTrip == 1))/nrow(ODIN_orig_dest),
+                length(which(ODIN_orig_dest$BikeTrip == 1))/nrow(ODIN_orig_dest),
+                length(which(ODIN_orig_dest$CarTrip == 1))/nrow(ODIN_orig_dest),
+                length(which(ODIN_orig_dest$PubTransTrip == 1))/nrow(ODIN_orig_dest))
+                
+## fitness function
+fitness = function(x)
+{
+  # walk_params_simple = x
+  if(mode == "bike"){
+    bike_params_simple = x[1:length(bike_params_simple)]
+    hetero_params[[3]] = x[(length(bike_params_simple)+1):length(x)]
+    
+   }
+  else if(mode == "car"){
+    car_params_simple = x[1:length(car_params_simple)]
+    hetero_params[[1]] = x[(length(car_params_simple)+1):length(x)]
+  }  
+  else if(mode == "walk"){
+    walk_params_simple = x[1:length(walk_params_simple)]
+    hetero_params[[2]] = x[(length(walk_params_simple)+1):length(x)]
+  }
+  else if(mode == "transit"){
+    transit_params_simple = x[1:length(transit_params_simple)]
+    hetero_params[[4]] = x[(length(transit_params_simple)+1):length(x)]
+  }
+  # else if (mode == "complex"){
+  #   hetero_params[[1]] = x[1:6]
+  #   hetero_params[[2]] = x[7:12]
+  #   hetero_params[[3]] = x[13:18]
+  #   hetero_params[[4]] = x[19:24]
+  # }
+  modechoice = calc_modal_choice(car_params_simple = car_params_simple, 
+                    walk_params_simple = walk_params_simple,
+                    bike_params_simple = bike_params_simple,
+                    transit_params_simple = transit_params_simple,
+                    hetero_params = hetero_params)
+  walk_f1 = f1_score(modechoice$walk_pred,ODIN_orig_dest$WalkTrip)
+  if(is.na(walk_f1)){walk_f1 = 0}
+  bike_f1 = f1_score(modechoice$bike_pred,ODIN_orig_dest$BikeTrip)
+  if(is.na(bike_f1)){bike_f1 = 0}
+  car_f1 = f1_score(modechoice$car_pred,ODIN_orig_dest$CarTrip)
+  if(is.na(car_f1)){car_f1 = 0}
+  transit_f1 = f1_score(modechoice$transit_pred,ODIN_orig_dest$PubTransTrip)
+  if(is.na(transit_f1)){transit_f1 = 0}
+  weighted_f1 =   (walk_f1 * modal_split[1]) + 
+                  (bike_f1 * modal_split[2]) + 
+                  (car_f1 * modal_split[3]) + 
+                  (transit_f1 * modal_split[4]) 
+  print(paste0(mode, " par, F1-scor: walk ", format(round(walk_f1, 2), nsmall = 2), 
+               ", car ", format(round(car_f1, 2), nsmall = 2), 
+               ", bike ", format(round(bike_f1, 2), nsmall = 2), 
+               ", transit ", format(round(transit_f1, 2), nsmall = 2), 
+               ", weighted ", weighted_f1))
+  return(weighted_f1)
+}
+
+
+
+mode = "bike"
+print(mode)
+GA_bike <- ga("real-valued", fitness = fitness,
+                  lower = c(rep(0,length(bike_params_simple)+6)), upper = c(rep(3,length(bike_params_simple)+6)), 
+                  popSize = 100,  maxiter = 1000, run = 200, seed = 123)
+summary(GA_bike)
+bike_params_simple = GA_bike@solution[1,][1:length(bike_params_simple)]
+hetero_params[[3]] = GA_bike@solution[1,][(length(bike_params_simple)+1):(length(bike_params_simple)+6)]
+
+
+
+mode = "walk"
+print(mode)
+GA_walk <- ga("real-valued", fitness = fitness,
+              lower = c(rep(0,length(walk_params_simple)+6)), upper = c(rep(3,length(walk_params_simple)+6)), 
+              popSize = 200, maxiter = 1000, run = 200, seed = 123)
+summary(GA_walk)
+walk_params_simple= GA_walk@solution[1,][1:length(walk_params_simple)]
+hetero_params[[2]] = GA_walk@solution[1,][(length(walk_params_simple)+1):(length(walk_params_simple)+6)]
+
+
+
+mode = "car"
+print(mode)
+GA_car <- ga("real-valued", fitness = fitness,
+             lower = c(rep(0,length(car_params_simple)+6)), upper = c(rep(10,length(car_params_simple)+6)),
+             popSize = 200, maxiter = 1000, run = 200, seed = 123)
+summary(GA_car)
+car_params_simple= GA_car@solution[1,]
+
+
+mode = "transit"
+print(mode)
+GA_transit <- ga("real-valued", fitness = fitness,
+                 lower = c(rep(0,length(transit_params_simple)+6)), upper = c(rep(5,length(transit_params_simple)+6)), 
+                 popSize = 200,    maxiter = 1000, run = 200, seed = 123)
+summary(GA_transit)
+transit_params_simple= GA_transit@solution[1,][1:length(transit_params_simple)]
+hetero_params[[4]] = GA_hetero@solution[1,][(length(transit_params_simple)+1):(length(transit_params_simple)+6)]
+
+
+
+
+?ga
 hill.climbing.search(attributes, eval.fun)
+?hill.climbing.search
 
