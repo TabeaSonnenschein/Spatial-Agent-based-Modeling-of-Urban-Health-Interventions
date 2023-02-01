@@ -27,7 +27,6 @@ from matplotlib import pyplot
 #################################################################################################
 
 os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-# csv = os.path.join(os.getcwd(), ("possible_evidence_instances_training_data_2000.csv"))
 csv = os.path.join(os.getcwd(), ("possible_evidence_instances_training_data_4000.csv"))
 traindata = pd.read_csv(csv)
 
