@@ -1,9 +1,12 @@
 
-pkgs = c("maptools","raster", "rgdal","sp", "sf", "jpeg", "data.table", "purrr", "rgeos" , "leaflet", "RColorBrewer",
+pkgs = c("geojsonsf", "maptools","raster", "rgdal","sp", "sf", "jpeg", "data.table", "purrr", "rgeos" , "leaflet", "RColorBrewer",
          "ggplot2", "lattice",  "raster",  "spatialEco", "rjson", "jsonlite","EconGeo", "dplyr",
          "rstan", "boot",  "concaveman", "data.tree", "DiagrammeR", "networkD3", "rgexf", "tidytree", "exactextractr", "terra")
 sapply(pkgs, require, character.only = T) #load
 rm(pkgs)
+
+
+ 
 
 dataFolder= "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
 
@@ -28,6 +31,14 @@ offroad_centroids_sf <- st_transform(offroad_centroids_sf, 5880) # transform to 
 onroad_centroids_sf = st_as_sf(onroad_centroids)
 onroad_centroids_sf <- st_transform(onroad_centroids_sf, 5880) # transform to your desired proj (unit = m)
 dist_matrix   <- st_distance(offroad_centroids_sf, onroad_centroids_sf)           # creates a matrix of distances
+
+OffRoadData <- geojson_sf("D:/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/PalmesOffRoadMeasurements/ams_palmes_only_agg_sf.geojson")
+
+airpoll_grid_df = as.data.frame(airpoll_grid)
+OffRoadData_df = as.data.frame(OffRoadData)
+joined = merge(airpoll_grid_df, OffRoadData_df, by = "int_id", all = T)
+joined_complete = joined[!is.na(joined$Vierweekse_7),]
+joined_complete_onroad = joined_complete[joined_complete$ON_ROAD.x == 0,]
 
 
 # Extract 3D Bag data
