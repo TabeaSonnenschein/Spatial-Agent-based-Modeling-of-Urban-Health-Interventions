@@ -6,6 +6,7 @@ from math import floor, ceil
 import nltk
 nltk.download('wordnet')
 from nltk.corpus import wordnet
+pd.options.mode.chained_assignment = None  # default='warn'
 
 ############################################################################################################
 ## This script harmonizes synonymous variable names based on string similarity (using shared subword analysis and Jaro-Winkler distance)
@@ -115,14 +116,14 @@ def FindNounsInSubwords(subword_list_var):
     Noun_idx = [index for index, item in enumerate(PosList) if item in ["NN", "NNP"]]
     return Noun_idx
 
-def FindOtherVariablesWithSharedSubwords( subword_list_var, variable_names):
+def FindOtherVariablesWithSharedSubwords( subword_list_var, variable_names, self_index):
     '''This function finds other words that share subwords and ranks them based on how many subwords they share.
        Additionally, if there are words that only miss one word of the variable the variable is casted as eligible (for synonymity),
        and if there are words that contain all subwords of the word of analysis, it is casted as certain.'''
     shar_subword_varname, shar_subword_ID = [], []
     for word in subword_list_var:
         for count, value in enumerate(variable_names):
-            if (word in value) and (count != i):
+            if (word in value) and (count != self_index):
                 shar_subword_varname.append(variable_names[count])
                 shar_subword_ID.append(variables_df['orig_name_ID'].iloc[count])
     Ranking_most_similar_ID, Ranking_Nr_shared_words, Ranking_variable_name, Eligible, Certain = [], [], [], 0, 0
@@ -144,7 +145,7 @@ def AddSharedSubwordsToAllVarOfDf(variables_df, variable_names):
     variables_df[['Nr_subwords','Ranking_most_similar_ID', 'Ranking_Nr_shared_words', 'Ranking_variable_name']] = ''
     for i in range(0,nr_variables):
         variables_df['Nr_subwords'].iloc[i] = len(subword_list[i])
-        Ranking_most_similar_ID, Ranking_Nr_shared_words, Ranking_variable_name, Eligible, Certain = FindOtherVariablesWithSharedSubwords(subword_list[i], variable_names)
+        Ranking_most_similar_ID, Ranking_Nr_shared_words, Ranking_variable_name, Eligible, Certain = FindOtherVariablesWithSharedSubwords(subword_list[i], variable_names, self_index = i)
         variables_df['Ranking_most_similar_ID'].iloc[i] = Ranking_most_similar_ID
         variables_df['Ranking_Nr_shared_words'].iloc[i] = Ranking_Nr_shared_words
         variables_df['Ranking_variable_name'].iloc[i] = Ranking_variable_name
@@ -196,8 +197,19 @@ def IdentifyClusterVariableName(Var_df, ClusterID, VarColName):
     subset = Cluster_df[Var_df['ClusterID'] == ClusterID]
     if len(subset.index) > 1:
         VarHarmon_df['Synonyms'].iloc[count] = "; ".join(subset[VarColName])
-        if max(subset['Freq']) > 1:
+        if max(subset['Freq']) > 3:
             maxFreq_idx = [index for index, item in enumerate(subset['Freq']) if item == max(subset['Freq'])]
+            if len(maxFreq_idx) > 1:
+                maxQuota_idx = [index for index, item in enumerate(subset['AssignedWords_NrWords_freq_Quota'].iloc[maxFreq_idx]) if
+                              item == max(subset['AssignedWords_NrWords_freq_Quota'].iloc[maxFreq_idx])]
+                VarID = subset['orig_name_ID'].iloc[maxFreq_idx[maxQuota_idx[0]]]
+                VarName = subset[VarColName].iloc[maxFreq_idx[maxQuota_idx[0]]]
+            else:
+                VarID = subset['orig_name_ID'].iloc[maxFreq_idx[0]]
+                VarName = subset[VarColName].iloc[maxFreq_idx[0]]
+        else:
+            maxFreq_idx = [index for index, item in enumerate(subset['AssignedWords_NrWords_freq_Quota']) if
+                           item == max(subset['AssignedWords_NrWords_freq_Quota'])]
             if len(maxFreq_idx) > 1:
                 minLen_idx = [index for index, item in enumerate(subset['Str_Length'].iloc[maxFreq_idx]) if
                               item == min(subset['Str_Length'].iloc[maxFreq_idx])]
@@ -206,10 +218,6 @@ def IdentifyClusterVariableName(Var_df, ClusterID, VarColName):
             else:
                 VarID = subset['orig_name_ID'].iloc[maxFreq_idx[0]]
                 VarName = subset[VarColName].iloc[maxFreq_idx[0]]
-        else:
-            minLen_idx = [index for index, item in enumerate(subset['Str_Length']) if item == min(subset['Str_Length'])]
-            VarID = subset['orig_name_ID'].iloc[minLen_idx[0]]
-            VarName = subset[VarColName].iloc[minLen_idx[0]]
     else:
         VarID = subset['orig_name_ID'].iloc[0]
         VarName = subset[VarColName].iloc[0]
@@ -269,9 +277,9 @@ for count, value in enumerate(variable_IDs):
         winners = [candidates[el] for el in Nr]
         if variables_df["Nr_subwords"].iloc[count] > 1: #if more than one word is shared
             synonymity_df.loc[value, winners] = 1
-        else: # if only one word is shared (substring) but both words are one word long
+        elif len(winners) <= 5 : # if only one word is shared (substring) but both words are one  or two words long
             NrSubwords = [variables_df.loc[variables_df[variables_df['orig_name_ID'] == el].index, "Nr_subwords"].values[0] for el in winners]
-            singleWordVar = [candidates[el] for el in [index for index, item in enumerate(NrSubwords) if item == 1]]
+            singleWordVar = [candidates[el] for el in [index for index, item in enumerate(NrSubwords) if item < 3]]
             synonymity_df.loc[value, singleWordVar] = 1
 
     elif variables_df["Eligible"].iloc[count] == 1:
@@ -285,16 +293,42 @@ for count, value in enumerate(variable_IDs):
         for number, subwordlist in enumerate(candidate_subwords):
             for word in own_subwords:
                 if not(word in subwordlist) and not(any(True for subword in subwordlist if word in subword)):
-                    synonyms = []
+                    syno_antonyms = []
                     for syn in wordnet.synsets(word):
                         for i in syn.lemmas():
-                            synonyms.append(i.name())
-                    if any(True for synonym in synonyms if synonym in subwordlist):
+                            syno_antonyms.append(i.name())
+                            if i.antonyms():
+                                syno_antonyms.append(i.antonyms()[0].name())
+                    if any(True for synonym in syno_antonyms if synonym in subwordlist) :
                         synonymity_df.loc[value, winners[number]] = 1
-                        print("orig", own_subwords, "candit", subwordlist, "contains one of:", synonyms)
+                        print("orig", own_subwords, "candit", subwordlist, "contains one of:", syno_antonyms)
 
-
-    ### For long words two word synonymity matching
+        if variables_df["Nr_subwords"].iloc[count] >= 3:     ### For long words two word synonymity matching
+            Nr = [index for index, item in enumerate(candidates_freq) if item == (variables_df["Nr_subwords"].iloc[count] - 2)]
+            winners = [candidates[el] for el in Nr]
+            # check if the 2 words that are different are synonyms
+            candidate_subwords = [str(variables_df.loc[variables_df[variables_df['orig_name_ID'] == el].index, "subwords"].values[0]).split("; ") for el in winners]
+            own_subwords = str(variables_df[variable_type].iloc[count]).split(" ")
+            for number, subwordlist in enumerate(candidate_subwords):
+                synonym_number = 0
+                excess_subwords = [word for word in subwordlist if (not(word in own_subwords) and not(any(True for ownword in own_subwords if ownword in word)))]
+                for word in own_subwords:
+                    if not(word in subwordlist) and not(any(True for subword in subwordlist if word in subword)):
+                        if word in ["of", "to", "in"]:
+                            synonym_number = synonym_number + 1
+                        else:
+                            syno_antonyms = []
+                            for syn in wordnet.synsets(word):
+                                for i in syn.lemmas():
+                                    syno_antonyms.append(i.name())
+                                    if i.antonyms():
+                                        syno_antonyms.append(i.antonyms()[0].name())
+                            # if any(True for synonym in syno_antonyms if synonym in excess_subwords) or any(True for synonym in syno_antonyms for subword in excess_subwords if ((subword in synonym) and (len(subword) > 3))):
+                            if any(True for synonym in syno_antonyms if synonym in excess_subwords):
+                                synonym_number = synonym_number + 1
+                        if synonym_number == 2:
+                            synonymity_df.loc[value, winners[number]] = 1
+                            print("orig", own_subwords, "candit", subwordlist, excess_subwords, "contains one of:", syno_antonyms)
 
     if variables_df['JWsim_90plus_IDs'].iloc[count] and (variables_df['Nr_subwords'].iloc[count] > 1):
         winners = variables_df['JWsim_90plus_IDs'].iloc[count].split("; ")
@@ -310,10 +344,11 @@ for count, value in enumerate(variable_IDs):
             synonymity_df.loc[value, [variable_IDs[el] for el in winners]] = 1
 
 
-
 csv = os.path.join(os.getcwd(), (variable_type + "_synonymity_NEW.csv"))
 synonymity_df.to_csv(csv, index=False)
 
+variables_df["NrAssignedSynonyms"] = list(synonymity_df.sum(axis = 1))
+variables_df["NrAssignedSynonyms"] = list(synonymity_df.sum(axis = 1))
 
 ## Identifying Clusters
 variable_clusters = GenerateVarClustersFromSynonymityMatrix(synonymity_df, variable_IDs)
@@ -329,9 +364,10 @@ for count, cluster in enumerate(variable_clusters):
 print(variable_clusters_names)
 
 variables_df = variables_df.sort_values(by=['ClusterID'])
+variables_df['AssignedWords_NrWords_freq_Quota'] = (variables_df['NrAssignedSynonyms']*variables_df['Nr_subwords']) + variables_df['Freq']
 variables_df.to_csv(os.path.join(os.getcwd(), (variable_type + "_clusters.csv")), index=False)
 
-Cluster_df = variables_df[['ClusterID', 'orig_name_ID', variable_type, 'Freq']]
+Cluster_df = variables_df[['ClusterID', 'orig_name_ID', variable_type, 'Freq', 'NrAssignedSynonyms', 'Nr_subwords', 'AssignedWords_NrWords_freq_Quota']]
 Cluster_df['Str_Length'] = Cluster_df[variable_type].str.len()
 
 
