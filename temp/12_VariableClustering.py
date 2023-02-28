@@ -3,87 +3,27 @@ import pandas as pd
 import numpy as np
 import re
 from math import floor, ceil
+import nltk
+nltk.download('wordnet')
+from nltk.corpus import wordnet
 
-## reading the significant variable names extracted from all papers
-## applying string similarity measures (levensthein distance... johan winkler...)
-## apply network distance measures using open source wordnet network
+############################################################################################################
+## This script harmonizes synonymous variable names based on string similarity (using shared subword analysis and Jaro-Winkler distance)
+## and semantic similarity (using the synonym function of nltk's wordnet package).
+## Consequently, the variable name for the synonym cluster is identified based on which variable
+## was mentioned most frequently (maximization) and in case of no single variable on top, based on string length (minimization)
+#############################################################################################################
 
-os.chdir(r"C:\Users\Tabea\Documents\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-variable_type = "BehaviorDeterminants"
-variables_df = pd.read_csv("unique_" + variable_type + ".csv")
-variables_df.insert(0, 'orig_name_ID',  ['ON_'+ str(i) for i in range(1,len(variables_df.iloc[:,0])+1)])
-print(variables_df.head())
-
-variable_names = list(variables_df.iloc[:, 1])
-variable_names = [x.lower() for x in variable_names]
-print(variable_names)
-nr_variables = len(variable_names)
-
-variables_df['subwords'] = ["; ".join(variable.split()) for variable in variable_names]
-print(variables_df.head())
-subword_list = [variable.split() for variable in variable_names]
-print(subword_list)
-
-variables_df[['shared_subwords_VarN', 'shared_subwords_VarID']] = ''
-for i in range(0,nr_variables):
-    shar_subword_varname, shar_subword_ID = [], []
-    for word in subword_list[i]:
-        for count, value in enumerate(subword_list):
-            if (word in value) and (count != i):
-                shar_subword_varname.append(variable_names[count])
-                shar_subword_ID.append(variables_df['orig_name_ID'].iloc[count])
-    variables_df['shared_subwords_VarN'].iloc[i] = "; ".join(shar_subword_varname)
-    variables_df['shared_subwords_VarID'].iloc[i] = "; ".join(shar_subword_ID)
-
-print(variables_df)
-
-
-# https://www.datacamp.com/community/tutorials/fuzzy-string-python
-def levenshtein_ratio_and_distance(s, t, ratio_calc = False):
-    """ levenshtein_ratio_and_distance:
-        Calculates levenshtein distance between two strings.
-        If ratio_calc = True, the function computes the
-        levenshtein distance ratio of similarity between two strings
-        For all i and j, distance[i,j] will contain the Levenshtein
-        distance between the first i characters of s and the
-        first j characters of t
-    """
-    # Initialize matrix of zeros
-    rows = len(s)+1
-    cols = len(t)+1
-    distance = np.zeros((rows,cols),dtype = int)
-
-    # Populate matrix of zeros with the indeces of each character of both strings
-    for i in range(1, rows):
-        for k in range(1,cols):
-            distance[i][0] = i
-            distance[0][k] = k
-
-    # Iterate over the matrix to compute the cost of deletions,insertions and/or substitutions
-    for col in range(1, cols):
-        for row in range(1, rows):
-            if s[row-1] == t[col-1]:
-                cost = 0 # If the characters are the same in the two strings in a given position [i,j] then the cost is 0
-            else:
-                # In order to align the results with those of the Python Levenshtein package, if we choose to calculate the ratio
-                # the cost of a substitution is 2. If we calculate just distance, then the cost of a substitution is 1.
-                if ratio_calc == True:
-                    cost = 2
-                else:
-                    cost = 1
-            distance[row][col] = min(distance[row-1][col] + 1,      # Cost of deletions
-                                 distance[row][col-1] + 1,          # Cost of insertions
-                                 distance[row-1][col-1] + cost)     # Cost of substitutions
-    if ratio_calc == True:
-        # Computation of the Levenshtein Distance Ratio
-        Ratio = ((len(s)+len(t)) - distance[row][col]) / (len(s)+len(t))
-        return Ratio
-    else:
-        # print(distance) # Uncomment if you want to see the matrix showing how the algorithm computes the cost of deletions,
-        # insertions and/or substitutions
-        # This is the minimum number of edits needed to convert string a to string b
-        return distance[row][col]
-
+## Functions
+def UniqueLabelsFreq(phraselist, variable_type):
+    """Find unique Labels and count their frequency"""
+    Labels, freq_Labels = [], []
+    for instance in phraselist:
+        Labels.extend(instance.split(" ; "))
+    unique_Labels = list(dict.fromkeys(Labels))
+    for Label in unique_Labels:
+        freq_Labels.append(Labels.count(Label))
+    return pd.DataFrame({variable_type: unique_Labels, 'Freq': freq_Labels})
 
 
 # https://www.geeksforgeeks.org/jaro-and-jaro-winkler-similarity/
@@ -155,54 +95,255 @@ def jaro_distance(s1, s2):
 # This code is contributed by mohit kumar 29
 
 
-variable_similarity = []
-for variable in variable_names:
-    variable_data = []
-    for compare_variable in variable_names:
-        variable_data.append(levenshtein_ratio_and_distance(variable, compare_variable))
-    variable_similarity.append(variable_data)
+def StringSimilarityMatrixAcrossList_JaroWinkler(variable_names):
+    '''This function takes a list of strings and computes the string similarity pairwise.
+       The output is a matrix in which x and y axis represent the strings of the list,
+       and the values their Jaro Winkler string similarity.'''
+    variable_similarity = []
+    for variable in variable_names:
+        variable_data = []
+        for compare_variable in variable_names:
+            variable_data.append(jaro_distance(variable, compare_variable))
+        variable_similarity.append(variable_data)
+    variable_similarity_df = pd.DataFrame(data=variable_similarity, columns=variable_names)
+    print(variable_similarity_df.head())
+    return variable_similarity_df
 
-# print(variable_similarity)
+def FindNounsInSubwords(subword_list_var):
+    '''Identify Nouns in the Subwords and return their indices'''
+    PosList = nltk.pos_tag(subword_list_var)
+    Noun_idx = [index for index, item in enumerate(PosList) if item in ["NN", "NNP"]]
+    return Noun_idx
 
-variable_similarity_Levenshtein_df = pd.DataFrame(data=variable_similarity, columns=variable_names)
-variable_similarity_Levenshtein_df.insert(0, "variablename", variable_names)
-print(variable_similarity_Levenshtein_df.head())
-csv = os.path.join(os.getcwd(), (variable_type + "_LevenshteinDST.csv"))
-variable_similarity_Levenshtein_df.to_csv(csv, index=False)
+def FindOtherVariablesWithSharedSubwords( subword_list_var, variable_names):
+    '''This function finds other words that share subwords and ranks them based on how many subwords they share.
+       Additionally, if there are words that only miss one word of the variable the variable is casted as eligible (for synonymity),
+       and if there are words that contain all subwords of the word of analysis, it is casted as certain.'''
+    shar_subword_varname, shar_subword_ID = [], []
+    for word in subword_list_var:
+        for count, value in enumerate(variable_names):
+            if (word in value) and (count != i):
+                shar_subword_varname.append(variable_names[count])
+                shar_subword_ID.append(variables_df['orig_name_ID'].iloc[count])
+    Ranking_most_similar_ID, Ranking_Nr_shared_words, Ranking_variable_name, Eligible, Certain = [], [], [], 0, 0
+    Freq_table = pd.DataFrame(pd.Series(shar_subword_ID).value_counts())
+    Ranking_most_similar_ID = "; ".join(Freq_table.index.values)
+    Ranking_Nr_shared_words = "; ".join([str(el) for el in Freq_table.iloc[:,0]])
+    Freq_table = pd.DataFrame(pd.Series(shar_subword_varname).value_counts())
+    Ranking_variable_name = "; ".join(Freq_table.index.values)
+    if len(Freq_table)>0 and (len(subword_list_var) - max(Freq_table.iloc[:,0])) <= 1:
+        Eligible = 1
+    if len(Freq_table)>0 and (len(subword_list_var) == max(Freq_table.iloc[:,0])):
+        Certain = 1
+    return Ranking_most_similar_ID, Ranking_Nr_shared_words, Ranking_variable_name, Eligible, Certain
+
+def AddSharedSubwordsToAllVarOfDf(variables_df, variable_names):
+    '''This functions adds shared subwords ranking variables to a complete dataframe.'''
+    subword_list = [variable.split() for variable in variable_names]
+    eligibility, certainty = [], []
+    variables_df[['Nr_subwords','Ranking_most_similar_ID', 'Ranking_Nr_shared_words', 'Ranking_variable_name']] = ''
+    for i in range(0,nr_variables):
+        variables_df['Nr_subwords'].iloc[i] = len(subword_list[i])
+        Ranking_most_similar_ID, Ranking_Nr_shared_words, Ranking_variable_name, Eligible, Certain = FindOtherVariablesWithSharedSubwords(subword_list[i], variable_names)
+        variables_df['Ranking_most_similar_ID'].iloc[i] = Ranking_most_similar_ID
+        variables_df['Ranking_Nr_shared_words'].iloc[i] = Ranking_Nr_shared_words
+        variables_df['Ranking_variable_name'].iloc[i] = Ranking_variable_name
+        eligibility.append(Eligible)
+        certainty.append(Certain)
+    variables_df = variables_df.assign(Eligible = eligibility, Certainty = certainty)
+    print(variables_df)
+    return variables_df
+
+def GetIndicesOfValuesOverValue(df, column, value):
+    ''' Retrieves the indices of cells in a column above a certain value.'''
+    indices = list(df[df.iloc[:,column] > value].index.values)
+    indices.remove(column)
+    return indices
+
+def RemoveRedundantCluster(variable_clusters):
+    '''remove redudant clusters that are contained in other clusters'''
+    for count, cluster in enumerate(variable_clusters):
+        for otherclusters in (variable_clusters[:count] + variable_clusters[count + 1:]):
+            if all(item in otherclusters for item in cluster):
+                del variable_clusters[count]
+    return variable_clusters
+
+def ReturnClustersWithUniqueElements(variable_clusters):
+    '''Reduces the clusters to its unique elements'''
+    for count, cluster in enumerate(variable_clusters):
+        variable_clusters[count] = list(dict.fromkeys(cluster))
+    return variable_clusters
+
+def GenerateVarClustersFromSynonymityMatrix(synonymity_matrix, variable_IDs):
+    ''' This function takes a matrix of Xvariables times the same XVariables whereby 1 mean they are synonymous or not.
+        Consequently the function returns a list of lists, with sublists representing the clusters.'''
+    variable_clusters = []
+    for count, value in enumerate(variable_IDs):
+        indices = list(np.where(synonymity_matrix.iloc[:, count] == 1)[0])
+        variables = [value] + [variable_IDs[el] for el in indices]
+        if any(True for var in variables for cluster in variable_clusters if var in cluster):
+            cluster_idx = [cluster_idx for cluster_idx, cluster in enumerate(variable_clusters) for var in variables if var in cluster]
+            variable_clusters[cluster_idx[0]].extend(variables)
+        else:
+            variable_clusters.append(variables)
+    return ReturnClustersWithUniqueElements(variable_clusters)
 
 
-
-variables_df[['similar_VarN_LS', 'similar_VarID_LS','similar_VarIndx_LS', 'similar_Var_LSD']] = ''
-
-for i in range(0,nr_variables):
-    sim_varN, sim_varId, sim_varindx, sim_var_LSD = [], [], [], []
-    if len(variable_similarity_Levenshtein_df.iloc[i, 0]) > 6:
-        max_LSD = 3
+def IdentifyClusterVariableName(Var_df, ClusterID, VarColName):
+    '''Identifying the best variable name for the synonym cluster based on the frequency
+       that it was mentioned in the evidence across studies (maximization)
+       and the length of the string (minization).'''
+    subset = Cluster_df[Var_df['ClusterID'] == ClusterID]
+    if len(subset.index) > 1:
+        VarHarmon_df['Synonyms'].iloc[count] = "; ".join(subset[VarColName])
+        if max(subset['Freq']) > 1:
+            maxFreq_idx = [index for index, item in enumerate(subset['Freq']) if item == max(subset['Freq'])]
+            if len(maxFreq_idx) > 1:
+                minLen_idx = [index for index, item in enumerate(subset['Str_Length'].iloc[maxFreq_idx]) if
+                              item == min(subset['Str_Length'].iloc[maxFreq_idx])]
+                VarID = subset['orig_name_ID'].iloc[maxFreq_idx[minLen_idx[0]]]
+                VarName = subset[VarColName].iloc[maxFreq_idx[minLen_idx[0]]]
+            else:
+                VarID = subset['orig_name_ID'].iloc[maxFreq_idx[0]]
+                VarName = subset[VarColName].iloc[maxFreq_idx[0]]
+        else:
+            minLen_idx = [index for index, item in enumerate(subset['Str_Length']) if item == min(subset['Str_Length'])]
+            VarID = subset['orig_name_ID'].iloc[minLen_idx[0]]
+            VarName = subset[VarColName].iloc[minLen_idx[0]]
     else:
-        max_LSD = 1
-    for n in range(1, nr_variables+1):
-        if (n != i+1) and variable_similarity_Levenshtein_df.iloc[i,n] <= max_LSD and len(variable_similarity_Levenshtein_df.iloc[i,0])>5:
-            sim_varindx.append(str(n-1))
-            sim_varN.append(variable_names[n-1])
-            sim_varId.append(variables_df['orig_name_ID'].iloc[n-1])
-            sim_var_LSD.append(str(variable_similarity_Levenshtein_df.iloc[i,n]))
-    variables_df['similar_VarN_LS'].iloc[i] = "; ".join(sim_varN)
-    variables_df['similar_VarID_LS'].iloc[i] = "; ".join(sim_varId)
-    variables_df['similar_VarIndx_LS'].iloc[i] = "; ".join(sim_varindx)
-    variables_df['similar_Var_LSD'].iloc[i] = "; ".join(sim_var_LSD)
+        VarID = subset['orig_name_ID'].iloc[0]
+        VarName = subset[VarColName].iloc[0]
+    return VarID, VarName
+
+############################################################
+##### Execution ############################################
+############################################################
+os.chdir(r"D:\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
+evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2_harmonised_BO_manualclean.csv")
+
+variable_type = "BehaviorDeterminant"
+evidence_instances_full[variable_type] = [el.lower() for el in evidence_instances_full[variable_type]]
+variables_df = UniqueLabelsFreq(evidence_instances_full[variable_type], variable_type)
+
+variables_df.insert(0, 'orig_name_ID',  ['ON_'+ str(i) for i in range(1,len(variables_df.iloc[:,0])+1)])
+variable_names = list(variables_df.iloc[:, 1])
+variable_names = [x.lower() for x in variable_names]
+nr_variables = len(variable_names)
+variable_IDs = variables_df.iloc[:,0]
+variables_df['subwords'] = ["; ".join(variable.split()) for variable in variable_names]
+print(variables_df.head())
+
+variables_df = AddSharedSubwordsToAllVarOfDf(variables_df, variable_names)
+variable_similarity_df = StringSimilarityMatrixAcrossList_JaroWinkler(variable_names)
+
+JWsim_80plus_names,JWsim_80plus_IDs, JWsim_85plus_names, JWsim_85plus_IDs, JWsim_90plus_names, JWsim_90plus_IDs, dominant = [], [], [], [], [], [], []
+for count, value in enumerate(variable_names):
+    indices = GetIndicesOfValuesOverValue(variable_similarity_df, count, 0.8)
+    JWsim_80plus_names.append("; ".join([variable_names[index] for index in indices]))
+    JWsim_80plus_IDs.append("; ".join([variable_IDs[index] for index in indices]))
+    indices = GetIndicesOfValuesOverValue(variable_similarity_df, count, 0.85)
+    JWsim_85plus_names.append("; ".join([variable_names[index] for index in indices]))
+    JWsim_85plus_IDs.append("; ".join([variable_IDs[index] for index in indices]))
+    indices = GetIndicesOfValuesOverValue(variable_similarity_df, count, 0.9)
+    JWsim_90plus_names.append("; ".join([variable_names[index] for index in indices]))
+    JWsim_90plus_IDs.append("; ".join([variable_IDs[index] for index in indices]))
+
+variables_df = variables_df.assign(JWsim_80plus_names = JWsim_80plus_names,
+                    JWsim_80plus_IDs = JWsim_80plus_IDs,
+                    JWsim_85plus_names = JWsim_85plus_names,
+                    JWsim_85plus_IDs = JWsim_85plus_IDs,
+                    JWsim_90plus_names = JWsim_90plus_names,
+                    JWsim_90plus_IDs = JWsim_90plus_IDs)
 
 
-csv = os.path.join(os.getcwd(), (variable_type + "_similarwords_LSD.csv"))
-variables_df.to_csv(csv, index=False)
 
-#
-# variable_similarity = []
-# for variable in variable_names:
-#     variable_data = []
-#     for compare_variable in variable_names:
-#         variable_data.append(jaro_distance(variable, compare_variable))
-#     variable_similarity.append(variable_data)
-#
-# variable_similarity_Jaro_df = pd.DataFrame(data=variable_similarity, columns=variable_names)
-# #variable_similarity_df.index.values = variable_names
-# print(variable_similarity_Jaro_df.head())
+## Assigning Synonymity
+synonymity_df =  pd.DataFrame(data = 0, columns= variable_IDs,
+                  index=variable_IDs)
+
+for count, value in enumerate(variable_IDs):
+    if variables_df["Certainty"].iloc[count] == 1:
+        candidates = variables_df["Ranking_most_similar_ID"].iloc[count].split("; ")
+        candidates_freq = [int(el) for el in variables_df["Ranking_Nr_shared_words"].iloc[count].split("; ")]
+        Nr = [index for index, item in enumerate(candidates_freq) if item == max(candidates_freq)]
+        winners = [candidates[el] for el in Nr]
+        if variables_df["Nr_subwords"].iloc[count] > 1: #if more than one word is shared
+            synonymity_df.loc[value, winners] = 1
+        else: # if only one word is shared (substring) but both words are one word long
+            NrSubwords = [variables_df.loc[variables_df[variables_df['orig_name_ID'] == el].index, "Nr_subwords"].values[0] for el in winners]
+            singleWordVar = [candidates[el] for el in [index for index, item in enumerate(NrSubwords) if item == 1]]
+            synonymity_df.loc[value, singleWordVar] = 1
+
+    elif variables_df["Eligible"].iloc[count] == 1:
+        candidates = variables_df["Ranking_most_similar_ID"].iloc[count].split("; ")
+        candidates_freq = [int(el) for el in variables_df["Ranking_Nr_shared_words"].iloc[count].split("; ")]
+        Nr = [index for index, item in enumerate(candidates_freq) if item == max(candidates_freq)]
+        winners = [candidates[el] for el in Nr]
+        # check if the word that is different is a synonym
+        candidate_subwords = [str(variables_df.loc[variables_df[variables_df['orig_name_ID'] == el].index, "subwords"].values[0]).split("; ") for el in winners]
+        own_subwords = str(variables_df[variable_type].iloc[count]).split(" ")
+        for number, subwordlist in enumerate(candidate_subwords):
+            for word in own_subwords:
+                if not(word in subwordlist) and not(any(True for subword in subwordlist if word in subword)):
+                    synonyms = []
+                    for syn in wordnet.synsets(word):
+                        for i in syn.lemmas():
+                            synonyms.append(i.name())
+                    if any(True for synonym in synonyms if synonym in subwordlist):
+                        synonymity_df.loc[value, winners[number]] = 1
+                        print("orig", own_subwords, "candit", subwordlist, "contains one of:", synonyms)
+
+
+    ### For long words two word synonymity matching
+
+    if variables_df['JWsim_90plus_IDs'].iloc[count] and (variables_df['Nr_subwords'].iloc[count] > 1):
+        winners = variables_df['JWsim_90plus_IDs'].iloc[count].split("; ")
+        synonymity_df.loc[value, winners] = 1
+
+    if variables_df["Nr_subwords"].iloc[count] == 1: #direct synonyms of single word variables
+        synonyms = []
+        for syn in wordnet.synsets(str(variables_df[variable_type].iloc[count])):
+            for i in syn.lemmas():
+                synonyms.append(i.name())
+        winners = [number for number, var in enumerate(variable_names) if var in synonyms and var != variables_df[variable_type].iloc[count]]
+        if len(winners) > 0:
+            synonymity_df.loc[value, [variable_IDs[el] for el in winners]] = 1
+
+
+
+csv = os.path.join(os.getcwd(), (variable_type + "_synonymity_NEW.csv"))
+synonymity_df.to_csv(csv, index=False)
+
+
+## Identifying Clusters
+variable_clusters = GenerateVarClustersFromSynonymityMatrix(synonymity_df, variable_IDs)
+variable_clusters = RemoveRedundantCluster(variable_clusters)
+
+variables_df["ClusterID"] = "NaN"
+variables_df.index = variables_df["orig_name_ID"]
+variable_clusters_names = []
+for count, cluster in enumerate(variable_clusters):
+    variable_clusters_names.append(list(variables_df.loc[cluster, "BehaviorDeterminant"]))
+    variables_df.loc[cluster, "ClusterID"] = count
+
+print(variable_clusters_names)
+
+variables_df = variables_df.sort_values(by=['ClusterID'])
+variables_df.to_csv(os.path.join(os.getcwd(), (variable_type + "_clusters.csv")), index=False)
+
+Cluster_df = variables_df[['ClusterID', 'orig_name_ID', variable_type, 'Freq']]
+Cluster_df['Str_Length'] = Cluster_df[variable_type].str.len()
+
+
+## Identify the variable name for synonymous cluster based on frequency of mentions and stringlength
+VarHarmon_df = pd.DataFrame(Cluster_df['ClusterID'])
+VarHarmon_df.drop_duplicates(inplace=True)
+VarHarmon_df = VarHarmon_df.assign(VarID = '', VarName = '', Synonyms = '')
+for count, value in enumerate(VarHarmon_df['ClusterID']):
+    VarHarmon_df['VarID'].iloc[count], VarHarmon_df['VarName'].iloc[count] = IdentifyClusterVariableName(Cluster_df, value, variable_type)
+
+VarHarmon_df.to_csv(os.path.join(os.getcwd(), (variable_type + "_HarmonVar.csv")), index=False)
+
+Cluster_df = pd.merge(Cluster_df, VarHarmon_df[['ClusterID', 'VarID', 'VarName']], on="ClusterID")
+Cluster_df.to_csv(os.path.join(os.getcwd(), (variable_type + "_clusters_clean.csv")), index=False)
+

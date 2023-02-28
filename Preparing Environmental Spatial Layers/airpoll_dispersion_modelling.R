@@ -40,6 +40,7 @@ joined = merge(airpoll_grid_df, OffRoadData_df, by = "int_id", all = T)
 joined_complete = joined[!is.na(joined$Vierweekse_7),]
 joined_complete_onroad = joined_complete[joined_complete$ON_ROAD.x == 0,]
 
+colnames(joined_complete_onroad)
 
 # Extract 3D Bag data
 # https://docs.3dbag.nl/en/schema/concepts/#level-of-detail-lod
