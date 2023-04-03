@@ -383,3 +383,16 @@ VarHarmon_df.to_csv(os.path.join(os.getcwd(), (variable_type + "_HarmonVar.csv")
 Cluster_df = pd.merge(Cluster_df, VarHarmon_df[['ClusterID', 'VarID', 'VarName']], on="ClusterID")
 Cluster_df.to_csv(os.path.join(os.getcwd(), (variable_type + "_clusters_clean.csv")), index=False)
 
+evidence_instances_full = pd.merge(evidence_instances_full, Cluster_df[[variable_type,'VarName' ]], on= variable_type)
+evidence_instances_full["Sentence_int"] =[int(el.replace("Sentence: ", "")) for el in evidence_instances_full["Sentence"]]
+evidence_instances_full.sort_values(by = ["DOI", "Sentence_int"]).to_csv(os.path.join(os.getcwd(), ("unique_evidence_instances_clean2_harmonised_BO_BD.csv")), index=False)
+
+## save unique instances with harmon names
+col = list(evidence_instances_full.columns.values)
+print(col)
+col.remove(variable_type)
+
+evidence_instances_full = evidence_instances_full[col]
+evidence_instances_full.columns = list(map(lambda x: x.replace('VarName', variable_type), col))
+evidence_instances_full.drop_duplicates(inplace=True)
+evidence_instances_full.to_csv(os.path.join(os.getcwd(), ("unique_evidence_instances_clean2_harmonised_BO_BD_unique.csv")), index=False)

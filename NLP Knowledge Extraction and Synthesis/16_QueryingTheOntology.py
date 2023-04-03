@@ -123,6 +123,41 @@ WHERE {
 }
 """
 
+queries['Find all significant behavior determinants for biking?']="""
+SELECT DISTINCT ?det WHERE 
+{
+?a a bmo:biking; bmo:studiedChoiceOption ?evidence.
+?evidence bmo:foundSignificantBy ?study.
+?evidence bmo:regardsDeterminant ?det.
+}
+"""
+
+queries['Find all significant behavior determinants for walking?']="""
+SELECT DISTINCT ?det WHERE 
+{
+?a a bmo:walking; bmo:studiedChoiceOption ?evidence.
+?evidence bmo:foundSignificantBy ?study.
+?evidence bmo:regardsDeterminant ?det.
+}
+"""
+
+queries['Find all significant behavior determinants for driving?']="""
+SELECT DISTINCT ?det WHERE 
+{
+?a a bmo:driving; bmo:studiedChoiceOption ?evidence.
+?evidence bmo:foundSignificantBy ?study.
+?evidence bmo:regardsDeterminant ?det.
+}
+"""
+
+queries['Find all significant behavior determinants for public transport?']="""
+SELECT DISTINCT ?det WHERE 
+{
+?a a bmo:public_transport_use; bmo:studiedChoiceOption ?evidence.
+?evidence bmo:foundSignificantBy ?study.
+?evidence bmo:regardsDeterminant ?det.
+}
+"""
 
 def test(g, t = testquery):
     qres = g.query(t)
@@ -131,7 +166,9 @@ def test(g, t = testquery):
         pprint(row)
 
 os.chdir(r"C:\Users\Tabea\Documents\GitHub\TabeaSonnenschein.github.io\ontologies")
-ontology = "BehaviorChoiceDeterminantsOntology_TranspModeChoice.ttl"
+#ontology = "BehaviorChoiceDeterminantsOntology_TranspModeChoice.ttl"
+ontology = "BehaviorChoiceDeterminantsOntology_TranspModeChoiceNEW.ttl"
+
 g = Graph()
 g = load_RDF(g, ontology)
 prefix(g)

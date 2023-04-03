@@ -123,7 +123,9 @@ meta_review_details = pd.read_csv("metareview_details_short.csv")
 
 ## evidence instances
 os.chdir(r"D:\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2_harmonised_BO_manualclean.csv")
+# evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2_harmonised_BO_manualclean.csv")
+evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2_harmonised_BO_BD_unique.csv")
+
 evidence_instances = evidence_instances_full[['DOI', 'Sentence', 'Fullsentence', 'BehaviorOption', 'BehaviorDeterminant', 'Studygroup',
                                               'Moderator', 'stat_significance', 'stat_consistency', 'stat_direction', 'stat_correl']]
 
@@ -149,7 +151,7 @@ with onto:
 
 os.chdir(r"C:\Users\Tabea\Documents\GitHub\TabeaSonnenschein.github.io\ontologies")
 graph = default_world.as_rdflib_graph()
-graph.serialize(destination="BehaviorChoiceDeterminantsOntology_"+BehaviorChoice_short+".ttl")
+graph.serialize(destination="BehaviorChoiceDeterminantsOntology_"+BehaviorChoice_short+"NEW.ttl")
 
 # onto.save(file = os.path.join(os.getcwd(),"extendedBehaviouralModelOntology3.owl"), format = "rdfxml")
 

@@ -10,7 +10,7 @@ model TransportAirPollutionExposureModel
 global{
 	/** Insert the global definitions, variables and actions here */
 	
-	string path_data <- "C:/Users/Tabea/Documents/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/";
+	string path_data <- "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/";
 	
 //	loading the spatial built environment
 	file shape_file_buildings <- shape_file(path_data+"Buildings.shp");
@@ -24,9 +24,14 @@ global{
 //  loading Environmental Stressor Maps
 	file shape_file_NoiseContour_night <- shape_file(path_data+"PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp");
 	file shape_file_NoiseContour_day <- shape_file(path_data+"PDOK_NoiseMap2016_Lden_RDNew_clipped.shp");    
-
+//	file PM2_5_raster <- grid_file(path_data+"PM2_5_yearlymean_RDnew.tif");
+	file shape_NO2 <- shape_file(path_data + "AmsterdamNO2.shp");
+	
+//	grid PM2 file: PM2_5_raster;
+	
+	
 //  loading agent population attributes
-    csv_file Synth_Agent_file <- csv_file(path_data + "Agent_pop_subset.csv", ";", string, true);
+    csv_file Synth_Agent_file <- csv_file(path_data + "Agent_pop_subset_3.csv", ";", string, true);
 
 // Global variables exposure
 //	map<string, float> inhalation_rate <- create_map(["walk", "bike", "normal"], [25.0, 40.0, 15.0]); /// breaths per minute  										// needs robust methodology
@@ -46,6 +51,7 @@ global{
         write current_date;
 		create Noise_day from: shape_file_NoiseContour_day with: [Decibel :: float(read('bovengrens'))] ;
 		create Homes from: shape_file_Residences with: [Neighborhood:: read('nghb_cd')];
+		create AirPoll from: shape_NO2 with:[NO2:: read('nlbeluxde2')];
         create Humans from: Synth_Agent_file with:[Agent_ID :: read('agent_ID'), Neighborhood :: read('neighb_code'), 
 	        age:: int(read('age')), sex :: read('sex'), migrationbackground :: read('migrationbackground'),
 	        hh_single :: int(read('hh_single')), absolved_edu:: read('absolved_education'), BMI:: read('BMI'),
@@ -59,6 +65,10 @@ species Homes{
 
 species Noise_day{
 	float Decibel;
+}
+
+species AirPoll{
+	float NO2;
 }
 
 species Humans skills:[moving] parallel: true{
@@ -94,6 +104,9 @@ species Humans skills:[moving] parallel: true{
 	geometry route_eucl_line;
 	float trip_distance ;
 	float track_duration;
+	geometry route_contour;
+	list<geometry> route_segments;
+	list<float> route_segment_lengths;
 
 	/// exposure variables
 	float bike_exposure;
@@ -113,8 +126,8 @@ species Humans skills:[moving] parallel: true{
 /////// setting up the initial parameters and relations //////////
 	init{
 		write "distributing  homes"; 
-//		residence <- one_of(Homes where ((each.Neighborhood = self.Neighborhood) and each.location != nil));
-		residence <- one_of(Homes);
+		residence <- one_of(Homes where ((each.Neighborhood = self.Neighborhood) and each.location != nil));
+//		residence <- one_of(Homes);
        	location <- residence.location;
 	}
 	
@@ -125,8 +138,8 @@ species Humans skills:[moving] parallel: true{
 		 	if(point(destination_activity.location) != point(self.location)){		/// if the destination location is differnt to where the agent is
 		 		route_eucl_line <- line(container(point(self.location), point(destination_activity.location)));
 		 		trip_distance <- (self.location distance_to destination_activity);
-		 		modalchoice <- modal_choice_options at rnd(0,3,1);
-				track_path <-  path(route_eucl_line);   
+		 		modalchoice <- modal_choice_options at rnd(0,3,1);    /// they choose a random mode of transport
+				track_path <-  path(route_eucl_line);   /// they travel along the euclidean line
 		 		traveling <- 1;
 		 		on_trip <- 1;
 		 		returning <- 0;
@@ -150,6 +163,26 @@ species Humans skills:[moving] parallel: true{
 //    		activity_NO2 <- (sum((AirPollution overlapping self.route_eucl_line) collect each.NO2)/( length(AirPollution overlapping self.route_eucl_line) + 1)) * inhalation_rate[modalchoice] * track_duration * AirPollution_Filter[modalchoice];
 //    		activity_NO2 <- (sum((AirPollution overlapping self.route_eucl_line) collect each.NO2)/( length(AirPollution overlapping self.route_eucl_line) + 1))  * track_duration;
 //			activity_Noise <- (sum((Noise_day overlapping self.route_eucl_line) collect each.Decibel)/(length(Noise_day overlapping self.route_eucl_line) +1) )  * track_duration * Noise_Filter[modalchoice];
+//			route_intersection_points <- (PM2_5_raster overlapping self.route_eucl_line) collect to_segments(each);
+//
+//			write "Euclid: " + route_eucl_line;
+//			route_contour <- union(remove_duplicates((Noise_day overlapping self.route_eucl_line) collect each.shape.contour));
+//			route_segments <- (split_lines([route_eucl_line,route_contour]) where ((self.route_eucl_line overlaps each) and (each disjoint_from self.route_contour)));
+//			write "SPLIT LINES: " +  route_segments;
+//			route_segment_lengths <- self.route_segments collect each.perimeter;
+//			write "ROUTE LENGTH: " + route_segment_lengths;
+//			write "Nr segments: " + length(route_segment_lengths) + ", overlapping cells: " + length(Noise_day overlapping self.route_eucl_line);
+//			
+			write "Euclid: " + route_eucl_line;
+			route_contour <- union(remove_duplicates((AirPoll overlapping self.route_eucl_line) collect each.shape.contour));
+			route_segments <- (split_lines([route_eucl_line,route_contour], true) where (self.route_eucl_line overlaps each));
+			write "SPLIT LINES: " +  route_segments;
+			route_segment_lengths <- self.route_segments collect each.perimeter;
+			write "ROUTE LENGTH: " + route_segment_lengths;
+			write "Nr segments: " + length(route_segment_lengths) + ", overlapping cells: " + length(AirPoll overlapping self.route_eucl_line);
+			
+
+			
 			activity_Noise <- (sum((Noise_day overlapping self.route_eucl_line) collect each.Decibel)/(length(Noise_day overlapping self.route_eucl_line) +1) )  * track_duration;
 //    		hourly_NO2 <- hourly_NO2 + activity_NO2;
 			hourly_Noise <- hourly_Noise + activity_Noise;
@@ -157,7 +190,7 @@ species Humans skills:[moving] parallel: true{
 //    			bike_exposure <- bike_exposure + track_duration;
 //    		}
 //    		else if(modalchoice = "walk"){
-//    		walk_exposure <- walk_exposure + track_duration;
+//    			walk_exposure <- walk_exposure + track_duration;
 //    		}
     		
     	}
@@ -292,14 +325,14 @@ experiment TransportAirPollutionExposureModel type: gui {
     			draw shape_file_greenspace color: #green;
 			}
        		species Humans aspect: base ;
-//			graphics Noise transparency: 0.7{
-//				if(current_date.hour < 4 or current_date.hour > 22){
-//					draw shape_file_NoiseContour_night color: #purple ;
-//				}
-//				else{
-//					draw shape_file_NoiseContour_day color: #purple ;				
-//				}
-//			}			
+			graphics Noise transparency: 0.7{
+				if(current_date.hour < 4 or current_date.hour > 22){
+					draw shape_file_NoiseContour_night color: #purple ;
+				}
+				else{
+					draw shape_file_NoiseContour_day color: #purple ;				
+				}
+			}			
         	overlay position: {0, 0, 0} size: {180 #px, 130#px} background: #black rounded: false transparency: 0.0 {
                 float y <- 30#px;
                 loop type over: color_per_type.keys  {   

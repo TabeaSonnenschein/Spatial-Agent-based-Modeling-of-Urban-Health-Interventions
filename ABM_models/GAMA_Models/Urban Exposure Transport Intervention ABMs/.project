@@ -32,6 +32,16 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Agent_pop_subset.csv</location>
 		</link>
 		<link>
+			<name>external/Agent_pop_subset_100.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Agent_pop_subset_100.csv</location>
+		</link>
+		<link>
+			<name>external/Agent_pop_subset_3.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Agent_pop_subset_3.csv</location>
+		</link>
+		<link>
 			<name>external/AirPollDeterm_grid.tif</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/AirPollDeterm_grid.tif</location>
@@ -60,6 +70,11 @@
 			<name>external/Amsterdam Diemen Oude Amstel Extent.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp</location>
+		</link>
+		<link>
+			<name>external/AmsterdamNO2.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/AmsterdamNO2.shp</location>
 		</link>
 		<link>
 			<name>external/Amsterdam_Foursquarevenues_ArtsEntertainment_RDNew.shp</name>
@@ -127,6 +142,31 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Diemen_Buildings.shp</location>
 		</link>
 		<link>
+			<name>external/DispersionModel_OffroadMeasures.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/DispersionModel_OffroadMeasures.csv</location>
+		</link>
+		<link>
+			<name>external/DispersionModel_OffroadMeasures_rowcol.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/DispersionModel_OffroadMeasures_rowcol.csv</location>
+		</link>
+		<link>
+			<name>external/DispersionModel_OnRoadPredictions.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/DispersionModel_OnRoadPredictions.csv</location>
+		</link>
+		<link>
+			<name>external/DispersionModel_OnRoadPredictions_rowcol.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/DispersionModel_OnRoadPredictions_rowcol.csv</location>
+		</link>
+		<link>
+			<name>external/DispersionModel_baselineNO2.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/DispersionModel_baselineNO2.csv</location>
+		</link>
+		<link>
 			<name>external/Green Spaces_RDNew.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew.shp</location>
@@ -187,6 +227,11 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Environmental Stressors/Noise/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp</location>
 		</link>
 		<link>
+			<name>external/PM2_5_yearlymean_RDnew.tif</name>
+			<type>1</type>
+			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/PM2_5_yearlymean_RDnew.tif</location>
+		</link>
+		<link>
 			<name>external/Residences_neighcode_RDNew.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Residences_neighcode_RDNew.shp</location>
@@ -207,6 +252,16 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Harmonised European Time Use Survey - Eurostat/adult_schedule.txt</location>
 		</link>
 		<link>
+			<name>external/baselineNO2.tif</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Air Pollution Determinants/baselineNO2.tif</location>
+		</link>
+		<link>
+			<name>external/copy of Agent_pop_subset.csv</name>
+			<type>1</type>
+			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Agent_pop_subset.csv</location>
+		</link>
+		<link>
 			<name>external/copy of Amsterdam Diemen Oude Amstel Extent.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Amsterdam Diemen Oude Amstel Extent.shp</location>
@@ -215,6 +270,11 @@
 			<name>external/copy of Amsterdam_roads_RDNew.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Amsterdam_roads_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of Buildings.shp</name>
+			<type>1</type>
+			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Buildings.shp</location>
 		</link>
 		<link>
 			<name>external/copy of Buildings_RDNew.shp</name>
@@ -247,9 +307,84 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp</location>
 		</link>
 		<link>
+			<name>external/copy of PM2_5_yearlymean_RDnew.tif</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/PM2_5_yearlymean_RDnew.tif</location>
+		</link>
+		<link>
 			<name>external/copy of Residences_neighcode_RDNew.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Residences_neighcode_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Agent_pop_subset.csv</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Agent_pop_subset.csv</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Amsterdam Diemen Oude Amstel Extent.shp</name>
+			<type>1</type>
+			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Amsterdam Diemen Oude Amstel Extent.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Amsterdam_roads_RDNew.shp</name>
+			<type>1</type>
+			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Amsterdam_roads_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Buildings.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Buildings.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Green Spaces_RDNew_window.shp</name>
+			<type>1</type>
+			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Green Spaces_RDNew_window.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of PDOK_NoiseMap2016_Lden_RDNew_clipped.shp</name>
+			<type>1</type>
+			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp</name>
+			<type>1</type>
+			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of Residences_neighcode_RDNew.shp</name>
+			<type>1</type>
+			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Residences_neighcode_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of copy of Amsterdam Diemen Oude Amstel Extent.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Amsterdam Diemen Oude Amstel Extent.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of copy of Amsterdam_roads_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Amsterdam_roads_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of copy of Green Spaces_RDNew_window.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Green Spaces_RDNew_window.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of copy of PDOK_NoiseMap2016_Lden_RDNew_clipped.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/PDOK_NoiseMap2016_Lden_RDNew_clipped.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of copy of PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/PDOK_NoiseMap2016_Lnight_RDNew_clipped.shp</location>
+		</link>
+		<link>
+			<name>external/copy of copy of copy of Residences_neighcode_RDNew.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Residences_neighcode_RDNew.shp</location>
 		</link>
 		<link>
 			<name>external/elderly_schedule.txt</name>
