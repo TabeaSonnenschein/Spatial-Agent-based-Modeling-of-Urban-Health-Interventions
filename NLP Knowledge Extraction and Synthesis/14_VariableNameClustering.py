@@ -234,7 +234,7 @@ def IdentifyClusterVariableName(Var_df, ClusterID, VarColName):
 ############################################################
 os.chdir(r"D:\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 # filename = "unique_evidence_instances_clean2_harmonised_BO_manualclean"
-filename = "unique_evidence_instances_clean2_harmonised_BO_BD_unique"
+filename = "unique_evidence_instances_clean2_harmonised_BO_manualclean_BD_unique"
 evidence_instances_full = pd.read_csv(filename + ".csv")
 
 ##################################################################################################
