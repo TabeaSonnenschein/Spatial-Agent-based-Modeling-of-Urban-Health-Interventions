@@ -159,6 +159,7 @@ SELECT DISTINCT ?det WHERE
 }
 """
 
+
 def test(g, t = testquery):
     qres = g.query(t)
     print("now testing:")
@@ -179,3 +180,44 @@ n_triples(g)
 for question in queries:
     print(question)
     test(g,queries[question])
+
+
+
+
+# relevant_BOs = ["walking", "biking", "driving", "public_transport_use"]
+# relevant_BOs = " ".join([bmo + el for el in relevant_BOs])
+# # relevant_BOs = ["<" +bmo + el+ ">" for el in relevant_BOs]
+# # relevant_BOs = ", ".join(["<"+ bmo + el + ">" for el in relevant_BOs])
+# # relevant_BOs = " ".join(["<"+ bmo + el + ">" for el in relevant_BOs])
+# relevant_BOs = ["bmo:" + el for el in relevant_BOs]
+# # relevant_BOs = " ".join(["(rdflib.term.URIRef('"+ bmo + el + "')" for el in relevant_BOs])
+#
+#
+# query = """
+# SELECT DISTINCT ?evidence WHERE {{
+# ?a a {BO}; bmo:studiedChoiceOption ?evidence.
+# ?evidence bmo:regardsDeterminant ?det.
+#
+# }}
+# """
+
+
+# query = """
+# SELECT DISTINCT ?class ?evidence WHERE {{
+# ?a a ?class.
+# VALUES ?class ({relevant_BOs}))
+# ?a bmo:studiedChoiceOption ?evidence
+# }}
+# """
+# query = query.format(relevant_BOs=relevant_BOs)
+
+# for BO in relevant_BOs:
+#     queryNEW = query.format(BO=BO)
+#     print(queryNEW)
+#     results = g.query(queryNEW)
+#     for row in results:
+#         print(row)
+
+# results = g.query(query)
+# for row in results:
+#     print(row)
