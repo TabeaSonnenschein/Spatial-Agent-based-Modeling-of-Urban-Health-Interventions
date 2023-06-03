@@ -235,18 +235,24 @@ def IdentifyClusterVariableName(Var_df, ClusterID, VarColName):
 os.chdir(r"D:\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
 # filename = "unique_evidence_instances_clean2_harmonised_BO_manualclean"
 filename = "unique_evidence_instances_clean2_harmonised_BO_manualclean_BD_unique"
+# filename = "unique_evidence_instances_clean2"
+
 evidence_instances_full = pd.read_csv(filename + ".csv")
 
 ##################################################################################################
 # mode = "manualCheck"   # uncomment this when at the stage of checking the variable harmonisation
 mode = "readAndJoinControl"  # uncomment this when having controled the results to join to df
 ##################################################################################################
+# variable_type = "BehaviorOption"
+# TypeAbbrev = "BO"
 
 # variable_type = "BehaviorDeterminant"
 # TypeAbbrev = "BD"
 
 variable_type = "Studygroup"
 TypeAbbrev = "SG"
+
+
 evidence_instances_full[variable_type] = [el.lower() for el in evidence_instances_full[variable_type]]
 
 if mode == "manualCheck":

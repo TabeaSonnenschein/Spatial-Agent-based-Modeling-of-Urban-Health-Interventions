@@ -81,7 +81,7 @@ def prepare_output_tables_Gephi_harmonBOBD(df, graph_name, Source_col, Target_co
 
 # Reading the evidence data
 os.chdir(r"D:\PhD EXPANSE\Written Paper\02- Behavioural Model paper")
-evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2_harmonised_BO_manualclean.csv")
+evidence_instances_full = pd.read_csv("unique_evidence_instances_clean2_harmonised_BO_manualclean_BD_unique_SG_unique.csv")
 
 # Preparing the data
 evidence_instances_full.replace({"-100": 'NaN'}, regex=False, inplace=True)
