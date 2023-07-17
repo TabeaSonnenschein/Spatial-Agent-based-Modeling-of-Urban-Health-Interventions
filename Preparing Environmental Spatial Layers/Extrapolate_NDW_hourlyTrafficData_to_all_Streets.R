@@ -4,6 +4,7 @@
 pkgs = c("spatialEco", "readxl","GenSynthPop", "rgdal","sp", "sf", "rgeos" , "ggplot2", "matrixStats",  "raster",  "dplyr")
 sapply(pkgs[which(sapply(pkgs, require, character.only = T) == FALSE)], install.packages, character.only = T)
 sapply(pkgs, require, character.only = T) #load
+
 rm(pkgs)
 
 #########################
@@ -455,24 +456,60 @@ data = as.data.frame(complete_data)
 ##############################################
 #### Aggregating in Air poll raster 
 #####################################
+memory.limit(2000000)
+AirPollRaster = readOGR(dsn=paste(dataFolder, "/Air Pollution Determinants", sep = ""), layer = "AirPollDeterm_grid10m")
+cellsize = "10m"
+
 AirPollRaster_inters = st_intersection(st_as_sf(AirPollRaster["int_id"]), st_as_sf(complete_data))
 AirPollRaster@data[,newcolumns] = NA
 AirPollRaster_inters = as.data.frame(AirPollRaster_inters)
 AirPollRaster_inters[,newcolumns] <- sapply(AirPollRaster_inters[,newcolumns],as.numeric)
 
+n.cores <- parallel::detectCores() - 3
+my.cluster <- parallel::makeCluster(
+  n.cores, 
+  type = "PSOCK"
+)
+print(my.cluster)
+doParallel::registerDoParallel(cl = my.cluster)
+foreach::getDoParRegistered()
+foreach::getDoParWorkers()
+clusterExport(my.cluster, varlist = c("AirPollRaster_inters","newcolumns"))
+
+remove(TraffAggr)
+TraffAggr = foreach(intid = unique(AirPollRaster_inters$int_id), .combine = 'rbind') %dopar% {
+  colMeans(AirPollRaster_inters[which(AirPollRaster_inters$int_id == intid), newcolumns])
+}
+parallel::stopCluster(cl = my.cluster)
+remove(my.cluster)
+TraffAggr_df = as.data.frame(TraffAggr)
+TraffAggr_df$int_id = unique(AirPollRaster_inters$int_id)
+TraffAggr_df = TraffAggr_df[order(TraffAggr_df$int_id), c("int_id", newcolumns)]
+write.csv(TraffAggr_df, paste0("AirPollRaster",cellsize, "_TraffVdata.csv"))
+
 for(cell in unique(AirPollRaster_inters$int_id)){
+  print(cell)
   AirPollRaster@data[which(AirPollRaster$int_id == cell), newcolumns]  = colMeans(AirPollRaster_inters[which(AirPollRaster_inters$int_id == cell), newcolumns])
 }
 
 summary(AirPollRaster)
+AirPollRaster@data$int_id[TraffAggr_df$int_id]
 
-writeOGR(AirPollRaster, dsn=getwd(), layer = "AirPollDeterm_grid50_TraffVol",driver="ESRI Shapefile")
-writeOGR(AirPollRaster, dsn=paste(dataFolder, "/Air Pollution Determinants", sep = ""), layer = "AirPollDeterm_grid50_TraffVol",driver="ESRI Shapefile")
+AirPollRaster@data[,newcolumns] = NA
+AirPollRaster@data[TraffAggr_df$int_id,newcolumns]= TraffAggr_df[,newcolumns]
+
+writeOGR(AirPollRaster, dsn=getwd(), layer = paste0("AirPollDeterm_grid", cellsize,"_TraffVol"),driver="ESRI Shapefile")
+writeOGR(AirPollRaster, dsn=paste0(dataFolder, "/Air Pollution Determinants"), layer =paste0("AirPollDeterm_grid", cellsize,"_TraffVol"),driver="ESRI Shapefile")
+
+ggplot(data = st_as_sf(AirPollRaster)) +
+  geom_sf(aes(color = as.numeric(AirPollRaster$TrV15_16)), size= 0.01)+
+  scale_colour_viridis_c(option = "D")
+
 
 setwd(paste(dataFolder, "/Air Pollution Determinants", sep = ""))
 
 AirPollRaster_data = as.data.frame(AirPollRaster)
-write.csv(AirPollRaster_data, "AirPollRaster_TraffVdata.csv", row.names = F)
+write.csv(AirPollRaster_data, paste0("AirPollRaster",cellsize, "_TraffVdata.csv"), row.names = F)
 
 AirPollDeterm_grid= read.csv("AirPollDeterm_grid50_baselineNO2.csv")
 AirPollDeterm_grid = merge(AirPollDeterm_grid, AirPollRaster_data, by = "int_id", all.x = T, all.y = F)
