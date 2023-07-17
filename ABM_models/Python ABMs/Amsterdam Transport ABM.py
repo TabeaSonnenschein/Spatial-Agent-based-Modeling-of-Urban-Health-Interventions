@@ -910,18 +910,17 @@ def schedule_manager when: (((current_date.minute mod 10) == 0) or (current_date
 
 
 class TransportAirPollutionExposureModel(mesa.Model):
-    def __init__(self, nb_humans = 40000, path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/", 
-                 starting_date = datetime(2018, 1, 1, 6, 50, 0), step = timedelta(minutes=5), steps_minute, modelrunname, path_data, path_workspace):
+    def __init__(self, nb_humans = 40000, path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam", 
+                 starting_date = datetime(2018, 1, 1, 6, 50, 0), step = timedelta(minutes=5), steps_minute = 5, modelrunname= "intervention_scenario"):
         # Insert the global definitions, variables, and actions here
         self.path_data = path_data
-        self.path_workspace = "C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/"
         self.starting_date = starting_date
         self.step = step
-        self.steps_minute = 5
+        self.steps_minute = steps_minute
         self.nb_humans = nb_humans
-        self.modelrunname = "intervention_scenario"
+        self.modelrunname = modelrunname
         self.schedule = SimultaneousActivation(self)
-        self.grid = MultiGrid(width, height, torus=True)
+        self.grid = ContinousSpace(width, height, torus=True)
         self.datacollector = DataCollector(model_reporters={}, agent_reporters={})
 
 
@@ -958,12 +957,12 @@ class TransportAirPollutionExposureModel(mesa.Model):
         self.spatial_extent = self.load
 
 		# Create the agents
-		pop_df = pd.read_csv(path_data+"Amsterdam/ModelRuns/Amsterdam_population.csv", sep = ";")
+		pop_df = pd.read_csv(path_data+"Population/Agent_pop.csv", sep = ";")
 		random_subset = pop_df.sample(n = nb_humans)
 		random_subset = random_subset.to_csv(path_data+"Amsterdam/ModelRuns/Amsterdam_population_subset.csv", sep = ";", index = False)
 		random_subset = random_subset.reset_index()
 		for(i in range(nb_humans)):
-			agent = Human(self, random_subset[i])
+			agent = Human(self, random_subset.iloc[i])
 			self.schedule.add(agent)
 			# Add the agent to a Home in their neighborhood
 			
