@@ -7,6 +7,7 @@ from mesa import Agent, Model
 from mesa.space import MultiGrid
 from mesa.time import SimultaneousActivation
 from mesa.datacollection import DataCollector
+import pandas as pd
 
 
 projectCRS = "RDNew"
@@ -902,23 +903,28 @@ def schedule_manager when: (((current_date.minute mod 10) == 0) or (current_date
 		save [string(current_date, 'dd/MM/yyyy'), current_date.hour, Agent_ID, age, sex, incomeclass, Neighborhood, hourly_mean_NO2] to: path_data+"Amsterdam/ModelRuns/exposure_"+modelrunname+".csv" type:"csv" rewrite: false
 	}
 
- def step(self):
+ 	def step(self):
         # Define the agent's behavior in each step of the model
         pass
+    
+
 
 class TransportAirPollutionExposureModel(mesa.Model):
-    def __init__(self):
+    def __init__(self, nb_humans = 40000, path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/", 
+                 starting_date = datetime(2018, 1, 1, 6, 50, 0), step = timedelta(minutes=5), steps_minute, modelrunname, path_data, path_workspace):
         # Insert the global definitions, variables, and actions here
-        self.path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/"
+        self.path_data = path_data
         self.path_workspace = "C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/"
-        self.starting_date = datetime(2018, 1, 1, 6, 50, 0)
-        self.step = timedelta(minutes=5)
+        self.starting_date = starting_date
+        self.step = step
         self.steps_minute = 5
-        self.nb_humans = 40000
+        self.nb_humans = nb_humans
         self.modelrunname = "intervention_scenario"
         self.schedule = SimultaneousActivation(self)
         self.grid = MultiGrid(width, height, torus=True)
         self.datacollector = DataCollector(model_reporters={}, agent_reporters={})
+
+
 
         # Load the spatial built environment
         self.shape_file_buildings = self.load_shape_file("Amsterdam/Built Environment/Buildings/Buildings_RDNew.shp")
@@ -951,6 +957,16 @@ class TransportAirPollutionExposureModel(mesa.Model):
             "Amsterdam/Built Environment/Facilities/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp")
         self.spatial_extent = self.load
 
-
+		# Create the agents
+		pop_df = pd.read_csv(path_data+"Amsterdam/ModelRuns/Amsterdam_population.csv", sep = ";")
+		random_subset = pop_df.sample(n = nb_humans)
+		random_subset = random_subset.to_csv(path_data+"Amsterdam/ModelRuns/Amsterdam_population_subset.csv", sep = ";", index = False)
+		random_subset = random_subset.reset_index()
+		for(i in range(nb_humans)):
+			agent = Human(self, random_subset[i])
+			self.schedule.add(agent)
+			# Add the agent to a Home in their neighborhood
+			
+			self.grid.place_agent(agent, Home)
 
  
