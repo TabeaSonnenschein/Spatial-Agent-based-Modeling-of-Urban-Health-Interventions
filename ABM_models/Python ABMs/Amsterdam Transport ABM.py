@@ -8,7 +8,7 @@ from mesa.space import MultiGrid
 from mesa.time import SimultaneousActivation
 from mesa.datacollection import DataCollector
 import pandas as pd
-
+import mesa_geo
 
 projectCRS = "RDNew"
 
@@ -780,7 +780,7 @@ def schedule_manager when: (((current_date.minute mod 10) == 0) or (current_date
 			modalchoice = "walk"
 		}
 		write "tripdistance " + string(trip_distance) + " " + modalchoice 
-   }
+    }
 	def routing when:  new_route == 1  {
 		  activity = "traveling"
 		  new_route = 0
@@ -905,7 +905,7 @@ def schedule_manager when: (((current_date.minute mod 10) == 0) or (current_date
 
  	def step(self):
         # Define the agent's behavior in each step of the model
-        pass
+    	pass
     
 
 
@@ -961,7 +961,7 @@ class TransportAirPollutionExposureModel(mesa.Model):
 		random_subset = pop_df.sample(n = nb_humans)
 		random_subset = random_subset.to_csv(path_data+"Amsterdam/ModelRuns/Amsterdam_population_subset.csv", sep = ";", index = False)
 		random_subset = random_subset.reset_index()
-		for(i in range(nb_humans)):
+		for(i in range(self.nb_humans)):
 			agent = Human(self, random_subset.iloc[i])
 			self.schedule.add(agent)
 			# Add the agent to a Home in their neighborhood

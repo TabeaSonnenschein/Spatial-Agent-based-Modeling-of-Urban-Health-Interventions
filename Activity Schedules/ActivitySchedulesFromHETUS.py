@@ -141,7 +141,10 @@ def SchedulePopulater(Synthpop_schedules, Weekdays_int):
             Synthpop_schedules_day["NrVars"].iloc[i] = len(subvars)
             if len(popsubset.index) > 0:
                 for timestamp in ActivityVars:
-                    Synthpop_schedules_day[timestamp].iloc[i] = popsubset[timestamp].value_counts().index[0]
+                    # Synthpop_schedules_day[timestamp].iloc[i] = popsubset[timestamp].value_counts().index[0]
+                    meanschedule = popsubset[timestamp].value_counts().index[0]
+
+                
         Synthpop_schedules_day.to_csv("D:\PhD EXPANSE\Data\EU microdata access\HETUS2010_Synthpop_schedules_day" + str(day) + ".csv", index=False)
     return(Synthpop_schedules)
 
