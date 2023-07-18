@@ -87,11 +87,12 @@ class TransportAirPollutionExposureModel(Model):
             "Built Environment/Facilities/Amsterdam_Foursquarevenues_Nightlife_RDNew.shp")
         self.shape_file_Profess = shp.Reader(path_data+
             "Built Environment/Facilities/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp")
-        self.spatial_extent = shp.Reader(path_data+"SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp")
-        self.extentbox = self.spatial_extent.bbox
-        self.continoussp = ContinuousSpace( x_max= self.extentbox[2], y_max= self.extentbox[3], 
-                                           torus = bool, x_min = self.extentbox[0], y_min = self.extentbox[1])
-
+        # self.spatial_extent = shp.Reader(path_data+"SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp")
+        # self.extentbox = self.spatial_extent.bbox
+        # self.continoussp = ContinuousSpace( x_max= self.extentbox[2], y_max= self.extentbox[3], 
+        #                                    torus = bool, x_min = self.extentbox[0], y_min = self.extentbox[1])
+        self.spatial_extent =  gpd.read_file(path_data+"SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp")
+        print(self.spatial_extent)
 
 
 		# Create the agents
