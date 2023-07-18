@@ -10,6 +10,8 @@ from mesa.datacollection import DataCollector
 import pandas as pd
 import shapefile as shp
 #import mesa_geo
+import fiona
+import geopandas as gpd
 
 
 
