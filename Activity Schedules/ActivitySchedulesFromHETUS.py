@@ -75,6 +75,7 @@ def CreateCombinations(vars):
     return(list(itertools.product(*combinations)))
 
 Synthpop_schedules = pd.DataFrame(CreateCombinations(vars), columns=vars)
+Synthpop_schedules["ScheduleID"] = "Sched" + Synthpop_schedules.index.astype(str)
 print(Synthpop_schedules.head(10))
 print(Synthpop_schedules.shape)
 pd.DataFrame.to_csv(Synthpop_schedules, "D:\PhD EXPANSE\Data\EU microdata access\HETUS2010_Synthpop_schedules.csv", index=False)
@@ -141,8 +142,8 @@ def SchedulePopulater(Synthpop_schedules, Weekdays_int):
             Synthpop_schedules_day["NrVars"].iloc[i] = len(subvars)
             if len(popsubset.index) > 0:
                 for timestamp in ActivityVars:
-                    # Synthpop_schedules_day[timestamp].iloc[i] = popsubset[timestamp].value_counts().index[0]
-                    meanschedule = popsubset[timestamp].value_counts().index[0]
+                    Synthpop_schedules_day[timestamp].iloc[i] = popsubset[timestamp].value_counts().index[0]
+                    #meanschedule = popsubset[timestamp].value_counts().index[0]
 
                 
         Synthpop_schedules_day.to_csv("D:\PhD EXPANSE\Data\EU microdata access\HETUS2010_Synthpop_schedules_day" + str(day) + ".csv", index=False)
