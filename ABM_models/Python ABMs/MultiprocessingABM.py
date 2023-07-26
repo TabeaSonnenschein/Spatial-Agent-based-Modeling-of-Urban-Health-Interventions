@@ -16,14 +16,14 @@ import fiona
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from shapely.ops import nearest_points, substring,transform
+from shapely.ops import nearest_points, transform, substring
 import shapely as shp
-from shapely.geometry import LineString, Point, Polygon, LinearRing
+from shapely.geometry import LineString, Point, Polygon
 from sklearn.neighbors import BallTree
 import numpy as np
 from geopandas.tools import sjoin
 from functools import partial
-from pyproj import Transformer
+import pyproj
 import geopy.distance as distance
 import requests as rq
 import polyline
@@ -31,18 +31,9 @@ import subprocess
 from sklearn_pmml_model.tree import PMMLTreeClassifier
 import random
 import multiprocessing
-import cProfile
-import pstats
-from distributed import Client
-import dask_geopandas as dgpd
 
-# cluster = coiled.Cluster(
-#     name="spatial-join",
-#     software="coiled-examples/spatial-join",
-#     n_workers=50,
-#     worker_memory="16Gib",
-# )
-# client = Client(cluster)
+
+
 
 def get_nearest(src_points, candidates, k_neighbors=1):
     """Find nearest neighbors for all source points from a set of candidate points"""
@@ -109,16 +100,28 @@ def nearest_neighbor(left_gdf, right_gdf, return_dist=False):
     return closest_points
 
 
-def buffer_in_meters(lng, lat, radius):
-    pt_meters = project_to_meters.transform(lng, lat)
-    buffer_meters = Point(pt_meters).buffer(radius)
+def buffer_in_meters(lng, lat, radius, crs):
+    proj_meters = pyproj.Proj('epsg:3857')
+    proj_latlng = pyproj.Proj(crs)
+
+    project_to_meters = partial(pyproj.transform, proj_latlng, proj_meters)
+    project_to_latlng = partial(pyproj.transform, proj_meters, proj_latlng)
+
+    pt_latlng = Point(lng, lat)
+    pt_meters = transform(project_to_meters, pt_latlng)
+
+    buffer_meters = pt_meters.buffer(radius)
     return transform(project_to_latlng, buffer_meters)
 
 
+
+
 def get_distance_meters(lng1, lat1, lng2, lat2, project_to_WSG84):
-    '''function to calculate distance between two points in meters based on geopandas'''
-    pt1_WSG84 =  transform(project_to_WSG84, Point(lng1, lat1))
-    pt2_WSG84 = transform(project_to_WSG84, Point(lng2, lat2))
+    # function to calculate distance between two points in meters based on geopandas
+    pt1_CRS = Point(lng1, lat1)
+    pt2_CRS = Point(lng2, lat2)
+    pt1_WSG84 = transform(project_to_WSG84, pt1_CRS)
+    pt2_WSG84 = transform(project_to_WSG84, pt2_CRS)
     return distance.distance(pt1_WSG84.coords, pt2_WSG84.coords).meters
 
 
@@ -148,24 +151,25 @@ class Humans(Agent):
     def __init__(self, vector, model):
         self.unique_id = vector[0]
         super().__init__(self.unique_id, model)
+        print(self.unique_id)
         # socio-demographic attributes
         self.Neighborhood = vector[1]
-        # self.age = vector[2]                  # integer age 0- 100
+        self.age = vector[2]                  # integer age 0- 100
         # self.sex = vector[3]  				        # female, male
         # self.migrationbackground = vector[4]  # Dutch, Western, Non-Western
-        # self.hh_single = vector[5] 				    # 1 = yes, 0 = no
-        # self.is_child = vector[6]				      # 1 = yes, 0 = no
-        # self.has_child = vector[7]				    # 1 = yes, 0 = no
+        self.hh_single = vector[5] 				    # 1 = yes, 0 = no
+        self.is_child = vector[6]				      # 1 = yes, 0 = no
+        self.has_child = vector[7]				    # 1 = yes, 0 = no
         self.current_edu = vector[8]          # "high", "middle", "low", "no_current_edu"
         # self.absolved_edu = vector[9]		      # "high", "middle", "low", 0
         # self.BMI = vector[10]                 # "underweight", "normal_weight", "moderate_overweight", "obese"
-        # self.employment_status = vector[11]   # 1 = employed, 0 = unemployed
-        # self.edu_int = vector[12] 	          # 1,2,3
-        # self.car_access = vector[13]          # 1 = yes, 0 = no
-        # self.biking_habit = vector[14]        # 1 = yes, 0 = no
-        # self.driving_habit = vector[15]       # 1 = yes, 0 = no
-        # self.transit_habit = vector[16]       # 1 = yes, 0 = no
-        # self.incomeclass = vector[17]         # income deciles 1-10
+        self.employment_status = vector[11]   # 1 = employed, 0 = unemployed
+        self.edu_int = vector[12] 	          # 1,2,3
+        self.car_access = vector[13]          # 1 = yes, 0 = no
+        self.biking_habit = vector[14]        # 1 = yes, 0 = no
+        self.driving_habit = vector[15]       # 1 = yes, 0 = no
+        self.transit_habit = vector[16]       # 1 = yes, 0 = no
+        self.incomeclass = vector[17]         # income deciles 1-10
         self.IndModalPreds = [vector[i] for i in [19,2,13,20,21,22,17,11,12,5,7,15,14,16]]    # individual modal choice predictions: ["sex_male", "age", "car_access", 
                                                              # "Western", "Non_Western", "Dutch", 'income','employed',
                                                              #'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit',
@@ -205,23 +209,23 @@ class Humans(Agent):
         self.path_memory = 0
         self.traveldecision = 0
 
-  
+
     def ScheduleManager(self):
       # identifying the current activity
       if self.model.weekday == 0:
-        self.current_activity = self.MondaySchedule[self.model.activitystep]
+        self.current_activity = self.MondaySchedule[int((self.model.hour * 6) + (self.model.minute / 10))]
       if self.model.weekday == 1:
-        self.current_activity = self.TuesdaySchedule[self.model.activitystep]
+        self.current_activity = self.TuesdaySchedule[int((self.model.hour * 6) + (self.model.minute / 10))]
       if self.model.weekday == 2:
-        self.current_activity = self.WednesdaySchedule[self.model.activitystep]
+        self.current_activity = self.WednesdaySchedule[int((self.model.hour * 6) + (self.model.minute / 10))]
       if self.model.weekday == 3:
-        self.current_activity = self.ThursdaySchedule[self.model.activitystep]
+        self.current_activity = self.ThursdaySchedule[int((self.model.hour * 6) + (self.model.minute / 10))]
       if self.model.weekday == 4:
-        self.current_activity = self.FridaySchedule[self.model.activitystep]
+        self.current_activity = self.FridaySchedule[int((self.model.hour * 6) + (self.model.minute / 10))]
       if self.model.weekday == 5:
-        self.current_activity = self.SaturdaySchedule[self.model.activitystep]
+        self.current_activity = self.SaturdaySchedule[int((self.model.hour * 6) + (self.model.minute / 10))]
       if self.model.weekday == 6:
-        self.current_activity = self.SundaySchedule[self.model.activitystep]
+        self.current_activity = self.SundaySchedule[int((self.model.hour * 6) + (self.model.minute / 10))]
 
         # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
       if self.current_activity != self.former_activity:
@@ -307,10 +311,9 @@ class Humans(Agent):
           self.destination_activity = self.model.Entertainment["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity == 2:  # 2 = eating
-          if any(self.model.Restaurants["geometry"].within(buffer_in_meters(self.pos[0], self.pos[1], 500))):
-              self.nearRestaurants = self.model.Restaurants["geometry"].intersection(buffer_in_meters(self.pos[0], self.pos[1], 500))
+          if any(self.model.Restaurants["geometry"].within(buffer_in_meters(self.pos[0], self.pos[1], 500, self.model.crs))):
+              self.nearRestaurants = self.model.Restaurants["geometry"].intersection(buffer_in_meters(self.pos[0], self.pos[1], 500, self.model.crs))
               self.destination_activity = self.nearRestaurants[~self.nearRestaurants.is_empty].sample(1).values[0].coords[0]
-
           else:
               self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.pos)), self.model.Restaurants["geometry"].unary_union)][1]
 
@@ -338,15 +341,15 @@ class Humans(Agent):
 
     def PerceiveEnvironment(self):
       # variables to be joined to route
-      self.RouteVars = dgpd.from_geopandas(gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs),npartitions=8).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values.compute()
+      self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values
       #variables to be joined to current location
-      self.OrigVars = dgpd.from_geopandas(gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs),npartitions=8).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0].compute()
+      self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0]
       #variables to be joined to destination
-      self.DestVars = dgpd.from_geopandas(gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs),npartitions=8).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.destinvariables].values[0].compute()
+      self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.destinvariables].values[0]
       
     def ModeChoice(self):
       self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
-                                  columns=(self.model.routevariables_suff + self.model.originvariables_suff + self.model.destinvariables_suff + self.model.personalvariables + self.model.tripvariables)).fillna(0)
+                                  columns=(self.model.routevariables_suff + self.model.originvariables_suff + self.model.destinvariables_suff + self.model.personalvariables + self.model.tripvariables))
       self.modechoice =self.model.ModalChoiceModel.predict(self.pred_df[self.model.OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk")
 
     # OSRM Routing Machine
@@ -364,8 +367,8 @@ class Humans(Agent):
         self.server = "http://127.0.0.1:5002/"
         self.lua_profile = "foot"
       
-      self.orig_point = transform(project_to_WSG84, Point(tuple(self.pos)))
-      self.dest_point = transform(project_to_WSG84, Point(tuple(self.destination_activity)))
+      self.orig_point = transform(project_to_WSG84, Point(self.pos[0], self.pos[1]))
+      self.dest_point = transform(project_to_WSG84, Point(self.destination_activity[0], self.destination_activity[1]))
       self.url = (self.server + "route/v1/"+ self.lua_profile + "/" + str(self.orig_point.y)+ ","+ str(self.orig_point.x)+ ";"+ str(self.dest_point.y)+ ","+ str(self.dest_point.x) + "?overview=full&geometries=polyline")
       self.res = rq.get(self.url).json()
       self.track_geometry = LineString(polyline.decode(self.res['routes'][0]['geometry']))
@@ -373,26 +376,25 @@ class Humans(Agent):
       self.trip_distance = self.res['routes'][0]['distance']  # meters
 
     def SavingRoute(self):
-      if(self.former_activity in [5, 1, 6, 7]):
-        if self.current_activity == 3 : 
+        if self.current_activity == 3 and (self.former_activity in [5, 1, 6, 7]): 
             self.homeTOwork_mode = self.modechoice
             self.homeTOwork_geometry = self.track_geometry 
             self.homeTOwork_duration = self.track_duration
             self.workTOhome_geometry = reverse_geom(self.track_geometry)
 		
-        elif self.current_activity == 4: 
+        elif self.current_activity == 4  and (self.former_activity in [5, 1, 6, 7]): 
             self.homeTOschool_mode = self.modechoice
             self.homeTOschool_geometry = self.track_geometry  
             self.homeTOschool_duration = self.track_duration
             self.schoolTOhome_geometry = reverse_geom(self.track_geometry)
 			
-        elif self.current_activity == "kindergarden" : 
+        elif self.current_activity == "kindergarden" and (self.former_activity in [5, 1, 6, 7]): 
             self.homeTOkinderga_mode = self.modechoice
             self.homeTOkinderga_geometry = self.track_geometry 
             self.homeTOkinderga_duration = self.track_duration
             self.kindergaTOhome_geometry = reverse_geom(self.track_geometry)
 
-        elif self.current_activity == "groceries_shopping": 
+        elif self.current_activity == "groceries_shopping" and (self.former_activity in [5, 1, 6, 7]): 
             self.homeTOsuperm_mode = self.modechoice
             self.homeTOsuperm_geometry = self.track_geometry 
             self.homeTOsuperm_duration = self.track_duration
@@ -429,11 +431,25 @@ class Humans(Agent):
         if self.activity == "traveling":
             self.TravelingAlongRoute()
 
+class ParallelScheduler(BaseScheduler):
+    def __init__(self, model):
+        super().__init__(model)
+        
+    def step(self):
+        # Shuffle the agents to avoid any potential bias in the order of execution
+        self.model.random.shuffle(self.agents)
+        # Use the multiprocessing pool to execute the agents' steps in parallel
+        with multiprocessing.Pool() as self.pool:
+          self.pool.map(self.step_agent, self.agents)
+
+    @staticmethod
+    def step_agent(agent):
+        agent.step()
 
 
 class TransportAirPollutionExposureModel(Model):
     def __init__(self, nb_humans, path_data, crs="epsg:28992",
-                 starting_date=datetime(2019, 1, 1, 6, 50, 0), steps_minute=10, modelrunname="intervention_scenario"):
+                 starting_date=datetime(2019, 1, 1, 6, 50, 0), steps_minute=5, modelrunname="intervention_scenario"):
         # Insert the global definitions, variables, and actions here
         self.path_data = path_data
         self.starting_datetime = starting_date
@@ -485,9 +501,7 @@ class TransportAirPollutionExposureModel(Model):
         # Read the Mode of Transport Choice Model
         print("Reading Mode of Transport Choice Model")
         self.ModalChoiceModel = PMMLTreeClassifier(pmml=path_data+"ModalChoiceModel/modalChoice.pmml")
-        self.ModalChoiceModel.splitter = "random"
         self.OrderPredVars = [x for x in self.ModalChoiceModel.fields][1:]
-
 
         # self.modelvars = "allvars"
         self.modelvars = "allvars_strict"
@@ -530,14 +544,14 @@ class TransportAirPollutionExposureModel(Model):
 
         # Create the agents
         print("Creating Agents")
-        print(datetime.now())
-        for i in range(self.nb_humans):
-            agent = Humans(vector=list(random_subset.iloc[i]), model=self)
-            # Add the agent to a Home in their neighborhood
+        self.agentstart = datetime.now()
+        with multiprocessing.Pool() as pool:
+            agents = pool.starmap( Humans, [(list(random_subset.iloc[i]), self) for i in range(self.nb_humans)])
+        for agent in agents:
             self.continoussp.place_agent(agent, agent.Residence)
             self.schedule.add(agent)
+        self.agentend = datetime.now()
 
-        print(datetime.now())
         # self.dc = DataCollector(model_reporters={"agent_count":
         #                             lambda m: m.schedule.get_type_count(Humans)},
         #                         agent_reporters={"age": lambda m: (a.age for a in m.schedule.agents_by_type[Humans].values())})
@@ -568,7 +582,6 @@ class TransportAirPollutionExposureModel(Model):
         if self.minute == 0:  # new hour
             print("Current time: ", self.current_datetime)
             self.hour = self.current_datetime.hour
-        self.activitystep = int((self.hour * 6) + (self.minute / 10))
         if self.current_datetime.hour == 0: # new day
             self.weekday = self.current_datetime.weekday()
         if self.current_datetime.day == 1 and self.current_datetime.hour == 0: # new month
@@ -593,10 +606,10 @@ if __name__ == "__main__":
 
     # Coordinate Reference System and CRS transformers
     crs = "epsg:28992"
-    project_to_WSG84 = Transformer.from_crs(crs, "epsg:4326", always_xy=True).transform
-    project_to_meters = Transformer.from_crs(crs, 'epsg:3857')
-    project_to_latlng = Transformer.from_crs('epsg:3857', crs, always_xy=True).transform
-    
+    proj_WSG84 = pyproj.Proj('epsg:4326')  # WSG84
+    proj_CRS = pyproj.Proj(crs)
+    project_to_WSG84 = partial(pyproj.transform, proj_CRS, proj_WSG84)
+
     # Start OSRM Servers
     print("Starting OSRM Servers")
     subprocess.call([r"C:\Users\Tabea\Documents\GitHub\Spatial-Agent-based-Modeling-of-Urban-Health-Interventions\start_OSRM_Servers.bat"])
@@ -604,19 +617,8 @@ if __name__ == "__main__":
 
     m = TransportAirPollutionExposureModel(
       nb_humans=nb_humans, path_data=path_data)
-    for t in range(100):
-    #   m.step()
-    
-      # Profile the ABM run
-      cProfile.run('m.step()', 'profile_results')
-      # Print or save the profiling results
-      with open(path_data+'profile_results.txt', 'w') as f:
-          p = pstats.Stats('profile_results', stream=f)
-          # p.strip_dirs().sort_stats('cumulative').print_stats()
-          p.strip_dirs().sort_stats('time').print_stats()
-
-
-      
+    for t in range(1000):
+      m.step()
 # model_df = m.dc.get_model_vars_dataframe()
 # agent_df = m.dc.get_agent_vars_dataframe()
 # agent_df.head()
