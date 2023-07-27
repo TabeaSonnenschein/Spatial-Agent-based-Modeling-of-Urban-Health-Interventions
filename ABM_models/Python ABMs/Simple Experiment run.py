@@ -16,7 +16,7 @@ import fiona
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from shapely.ops import nearest_points, substring,transform
+from shapely.ops import nearest_points, substring,transform,snap, split
 import shapely as shp
 from shapely.geometry import LineString, Point, Polygon, LinearRing
 from sklearn.neighbors import BallTree
@@ -33,16 +33,11 @@ import random
 import multiprocessing
 import cProfile
 import pstats
+import coiled
 from distributed import Client
-import dask_geopandas as dgpd
+import dask_geopandas as dgp
+import itertools as it
 
-# cluster = coiled.Cluster(
-#     name="spatial-join",
-#     software="coiled-examples/spatial-join",
-#     n_workers=50,
-#     worker_memory="16Gib",
-# )
-# client = Client(cluster)
 
 def get_nearest(src_points, candidates, k_neighbors=1):
     """Find nearest neighbors for all source points from a set of candidate points"""
@@ -324,12 +319,14 @@ class Humans(Agent):
 
         # Identifuing whether agent needs to travel to new destination
         if self.destination_activity != self.pos:
-          self.route_eucl_line = LineString([Point(tuple(self.pos)), Point(tuple(self.destination_activity))])
-          self.trip_distance = get_distance_meters(self.pos[0], self.pos[1], self.destination_activity[0], self.destination_activity[1], project_to_WSG84)
           if self.path_memory != 1:
               self.traveldecision = 1
+              self.route_eucl_line = LineString([Point(tuple(self.pos)), Point(tuple(self.destination_activity))])
+              self.trip_distance = get_distance_meters(self.pos[0], self.pos[1], self.destination_activity[0], self.destination_activity[1], project_to_WSG84)
           else:
               self.activity = "traveling"
+              self.arrival_time = self.model.current_datetime + timedelta(minutes=self.track_duration)
+              self.AssignTripToTraffic()
           self.path_memory = 0
 
         else:
@@ -338,11 +335,11 @@ class Humans(Agent):
 
     def PerceiveEnvironment(self):
       # variables to be joined to route
-      self.RouteVars = dgpd.from_geopandas(gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs),npartitions=8).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values.compute()
+      self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values
       #variables to be joined to current location
-      self.OrigVars = dgpd.from_geopandas(gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs),npartitions=8).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0].compute()
+      self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0]
       #variables to be joined to destination
-      self.DestVars = dgpd.from_geopandas(gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs),npartitions=8).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.destinvariables].values[0].compute()
+      self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.destinvariables].values[0]
       
     def ModeChoice(self):
       self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
@@ -366,11 +363,12 @@ class Humans(Agent):
       
       self.orig_point = transform(project_to_WSG84, Point(tuple(self.pos)))
       self.dest_point = transform(project_to_WSG84, Point(tuple(self.destination_activity)))
-      self.url = (self.server + "route/v1/"+ self.lua_profile + "/" + str(self.orig_point.y)+ ","+ str(self.orig_point.x)+ ";"+ str(self.dest_point.y)+ ","+ str(self.dest_point.x) + "?overview=full&geometries=polyline")
+      self.url = (self.server + "route/v1/"+ self.lua_profile + "/" + str(self.orig_point.x)+ ","+ str(self.orig_point.y)+ ";"+ str(self.dest_point.x)+ ","+ str(self.dest_point.y) + "?overview=full&geometries=polyline")
       self.res = rq.get(self.url).json()
       self.track_geometry = LineString(polyline.decode(self.res['routes'][0]['geometry']))
       self.track_duration = self.res['routes'][0]['duration'] # minutes
       self.trip_distance = self.res['routes'][0]['distance']  # meters
+
 
     def SavingRoute(self):
       if(self.former_activity in [5, 1, 6, 7]):
@@ -403,6 +401,22 @@ class Humans(Agent):
           self.activity = "perform_activity"
           self.pos = self.destination_activity
 
+    def AssignTripToTraffic(self):
+      if self.arrival_time.hour != self.model.hour:
+          print("trip intersects multiple hours")
+          self.track_length = self.track_geometry.length
+          self.trip_segments = [((60 - self.model.minute)/self.track_duration)]
+          if (60/(self.track_duration-(60 - self.model.minute))) <1: #if the trip intersects more than two hour slots
+            self.trip_segments.append(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.model.minute))/60)))
+          #   self.trip_segments.append(1- sum(self.trip_segments))
+          # else:
+          #   self.trip_segments.append(1- self.trip_segments[0])
+          self.segment_geometry = [self.track_geometry]
+          for x in self.trip_segments:
+            print(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 0.01), self.segment_geometry[-1].interpolate(x * self.track_length)))
+            self.segment_geometry.append(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 0.01), self.segment_geometry[-1].interpolate(x * self.track_length)))
+          print(self.trip_segments)
+    
     def AtPlaceExposure(self):
       pass
     
@@ -425,6 +439,7 @@ class Humans(Agent):
             self.arrival_time = self.model.current_datetime + timedelta(minutes=self.track_duration)
             self.activity = "traveling"
             self.traveldecision = 0
+            self.AssignTripToTraffic()
             
         if self.activity == "traveling":
             self.TravelingAlongRoute()
@@ -481,6 +496,7 @@ class TransportAirPollutionExposureModel(Model):
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
 
         # Read the Environmental Stressor Data and Model
+
 
         # Read the Mode of Transport Choice Model
         print("Reading Mode of Transport Choice Model")
@@ -586,7 +602,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 4000
+    nb_humans = 400
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
@@ -605,15 +621,15 @@ if __name__ == "__main__":
     m = TransportAirPollutionExposureModel(
       nb_humans=nb_humans, path_data=path_data)
     for t in range(100):
-    #   m.step()
+      m.step()
     
-      # Profile the ABM run
-      cProfile.run('m.step()', 'profile_results')
-      # Print or save the profiling results
-      with open(path_data+'profile_results.txt', 'w') as f:
-          p = pstats.Stats('profile_results', stream=f)
-          # p.strip_dirs().sort_stats('cumulative').print_stats()
-          p.strip_dirs().sort_stats('time').print_stats()
+      # # Profile the ABM run
+      # cProfile.run('m.step()', 'profile_results')
+      # # Print or save the profiling results
+      # with open(path_data+'profile_results.txt', 'w') as f:
+      #     p = pstats.Stats('profile_results', stream=f)
+      #     # p.strip_dirs().sort_stats('cumulative').print_stats()
+      #     p.strip_dirs().sort_stats('time').print_stats()
 
 
       
