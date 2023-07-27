@@ -104,12 +104,6 @@ def nearest_neighbor(left_gdf, right_gdf, return_dist=False):
     return closest_points
 
 
-def buffer_in_meters(lng, lat, radius):
-    pt_meters = project_to_meters.transform(lng, lat)
-    buffer_meters = Point(pt_meters).buffer(radius)
-    return transform(project_to_latlng, buffer_meters)
-
-
 def get_distance_meters(lng1, lat1, lng2, lat2, project_to_WSG84):
     '''function to calculate distance between two points in meters based on geopandas'''
     pt1_WSG84 =  transform(project_to_WSG84, Point(lng1, lat1))
@@ -302,8 +296,8 @@ class Humans(Agent):
           self.destination_activity = self.model.Entertainment["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity == 2:  # 2 = eating
-          if any(self.model.Restaurants["geometry"].within(buffer_in_meters(self.pos[0], self.pos[1], 500))):
-              self.nearRestaurants = self.model.Restaurants["geometry"].intersection(buffer_in_meters(self.pos[0], self.pos[1], 500))
+          if any(self.model.Restaurants["geometry"].within( Point(tuple(self.pos)).buffer(500))):
+              self.nearRestaurants = self.model.Restaurants["geometry"].intersection(Point(tuple(self.pos)).buffer(500))
               self.destination_activity = self.nearRestaurants[~self.nearRestaurants.is_empty].sample(1).values[0].coords[0]
 
           else:
@@ -406,7 +400,7 @@ class Humans(Agent):
       if self.arrival_time.hour != self.model.hour:
           self.track_length = self.track_geometry.length
           self.trip_segments = [((60 - self.model.minute)/self.track_duration)]
-          if (60/(self.track_duration-(60 - self.model.minute))) <1: #if the trip intersects more than two hour slots
+          if (60/(self.track_duration-(60 - self.model.minute))) <1:  #if the trip intersects more than two hour slots
             self.trip_segments.extend(list(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.model.minute))/60))))
           self.segment_geometry = [self.track_geometry]
           for x in self.trip_segments:
@@ -414,20 +408,27 @@ class Humans(Agent):
           self.segment_geometry = [self.segment_geometry[x] for x in list(range(1, len(self.segment_geometry)-1,2))+[len(self.segment_geometry)-1]]
           # print("trip segments: ", len(self.segment_geometry), self.track_duration, self.trip_segments, self.segment_geometry)
           self.thishourtrack.append(self.segment_geometry[0])
+          self.thishourmode.append(self.modechoice)
           self.nexthourstracks = self.segment_geometry[1:]
+          self.nexthoursmodes = list(it.repeat(self.modechoice, len(self.nexthourstracks)))
       else:
           self.thishourtrack.append(self.track_geometry)
-          self.nexthourtracks = [None]
+          self.thishourmode.append(self.modechoice)
+
 
        
     def AtPlaceExposure(self):
       pass
     
     def TravelExposure(self):
-      self.hourlyNO2 = gpd.sjoin( self.model.AirPollGrid)
+      self.thishourtrack = gpd.GeoDataFrame(data = {'id': range(len(self.thishourtrack)), 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
+      
+      
+      self.thishourmode = [self.nexthoursmodes[0]]
       self.thishourtrack = [self.nexthourstracks[0]]
-      self.nexthourstracks[0] = []
-
+      self.nexthourstracks.pop(0)
+      self.nexthoursmodes.pop(0)
+      
     def step(self):
         # Schedule Manager
         if self.model.minute % 10 == 0 or self.model.minute == 0:
@@ -557,7 +558,7 @@ class TransportAirPollutionExposureModel(Model):
             # Add the agent to a Home in their neighborhood
             self.continoussp.place_agent(agent, agent.Residence)
             self.schedule.add(agent)
-
+ 
         print(datetime.now())
         # self.dc = DataCollector(model_reporters={"agent_count":
         #                             lambda m: m.schedule.get_type_count(Humans)},
