@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from shapely.ops import nearest_points, substring,transform,snap, split
 import shapely as shp
-from shapely.geometry import LineString, Point, Polygon, LinearRing
+from shapely.geometry import LineString, Point, Polygon, GeometryCollection
 from sklearn.neighbors import BallTree
 import numpy as np
 from geopandas.tools import sjoin
@@ -366,9 +366,10 @@ class Humans(Agent):
       self.url = (self.server + "route/v1/"+ self.lua_profile + "/" + str(self.orig_point.x)+ ","+ str(self.orig_point.y)+ ";"+ str(self.dest_point.x)+ ","+ str(self.dest_point.y) + "?overview=full&geometries=polyline")
       self.res = rq.get(self.url).json()
       self.track_geometry = LineString(polyline.decode(self.res['routes'][0]['geometry']))
-      self.track_duration = self.res['routes'][0]['duration'] # minutes
+      self.track_duration = (self.res['routes'][0]['duration'])/60  # minutes
+      if self.modechoice == "transit":
+        self.track_duration = self.track_duration/10
       self.trip_distance = self.res['routes'][0]['distance']  # meters
-
 
     def SavingRoute(self):
       if(self.former_activity in [5, 1, 6, 7]):
@@ -403,25 +404,29 @@ class Humans(Agent):
 
     def AssignTripToTraffic(self):
       if self.arrival_time.hour != self.model.hour:
-          print("trip intersects multiple hours")
           self.track_length = self.track_geometry.length
           self.trip_segments = [((60 - self.model.minute)/self.track_duration)]
           if (60/(self.track_duration-(60 - self.model.minute))) <1: #if the trip intersects more than two hour slots
-            self.trip_segments.append(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.model.minute))/60)))
-          #   self.trip_segments.append(1- sum(self.trip_segments))
-          # else:
-          #   self.trip_segments.append(1- self.trip_segments[0])
+            self.trip_segments.extend(list(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.model.minute))/60))))
           self.segment_geometry = [self.track_geometry]
           for x in self.trip_segments:
-            print(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 0.01), self.segment_geometry[-1].interpolate(x * self.track_length)))
-            self.segment_geometry.append(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 0.01), self.segment_geometry[-1].interpolate(x * self.track_length)))
-          print(self.trip_segments)
-    
+            self.segment_geometry.extend(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 0.01), self.segment_geometry[-1].interpolate(x * self.track_length)).geoms)
+          self.segment_geometry = [self.segment_geometry[x] for x in list(range(1, len(self.segment_geometry)-1,2))+[len(self.segment_geometry)-1]]
+          # print("trip segments: ", len(self.segment_geometry), self.track_duration, self.trip_segments, self.segment_geometry)
+          self.thishourtrack.append(self.segment_geometry[0])
+          self.nexthourstracks = self.segment_geometry[1:]
+      else:
+          self.thishourtrack.append(self.track_geometry)
+          self.nexthourtracks = [None]
+
+       
     def AtPlaceExposure(self):
       pass
     
     def TravelExposure(self):
-      pass
+      self.hourlyNO2 = gpd.sjoin( self.model.AirPollGrid)
+      self.thishourtrack = [self.nexthourstracks[0]]
+      self.nexthourstracks[0] = []
 
     def step(self):
         # Schedule Manager
@@ -496,7 +501,7 @@ class TransportAirPollutionExposureModel(Model):
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
 
         # Read the Environmental Stressor Data and Model
-
+        self.AirPollGrid = gpd.read_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
 
         # Read the Mode of Transport Choice Model
         print("Reading Mode of Transport Choice Model")
