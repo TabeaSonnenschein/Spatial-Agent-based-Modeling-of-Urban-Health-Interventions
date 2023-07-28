@@ -37,6 +37,10 @@ import coiled
 from distributed import Client
 import dask_geopandas as dgp
 import itertools as it
+import warnings
+warnings.filterwarnings("ignore", module="shapely")
+  
+
 
 
 def get_nearest(src_points, candidates, k_neighbors=1):
@@ -123,7 +127,10 @@ def reverse_geom(geom):
         return x[::-1], y[::-1]
     return transform(_reverse, geom)
 
-
+def flip(x, y):
+    """Flips the x and y coordinate values"""
+    return y, x
+  
 class Humans(Agent):
     """
     Humans:
@@ -193,6 +200,7 @@ class Humans(Agent):
         # mobility behavior variables
         self.path_memory = 0
         self.traveldecision = 0
+        self.thishourtrack, self.thishourmode = [], []
 
   
     def ScheduleManager(self):
@@ -359,7 +367,7 @@ class Humans(Agent):
       self.dest_point = transform(project_to_WSG84, Point(tuple(self.destination_activity)))
       self.url = (self.server + "route/v1/"+ self.lua_profile + "/" + str(self.orig_point.x)+ ","+ str(self.orig_point.y)+ ";"+ str(self.dest_point.x)+ ","+ str(self.dest_point.y) + "?overview=full&geometries=polyline")
       self.res = rq.get(self.url).json()
-      self.track_geometry = LineString(polyline.decode(self.res['routes'][0]['geometry']))
+      self.track_geometry = transform(projecy_to_crs, transform(flip, LineString(polyline.decode(self.res['routes'][0]['geometry']))))
       self.track_duration = (self.res['routes'][0]['duration'])/60  # minutes
       if self.modechoice == "transit":
         self.track_duration = self.track_duration/10
@@ -398,15 +406,17 @@ class Humans(Agent):
 
     def AssignTripToTraffic(self):
       if self.arrival_time.hour != self.model.hour:
+          print("multihour trip")
           self.track_length = self.track_geometry.length
           self.trip_segments = [((60 - self.model.minute)/self.track_duration)]
           if (60/(self.track_duration-(60 - self.model.minute))) <1:  #if the trip intersects more than two hour slots
             self.trip_segments.extend(list(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.model.minute))/60))))
           self.segment_geometry = [self.track_geometry]
           for x in self.trip_segments:
-            self.segment_geometry.extend(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 0.01), self.segment_geometry[-1].interpolate(x * self.track_length)).geoms)
+            self.segment_geometry.extend(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 10), self.segment_geometry[-1].interpolate(x * self.track_length)).geoms)
+          print("here is the issue")
           self.segment_geometry = [self.segment_geometry[x] for x in list(range(1, len(self.segment_geometry)-1,2))+[len(self.segment_geometry)-1]]
-          # print("trip segments: ", len(self.segment_geometry), self.track_duration, self.trip_segments, self.segment_geometry)
+          print(len(self.segment_geometry))
           self.thishourtrack.append(self.segment_geometry[0])
           self.thishourmode.append(self.modechoice)
           self.nexthourstracks = self.segment_geometry[1:]
@@ -414,7 +424,7 @@ class Humans(Agent):
       else:
           self.thishourtrack.append(self.track_geometry)
           self.thishourmode.append(self.modechoice)
-
+    
 
        
     def AtPlaceExposure(self):
@@ -617,6 +627,7 @@ if __name__ == "__main__":
     # Coordinate Reference System and CRS transformers
     crs = "epsg:28992"
     project_to_WSG84 = Transformer.from_crs(crs, "epsg:4326", always_xy=True).transform
+    projecy_to_crs = Transformer.from_crs("epsg:4326", crs, always_xy=True).transform
     project_to_meters = Transformer.from_crs(crs, 'epsg:3857')
     project_to_latlng = Transformer.from_crs('epsg:3857', crs, always_xy=True).transform
     
