@@ -414,9 +414,7 @@ class Humans(Agent):
           self.segment_geometry = [self.track_geometry]
           for x in self.trip_segments:
             self.segment_geometry.extend(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 10), self.segment_geometry[-1].interpolate(x * self.track_length)).geoms)
-          print("here is the issue")
           self.segment_geometry = [self.segment_geometry[x] for x in list(range(1, len(self.segment_geometry)-1,2))+[len(self.segment_geometry)-1]]
-          print(len(self.segment_geometry))
           self.thishourtrack.append(self.segment_geometry[0])
           self.thishourmode.append(self.modechoice)
           self.nexthourstracks = self.segment_geometry[1:]
@@ -433,8 +431,8 @@ class Humans(Agent):
     def TravelExposure(self):
       self.thishourtrack = gpd.GeoDataFrame(data = {'id': range(len(self.thishourtrack)), 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
       self.thishourtrack['length'] = self.thishourtrack.length
-      
-      
+      print(self.thishourtrack["length"])
+      self.thishourtrack.plot()      
       self.thishourmode = [self.nexthoursmodes[0]]
       self.thishourtrack = [self.nexthourstracks[0]]
       self.nexthourstracks.pop(0)
