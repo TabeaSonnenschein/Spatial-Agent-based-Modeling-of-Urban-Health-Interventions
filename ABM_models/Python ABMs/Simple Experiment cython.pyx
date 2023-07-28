@@ -1,3 +1,4 @@
+# cython: language_level=3
 import os
 import csv
 import math
@@ -37,7 +38,6 @@ import coiled
 from distributed import Client
 import dask_geopandas as dgp
 import itertools as it
-
 
 def get_nearest(src_points, candidates, k_neighbors=1):
     """Find nearest neighbors for all source points from a set of candidate points"""
