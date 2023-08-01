@@ -724,6 +724,8 @@ experiment TransportAirPollutionExposureModel type: gui {
     		}
        		graphics Buildings refresh: false{
     			draw shape_file_buildings color: #firebrick;
+    			draw shape_file_buildings2 color: #firebrick;
+    			draw shape_file_buildings3 color: #firebrick;
 			}
 			graphics Streets refresh: false{
     			draw shape_file_streets color: #aqua;

@@ -232,6 +232,11 @@
 			<location>D:/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/PM2_5_yearlymean_RDnew.tif</location>
 		</link>
 		<link>
+			<name>external/ResidencesAmsterdamNeighbCode.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/ResidencesAmsterdamNeighbCode.shp</location>
+		</link>
+		<link>
 			<name>external/Residences_neighcode_RDNew.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Residences_neighcode_RDNew.shp</location>
@@ -317,6 +322,11 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Courses/Tutorial on ABM for EXPOSOME Science/Data/Residences_neighcode_RDNew.shp</location>
 		</link>
 		<link>
+			<name>external/copy of adult_schedule.txt</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ActivitySchedules/adult_schedule.txt</location>
+		</link>
+		<link>
 			<name>external/copy of copy of Agent_pop_subset.csv</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Agent_pop_subset.csv</location>
@@ -367,6 +377,11 @@
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Amsterdam_roads_RDNew.shp</location>
 		</link>
 		<link>
+			<name>external/copy of copy of copy of Buildings.shp</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Buildings/Buildings.shp</location>
+		</link>
+		<link>
 			<name>external/copy of copy of copy of Green Spaces_RDNew_window.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Green Spaces_RDNew_window.shp</location>
@@ -385,6 +400,21 @@
 			<name>external/copy of copy of copy of Residences_neighcode_RDNew.shp</name>
 			<type>1</type>
 			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Tutorial on ABM for EXPOSOME Science/Data/Residences_neighcode_RDNew.shp</location>
+		</link>
+		<link>
+			<name>external/copy of elderly_schedule.txt</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ActivitySchedules/elderly_schedule.txt</location>
+		</link>
+		<link>
+			<name>external/copy of kids_schedule.txt</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ActivitySchedules/kids_schedule.txt</location>
+		</link>
+		<link>
+			<name>external/copy of youngadult_schedule.txt</name>
+			<type>1</type>
+			<location>C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ActivitySchedules/youngadult_schedule.txt</location>
 		</link>
 		<link>
 			<name>external/elderly_schedule.txt</name>

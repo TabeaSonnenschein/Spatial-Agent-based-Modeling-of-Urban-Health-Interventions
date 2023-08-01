@@ -15,9 +15,10 @@ global skills: [RSkill]{
 	
 //	loading the spatial built environment
 	file shape_file_buildings <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Buildings.shp");
+// file shape_file_streets <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/cars/Car Traffic_RDNew.shp");
     file shape_file_streets <- shape_file(path_data+"Amsterdam/Built Environment/Transport Infrastructure/Amsterdam_roads_RDNew.shp");
     file shape_file_greenspace <- shape_file(path_data+"Amsterdam/Built Environment/Green Spaces/Green Spaces_RDNew_window.shp");
-	file shape_file_Residences <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/ResidencesAmsterdamNeighbCode.shp");    
+	file shape_file_Residences <- shape_file(path_data+"Amsterdam/Built Environment/Buildings/Residences_neighcode_RDNew.shp");    
     file shape_file_Schools <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_schools_RDNew.shp");
     file shape_file_Supermarkets <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_supermarkets_RDNew.shp");
     file shape_file_Universities <- shape_file(path_data+"Amsterdam/Built Environment/Facilities/Amsterdam_universities_RDNew.shp");
@@ -67,10 +68,10 @@ global skills: [RSkill]{
     csv_file Synth_Agent_file;
     
 //  loading agent schedules   /// need more robust method for schedules based on HETUS data
-	text_file kids_schedules_file <- text_file(path_data+"Amsterdam/ActivitySchedules/kids_schedule.txt");
-	text_file youngadult_schedules_file <- text_file(path_data+"Amsterdam/ActivitySchedules/youngadult_schedule.txt");
-	text_file adult_schedules_file <- text_file(path_data+"Amsterdam/ActivitySchedules/adult_schedule.txt");
-	text_file elderly_schedules_file <- text_file(path_data+"Amsterdam/ActivitySchedules/elderly_schedule.txt");
+	text_file kids_schedules_file <- text_file(path_data+"Harmonised European Time Use Survey - Eurostat/kids_schedule.txt");
+	text_file youngadult_schedules_file <- text_file(path_data+"Harmonised European Time Use Survey - Eurostat/youngadult_schedule.txt");
+	text_file adult_schedules_file <- text_file(path_data+"Harmonised European Time Use Survey - Eurostat/adult_schedule.txt");
+	text_file elderly_schedules_file <- text_file(path_data+"Harmonised European Time Use Survey - Eurostat/elderly_schedule.txt");
 
 // Global variables transport
 	map<string, float> travelspeed <- create_map(["walk", "bike", "car", "transit"], [1.4, 3.33, 11.11, 10.00]); /// meters per seconds (5km/h, 12km/h, 40km/h )
@@ -141,7 +142,7 @@ global skills: [RSkill]{
     
     // set time and date
 //    float step <- 1 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
-    int nb_humans <- 4000;
+    int nb_humans <- 40000;
     float step <- 5 #mn;  /// #mn minutes #h hours  #sec seconds #day days #week weeks #year years
     float steps_minute <- 5;
     date starting_date <- date([2018,1,1,6,50,0]); //correspond the 1st of January 2019, at 6:00:00
@@ -1301,6 +1302,8 @@ experiment TransportAirPollutionExposureModel type: gui {
     		}
        		graphics Buildings refresh: false{
     			draw shape_file_buildings color: rgb(40,40,40);
+    			draw shape_file_buildings2 color: rgb(40,40,40);
+    			draw shape_file_buildings3 color: rgb(40,40,40);
     			
 			}
 			graphics Streets refresh: false{

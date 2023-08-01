@@ -201,8 +201,13 @@ class Humans(Agent):
         self.path_memory = 0
         self.traveldecision = 0
         self.thishourtrack, self.thishourmode = [], []
+        self.nexthoursmodes, self.nexthourstracks = [], []  
 
-  
+        # exposure variables
+        self.visitedPlaces = [Point(tuple(self.Residence))]
+        self.newplace = 0
+        self.durationPlaces = [0]
+        self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
     def ScheduleManager(self):
       # identifying the current activity
       if self.model.weekday == 0:
@@ -330,6 +335,7 @@ class Humans(Agent):
               self.arrival_time = self.model.current_datetime + timedelta(minutes=self.track_duration)
               self.AssignTripToTraffic()
           self.path_memory = 0
+          self.newplace = 1
 
         else:
           self.activity = "perform_activity"
@@ -406,7 +412,6 @@ class Humans(Agent):
 
     def AssignTripToTraffic(self):
       if self.arrival_time.hour != self.model.hour:
-          print("multihour trip")
           self.track_length = self.track_geometry.length
           self.trip_segments = [((60 - self.model.minute)/self.track_duration)]
           if (60/(self.track_duration-(60 - self.model.minute))) <1:  #if the trip intersects more than two hour slots
@@ -423,21 +428,43 @@ class Humans(Agent):
           self.thishourtrack.append(self.track_geometry)
           self.thishourmode.append(self.modechoice)
     
-
        
+    def PlaceTracker(self):
+        if self.newplace == 1:
+          self.visitedPlaces.append(Point(tuple(self.pos)))
+          self.durationPlaces.append(1)
+          self.newplace = 0
+        else:
+          self.durationPlaces[-1] += 1
+
+
+
     def AtPlaceExposure(self):
-      pass
+        self.thishourplaces = gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
+        print(self.thishourplaces[["duration", "NO2"]])
+        self.hourlyplaceNO2 = sum(self.thishourplaces['NO2'] * (self.thishourplaces['duration']/6))
+        if self.activity== "perform_activity":
+          self.visitedPlaces = [self.visitedPlaces[-1]]
+          self.durationPlaces = [0]
+        else:
+          self.visitedPlaces = []
+          self.durationPlaces = []
     
     def TravelExposure(self):
-      self.thishourtrack = gpd.GeoDataFrame(data = {'id': range(len(self.thishourtrack)), 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
-      self.thishourtrack['length'] = self.thishourtrack.length
-      print(self.thishourtrack["length"])
-      self.thishourtrack.plot()      
-      self.thishourmode = [self.nexthoursmodes[0]]
-      self.thishourtrack = [self.nexthourstracks[0]]
-      self.nexthourstracks.pop(0)
-      self.nexthoursmodes.pop(0)
-      
+      if len(self.thishourtrack) > 0:
+        self.thishourtrack = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
+        self.thishourtrack['length'] = self.thishourtrack.length
+        self.thishourtrack['speed']= self.thishourtrack['mode'].replace({'bike': 12000, 'drive': 30000, 'walk': 5000, 'transit': 50000})
+        self.hourlytravelNO2 = sum(self.thishourtrack['NO2'] * (self.thishourtrack['length'] / self.thishourtrack['speed']))
+        if len(self.nexthourstracks) > 0:
+          self.thishourmode = [self.nexthoursmodes[0]]
+          self.thishourtrack = [self.nexthourstracks[0]]
+          self.nexthourstracks.pop(0)
+          self.nexthoursmodes.pop(0)
+        else:
+          self.thishourmode = []
+          self.thishourtrack = []
+  
     def step(self):
         # Schedule Manager
         if self.model.minute % 10 == 0 or self.model.minute == 0:
@@ -458,7 +485,15 @@ class Humans(Agent):
             
         if self.activity == "traveling":
             self.TravelingAlongRoute()
-
+        if self.activity == "perform_activity":
+            self.PlaceTracker()
+        if self.model.minute == 0:
+            self.TravelExposure()
+            self.AtPlaceExposure()
+            self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
+            self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
+            print(self.hourlyNO2)
+        self.former_activity = self.current_activity
 
 
 class TransportAirPollutionExposureModel(Model):
@@ -512,7 +547,9 @@ class TransportAirPollutionExposureModel(Model):
 
         # Read the Environmental Stressor Data and Model
         self.AirPollGrid = gpd.read_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
-
+        self.AirPollPred = pd.read_csv(path_data+"Air Pollution Determinants/Pred_50m.csv")
+        self.AirPollGrid["NO2"] = self.AirPollPred["baseline_NO2"]
+        
         # Read the Mode of Transport Choice Model
         print("Reading Mode of Transport Choice Model")
         self.ModalChoiceModel = PMMLTreeClassifier(pmml=path_data+"ModalChoiceModel/modalChoice.pmml")
@@ -617,7 +654,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 400
+    nb_humans = 40
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)

@@ -18,7 +18,7 @@ shape_file_Nightlife = gpd.read_file(path_data +"Built Environment/Facilities/Am
 shape_file_Profess = gpd.read_file(path_data +"Built Environment/Facilities/Amsterdam_Foursquarevenues_Profess_other_RDNew.shp")
 spatial_extent = gpd.read_file(path_data+"SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp")
 shape_EnvBehavDeterminants = gpd.read_file(path_data+"Built Environment/Transport Infrastructure/ModalChoice_determ_200.shp")
-shape_AirPollPreds = gpd.read_file(path_data+"Air Pollution Determinants/AirPollDeterm_grid50.shp")
+shape_AirPollPreds = gpd.read_file(path_data+"Air Pollution Determinants/AirPollDeterm_grid50m_intTraff.shp")
 
 shape_file_buildings.to_feather(path_data+"FeatherDataABM/Buildings.feather")
 shape_file_streets.to_feather(path_data+"FeatherDataABM/Streets.feather" )
