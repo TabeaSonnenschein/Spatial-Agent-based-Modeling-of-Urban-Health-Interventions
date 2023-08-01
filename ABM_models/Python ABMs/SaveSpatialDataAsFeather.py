@@ -19,6 +19,7 @@ shape_file_Profess = gpd.read_file(path_data +"Built Environment/Facilities/Amst
 spatial_extent = gpd.read_file(path_data+"SpatialExtent/Amsterdam Diemen Oude Amstel Extent.shp")
 shape_EnvBehavDeterminants = gpd.read_file(path_data+"Built Environment/Transport Infrastructure/ModalChoice_determ_200.shp")
 shape_AirPollPreds = gpd.read_file(path_data+"Air Pollution Determinants/AirPollDeterm_grid50m_intTraff.shp")
+shape_file_carroads = gpd.read_file(path_data+"Built Environment/Transport Infrastructure/cars/Speedlimit_Amsterdam_RDnew.shp")
 
 shape_file_buildings.to_feather(path_data+"FeatherDataABM/Buildings.feather")
 shape_file_streets.to_feather(path_data+"FeatherDataABM/Streets.feather" )
@@ -36,3 +37,4 @@ shape_file_Profess.to_feather(path_data+"FeatherDataABM/Profess.feather" )
 spatial_extent.to_feather(path_data+"FeatherDataABM/SpatialExtent.feather")
 shape_EnvBehavDeterminants.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
 shape_AirPollPreds.to_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
+shape_file_carroads[["fid", "geometry"]].to_feather(path_data+"FeatherDataABM/carroads.feather")

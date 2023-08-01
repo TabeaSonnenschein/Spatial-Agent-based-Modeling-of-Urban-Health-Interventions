@@ -33,11 +33,11 @@ import random
 import multiprocessing
 import cProfile
 import pstats
-import coiled
-from distributed import Client
 import dask_geopandas as dgp
 import itertools as it
 import warnings
+import cupy as cp
+
 warnings.filterwarnings("ignore", module="shapely")
   
 
@@ -146,22 +146,7 @@ class Humans(Agent):
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
         self.Neighborhood = vector[1]
-        # self.age = vector[2]                  # integer age 0- 100
-        # self.sex = vector[3]  				        # female, male
-        # self.migrationbackground = vector[4]  # Dutch, Western, Non-Western
-        # self.hh_single = vector[5] 				    # 1 = yes, 0 = no
-        # self.is_child = vector[6]				      # 1 = yes, 0 = no
-        # self.has_child = vector[7]				    # 1 = yes, 0 = no
         self.current_edu = vector[8]          # "high", "middle", "low", "no_current_edu"
-        # self.absolved_edu = vector[9]		      # "high", "middle", "low", 0
-        # self.BMI = vector[10]                 # "underweight", "normal_weight", "moderate_overweight", "obese"
-        # self.employment_status = vector[11]   # 1 = employed, 0 = unemployed
-        # self.edu_int = vector[12] 	          # 1,2,3
-        # self.car_access = vector[13]          # 1 = yes, 0 = no
-        # self.biking_habit = vector[14]        # 1 = yes, 0 = no
-        # self.driving_habit = vector[15]       # 1 = yes, 0 = no
-        # self.transit_habit = vector[16]       # 1 = yes, 0 = no
-        # self.incomeclass = vector[17]         # income deciles 1-10
         self.IndModalPreds = [vector[i] for i in [19,2,13,20,21,22,17,11,12,5,7,15,14,16]]    # individual modal choice predictions: ["sex_male", "age", "car_access", 
                                                              # "Western", "Non_Western", "Dutch", 'income','employed',
                                                              #'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit',
@@ -207,7 +192,8 @@ class Humans(Agent):
         self.visitedPlaces = [Point(tuple(self.Residence))]
         self.newplace = 0
         self.durationPlaces = [0]
-        self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
+        self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
+        
     def ScheduleManager(self):
       # identifying the current activity
       if self.model.weekday == 0:
@@ -329,7 +315,7 @@ class Humans(Agent):
           if self.path_memory != 1:
               self.traveldecision = 1
               self.route_eucl_line = LineString([Point(tuple(self.pos)), Point(tuple(self.destination_activity))])
-              self.trip_distance = get_distance_meters(self.pos[0], self.pos[1], self.destination_activity[0], self.destination_activity[1], project_to_WSG84)
+              self.trip_distance = self.route_eucl_line.length
           else:
               self.activity = "traveling"
               self.arrival_time = self.model.current_datetime + timedelta(minutes=self.track_duration)
@@ -410,7 +396,7 @@ class Humans(Agent):
           self.activity = "perform_activity"
           self.pos = self.destination_activity
 
-    def AssignTripToTraffic(self):
+    def TripSegmentsPerHour(self):
       if self.arrival_time.hour != self.model.hour:
           self.track_length = self.track_geometry.length
           self.trip_segments = [((60 - self.model.minute)/self.track_duration)]
@@ -440,9 +426,9 @@ class Humans(Agent):
 
 
     def AtPlaceExposure(self):
-        self.thishourplaces = gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
-        print(self.thishourplaces[["duration", "NO2"]])
-        self.hourlyplaceNO2 = sum(self.thishourplaces['NO2'] * (self.thishourplaces['duration']/6))
+        # self.thishourplaces = gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
+        # self.thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),self.model.AirPollGrid, how="inner", predicate= "intersects")
+        # self.hourlyplaceNO2 = sum(self.thishourplaces['NO2'] * (self.thishourplaces['duration']/6))
         if self.activity== "perform_activity":
           self.visitedPlaces = [self.visitedPlaces[-1]]
           self.durationPlaces = [0]
@@ -452,10 +438,10 @@ class Humans(Agent):
     
     def TravelExposure(self):
       if len(self.thishourtrack) > 0:
-        self.thishourtrack = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
-        self.thishourtrack['length'] = self.thishourtrack.length
-        self.thishourtrack['speed']= self.thishourtrack['mode'].replace({'bike': 12000, 'drive': 30000, 'walk': 5000, 'transit': 50000})
-        self.hourlytravelNO2 = sum(self.thishourtrack['NO2'] * (self.thishourtrack['length'] / self.thishourtrack['speed']))
+        # self.thishourtrack = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
+        # self.thishourtrack['length'] = self.thishourtrack.length
+        # self.thishourtrack['speed']= self.thishourtrack['mode'].replace({'bike': 12000, 'drive': 30000, 'walk': 5000, 'transit': 50000})
+        # self.hourlytravelNO2 = sum(self.thishourtrack['NO2'] * (self.thishourtrack['length'] / self.thishourtrack['speed']))
         if len(self.nexthourstracks) > 0:
           self.thishourmode = [self.nexthoursmodes[0]]
           self.thishourtrack = [self.nexthourstracks[0]]
@@ -464,6 +450,8 @@ class Humans(Agent):
         else:
           self.thishourmode = []
           self.thishourtrack = []
+  
+  
   
     def step(self):
         # Schedule Manager
@@ -481,18 +469,18 @@ class Humans(Agent):
             self.arrival_time = self.model.current_datetime + timedelta(minutes=self.track_duration)
             self.activity = "traveling"
             self.traveldecision = 0
-            self.AssignTripToTraffic()
+            self.TripSegmentsPerHour()
             
         if self.activity == "traveling":
             self.TravelingAlongRoute()
         if self.activity == "perform_activity":
             self.PlaceTracker()
+        
         if self.model.minute == 0:
             self.TravelExposure()
             self.AtPlaceExposure()
-            self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
-            self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
-            print(self.hourlyNO2)
+            # self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
+            # self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
         self.former_activity = self.current_activity
 
 
@@ -531,6 +519,7 @@ class TransportAirPollutionExposureModel(Model):
         self.Profess = gpd.read_feather(path_data+"FeatherDataABM/Profess.feather")
         self.spatial_extent = gpd.read_feather(path_data+"FeatherDataABM/SpatialExtent.feather")
         self.EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
+        self.carroads = gpd.read_feather(path_data+"FeatherDataABM/carroads.feather")
         self.extentbox = self.spatial_extent.total_bounds
         self.continoussp = ContinuousSpace(x_max=self.extentbox[2], y_max=self.extentbox[3],
                                            torus=bool, x_min=self.extentbox[0], y_min=self.extentbox[1])
@@ -620,8 +609,18 @@ class TransportAirPollutionExposureModel(Model):
       print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
 
     def TrafficAssignment(self):
-      pass
-    
+      self.HourlyTraffic = []
+      for agent in self.schedule.agents:     
+        if "drive" in agent.thishourmode:
+          self.HourlyTraffic.extend([agent.thishourtrack[count] for count, value in enumerate(agent.thishourmode) if value == "drive"])
+      if len(self.HourlyTraffic) > 0:   
+        self.HourlyTraffic = gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs)
+        self.drivenroads = pd.DataFrame(gpd.sjoin(self.HourlyTraffic, self.carroads, how="right", predicate="overlaps"))[["count", "fid"]].fillna(0)
+        self.drivenroads = pd.merge(self.carroads, self.drivenroads.groupby(['fid']).sum(), on="fid", how="left")
+        print(self.drivenroads.head())
+        self.AirPollGrid = gpd.sjoin(self.drivenroads, self.AirPollGrid, how="right", predicate="overlaps")
+        print(self.AirPollGrid.plot("count", cmap="Set1"))
+      
     def OnRoadEmission(self):
       pass
     
@@ -636,6 +635,7 @@ class TransportAirPollutionExposureModel(Model):
         if self.minute == 0:  # new hour
             print("Current time: ", self.current_datetime)
             self.hour = self.current_datetime.hour
+            self.TrafficAssignment()
         self.activitystep = int((self.hour * 6) + (self.minute / 10))
         if self.current_datetime.hour == 0: # new day
             self.weekday = self.current_datetime.weekday()
@@ -644,6 +644,7 @@ class TransportAirPollutionExposureModel(Model):
 
 
         self.schedule.step()
+
 
         # self.dc.collect(self)
 
@@ -654,7 +655,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 40
+    nb_humans = 4000
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
@@ -673,17 +674,18 @@ if __name__ == "__main__":
 
     m = TransportAirPollutionExposureModel(
       nb_humans=nb_humans, path_data=path_data)
+    f = open(path_data+'profile_results.txt', 'w')
     for t in range(100):
-      m.step()
+      # m.step()
     
-      # # Profile the ABM run
-      # cProfile.run('m.step()', 'profile_results')
-      # # Print or save the profiling results
-      # with open(path_data+'profile_results.txt', 'w') as f:
-      #     p = pstats.Stats('profile_results', stream=f)
-      #     # p.strip_dirs().sort_stats('cumulative').print_stats()
-      #     p.strip_dirs().sort_stats('time').print_stats()
+      # Profile the ABM run
+      cProfile.run('m.step()', 'profile_results')
+      # Print or save the profiling results
+      p = pstats.Stats('profile_results', stream=f)
+      # p.strip_dirs().sort_stats('cumulative').print_stats()
+      p.strip_dirs().sort_stats('time').print_stats()
 
+    f.close()
 
       
 # model_df = m.dc.get_model_vars_dataframe()
