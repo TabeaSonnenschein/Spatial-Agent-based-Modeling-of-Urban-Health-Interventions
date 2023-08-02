@@ -320,7 +320,10 @@ class Humans(Agent):
 
     def PerceiveEnvironment(self):
       # variables to be joined to route
-      self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values
+      #self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values
+      print(self.model.EnvBehavDeterms.intersects(self.route_eucl_line))
+      self.RouteVars = self.model.EnvBehavDeterms.intersects(self.route_eucl_line)[self.model.routevariables].mean(axis=0).values
+
       #variables to be joined to current location
       self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0]
       #variables to be joined to destination
@@ -509,8 +512,8 @@ class TransportAirPollutionExposureModel(Model):
         self.Nightlife = gpd.read_feather(path_data+"FeatherDataABM/Nightlife.feather")
         self.Profess = gpd.read_feather(path_data+"FeatherDataABM/Profess.feather")
         self.spatial_extent = gpd.read_feather(path_data+"FeatherDataABM/SpatialExtent.feather")
-        self.EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
-        self.carroads = gpd.read_feather(path_data+"FeatherDataABM/carroads.feather")
+        self.EnvBehavDeterms = cus.from_geopandas(gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather"))
+        self.carroads = cus.from_geopandas(gpd.read_feather(path_data+"FeatherDataABM/carroads.feather"))
         self.extentbox = self.spatial_extent.total_bounds
         self.continoussp = ContinuousSpace(x_max=self.extentbox[2], y_max=self.extentbox[3],
                                            torus=bool, x_min=self.extentbox[0], y_min=self.extentbox[1])
