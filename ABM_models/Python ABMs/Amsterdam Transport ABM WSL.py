@@ -578,8 +578,8 @@ class TransportAirPollutionExposureModel(Model):
 
         with cf.ProcessPoolExecutor() as executor:
             results = executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )    
-        # for result in results:
-        #     print(result)
+        for result in results:
+            print(result)
 
         print(self.schedule.agents[0].current_activity, self.schedule.agents[0].minute)
 
@@ -592,7 +592,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 1000
+    nb_humans = 100
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
