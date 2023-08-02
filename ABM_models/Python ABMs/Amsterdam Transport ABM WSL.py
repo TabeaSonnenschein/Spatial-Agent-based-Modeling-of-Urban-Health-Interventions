@@ -26,10 +26,7 @@ import cProfile
 import pstats
 import itertools as it
 import warnings
-import cuspatial as cus
-import os
 import concurrent.futures as cf
-import multiprocessing
 warnings.filterwarnings("ignore", module="shapely")
 
 
@@ -122,17 +119,17 @@ def flip(x, y):
     """Flips the x and y coordinate values"""
     return y, x
 
-## Parallelized agent functions
-def PerceiveEnvironment(route, orig, dest, EnvBehavDeterms):
-  # variables to be joined to route
-  RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [route]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
-                         "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "MinSpeed", "NrStrLight", "CrimeIncid",
-                          "MaxNoisDay", "MxNoisNigh", "OpenSpace", "PNonWester", "PWelfarDep", "pubTraDns", "SumTraffVo"]].mean(axis=0).values
-  #variables to be joined to current location
-  OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(orig))]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
-  #variables to be joined to destination
-  DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(dest))]}, geometry="geometry",crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
-  return RouteVars, OrigVars, DestVars
+# ## Parallelized agent functions
+# def PerceiveEnvironment(route, orig, dest, EnvBehavDeterms):
+#   # variables to be joined to route
+#   RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [route]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
+#                          "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "MinSpeed", "NrStrLight", "CrimeIncid",
+#                           "MaxNoisDay", "MxNoisNigh", "OpenSpace", "PNonWester", "PWelfarDep", "pubTraDns", "SumTraffVo"]].mean(axis=0).values
+#   #variables to be joined to current location
+#   OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(orig))]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
+#   #variables to be joined to destination
+#   DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(dest))]}, geometry="geometry",crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
+#   return RouteVars, OrigVars, DestVars
     
 
 
@@ -166,7 +163,8 @@ class Humans(Agent):
           self.WeekSchedules.append(list(schedulelist[x].loc[schedulelist[x]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
         self.former_activity = self.WeekSchedules[self.model.weekday][self.model.activitystep]
         self.activity = "perform_activity"
-        
+        self.weekday = self.model.weekday
+        self.activitystep=self.model.activitystep
         
         # regular destinations
         try:
@@ -196,11 +194,12 @@ class Humans(Agent):
         self.durationPlaces = [0]
         self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
         
-    def ScheduleManager(self, weekday, activitystep):
+    def ScheduleManager(self, current_datetime):
       # identifying the current activity
-      self.current_activity = self.WeekSchedules[weekday][activitystep]
+      self.current_activity = self.WeekSchedules[self.weekday][self.activitystep]
       # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
       if self.current_activity != self.former_activity:
+        # print("Current Activity: ", self.current_activity," Former Activity: ", self.former_activity)
         if self.current_activity == 3:  # 3 = work
           self.commute = 1
           self.destination_activity = self.Workplace
@@ -296,7 +295,6 @@ class Humans(Agent):
         elif self.current_activity in [12, 9, 8]:  # 12 = traveling
           self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
-        #print("Current Activity: ", self.current_activity," Former Activity: ", self.former_activity)
 
         # Identifuing whether agent needs to travel to new destination
         if self.destination_activity != self.pos:
@@ -306,22 +304,20 @@ class Humans(Agent):
               self.trip_distance = self.route_eucl_line.length
           else:
               self.activity = "traveling"
-              self.arrival_time = self.model.current_datetime + timedelta(minutes=self.track_duration)
-              self.AssignTripToTraffic()
+              self.arrival_time = current_datetime + timedelta(minutes=self.track_duration)
           self.path_memory = 0
           self.newplace = 1
-
         else:
           self.activity = "perform_activity"
           self.traveldecision = 0
 
-    # def PerceiveEnvironment(self):
-    #   # variables to be joined to route
-    #   self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values
-    #   #variables to be joined to current location
-    #   self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0]
-    #   #variables to be joined to destination
-    #   self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.destinvariables].values[0]
+    def PerceiveEnvironment(self):
+      # variables to be joined to route
+      self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[routevariables].mean(axis=0).values
+      #variables to be joined to current location
+      self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[originvariables].values[0]
+      #variables to be joined to destination
+      self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
       
     def ModeChoice(self):
       self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
@@ -379,17 +375,17 @@ class Humans(Agent):
             self.homeTOsuperm_duration = self.track_duration
             self.supermTOhome_geometry = reverse_geom(self.track_geometry)
     
-    def TravelingAlongRoute(self):
-      if self.model.current_datetime >= self.arrival_time:
+    def TravelingAlongRoute(self, current_datetime):
+      if current_datetime >= self.arrival_time:
           self.activity = "perform_activity"
           self.pos = self.destination_activity
 
     def TripSegmentsPerHour(self):
-      if self.arrival_time.hour != self.model.hour:
+      if self.arrival_time.hour != self.hour:
           self.track_length = self.track_geometry.length
-          self.trip_segments = [((60 - self.model.minute)/self.track_duration)]
-          if (60/(self.track_duration-(60 - self.model.minute))) <1:  #if the trip intersects more than two hour slots
-            self.trip_segments.extend(list(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.model.minute))/60))))
+          self.trip_segments = [((60 - self.minute)/self.track_duration)]
+          if (60/(self.track_duration-(60 - self.minute))) <1:  #if the trip intersects more than two hour slots
+            self.trip_segments.extend(list(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.minute))/60))))
           self.segment_geometry = [self.track_geometry]
           for x in self.trip_segments:
             self.segment_geometry.extend(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 10), self.segment_geometry[-1].interpolate(x * self.track_length)).geoms)
@@ -414,9 +410,9 @@ class Humans(Agent):
 
 
     def AtPlaceExposure(self):
-        # self.thishourplaces = gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
-        # self.thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),self.model.AirPollGrid, how="inner", predicate= "intersects")
-        # self.hourlyplaceNO2 = sum(self.thishourplaces['NO2'] * (self.thishourplaces['duration']/6))
+        self.thishourplaces = gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs).overlay(AirPollGrid, how="intersection")
+        self.thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),AirPollGrid, how="inner", predicate= "intersects")
+        self.hourlyplaceNO2 = sum(self.thishourplaces['NO2'] * (self.thishourplaces['duration']/6))
         if self.activity== "perform_activity":
           self.visitedPlaces = [self.visitedPlaces[-1]]
           self.durationPlaces = [0]
@@ -426,10 +422,10 @@ class Humans(Agent):
     
     def TravelExposure(self):
       if len(self.thishourtrack) > 0:
-        # self.thishourtrack = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(self.model.AirPollGrid, how="intersection")
-        # self.thishourtrack['length'] = self.thishourtrack.length
-        # self.thishourtrack['speed']= self.thishourtrack['mode'].replace({'bike': 12000, 'drive': 30000, 'walk': 5000, 'transit': 50000})
-        # self.hourlytravelNO2 = sum(self.thishourtrack['NO2'] * (self.thishourtrack['length'] / self.thishourtrack['speed']))
+        self.thishourtrack = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(AirPollGrid, how="intersection")
+        self.thishourtrack['length'] = self.thishourtrack.length
+        self.thishourtrack['speed']= self.thishourtrack['mode'].replace({'bike': 12000, 'drive': 30000, 'walk': 5000, 'transit': 50000})
+        self.hourlytravelNO2 = sum(self.thishourtrack['NO2'] * (self.thishourtrack['length'] / self.thishourtrack['speed']))
         if len(self.nexthourstracks) > 0:
           self.thishourmode = [self.nexthoursmodes[0]]
           self.thishourtrack = [self.nexthourstracks[0]]
@@ -439,36 +435,43 @@ class Humans(Agent):
           self.thishourmode = []
           self.thishourtrack = []
   
+    def ManageTime(self, current_datetime):
+        self.minute = current_datetime.minute
+        self.hour = current_datetime.hour
+        if self.minute == 0:  # new hour
+            self.hour = current_datetime.hour
+        self.activitystep = int((self.hour * 6) + (self.minute / 10))
+        if self.hour == 0: # new day
+            self.weekday = current_datetime.weekday()
   
-  
-    def step(self):
+    def step(self,  current_datetime):
+        self.ManageTime(current_datetime)
         # Schedule Manager
-        # if self.model.minute % 10 == 0 or self.model.minute == 0:
-        #     self.ScheduleManager()
-        # else:
-        #     pass
+        if self.minute % 10 == 0 or self.minute == 0:
+            self.ScheduleManager(current_datetime)
+            print(self.activitystep)
 
         # Travel Decision
         if self.traveldecision == 1:
-            # self.PerceiveEnvironment()
+            self.PerceiveEnvironment()
             self.ModeChoice()
             self.Routing()
             self.SavingRoute()
-            self.arrival_time = self.model.current_datetime + timedelta(minutes=self.track_duration)
+            self.arrival_time = current_datetime + timedelta(minutes=self.track_duration)
             self.activity = "traveling"
             self.traveldecision = 0
             self.TripSegmentsPerHour()
             
         if self.activity == "traveling":
-            self.TravelingAlongRoute()
+            self.TravelingAlongRoute(current_datetime)
         if self.activity == "perform_activity":
             self.PlaceTracker()
         
-        if self.model.minute == 0:
+        if self.minute == 0:
             self.TravelExposure()
             self.AtPlaceExposure()
-            # self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
-            # self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
+            self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
+            self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
         self.former_activity = self.current_activity
 
 
@@ -497,27 +500,11 @@ class TransportAirPollutionExposureModel(Model):
         
         # Create the agents
         print("Creating Agents")
-        print(datetime.now())
-        for i in range(self.nb_humans):
-            agent = Humans(i, self)
-            # Add the agent to a Home in their neighborhood
+        with cf.ProcessPoolExecutor() as executor:
+            agents = executor.map(Humans, range(self.nb_humans), it.repeat(self, self.nb_humans)) 
+        for agent in agents:
             self.continoussp.place_agent(agent, agent.Residence)
             self.schedule.add(agent)
- 
-        print(datetime.now())
-
-        # with cf.ProcessPoolExecutor() as executor:
-        #     # agents = [executor.submit(Humans(x=i, model = self)) for i in range(self.nb_humans)]
-        #     agents = executor.map(Humans, range(self.nb_humans), it.repeat(self, self.nb_humans)) 
-        # for agent in agents:
-        #     self.continoussp.place_agent(agent, agent.Residence)
-        #     self.schedule.add(agent)
-        # print(datetime.now())
-
-
-        # Load the spatial built environment
-        self.EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
-        self.carroads = gpd.read_feather(path_data+"FeatherDataABM/carroads.feather")
 
 
         # Load Weather data and set initial weather conditions
@@ -529,11 +516,6 @@ class TransportAirPollutionExposureModel(Model):
         self.rain = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "Rain"].values[0]
         self.tempdifference = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "TempDifference"].values[0]
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
-
-        # Read the Environmental Stressor Data and Model
-        self.AirPollGrid = gpd.read_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
-        self.AirPollPred = pd.read_csv(path_data+"Air Pollution Determinants/Pred_50m.csv")
-        self.AirPollGrid["NO2"] = self.AirPollPred["baseline_NO2"]
 
 
         # self.dc = DataCollector(model_reporters={"agent_count":
@@ -556,8 +538,8 @@ class TransportAirPollutionExposureModel(Model):
           self.HourlyTraffic.extend([agent.thishourtrack[count] for count, value in enumerate(agent.thishourmode) if value == "drive"])
       if len(self.HourlyTraffic) > 0:   
         self.HourlyTraffic = gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs)
-        self.drivenroads = pd.DataFrame(gpd.sjoin(self.HourlyTraffic, self.carroads, how="right", predicate="overlaps"))[["count", "fid"]].fillna(0)
-        self.drivenroads = pd.merge(self.carroads, self.drivenroads.groupby(['fid']).sum(), on="fid", how="left")
+        self.drivenroads = pd.DataFrame(gpd.sjoin(self.HourlyTraffic, carroads, how="right", predicate="overlaps"))[["count", "fid"]].fillna(0)
+        self.drivenroads = pd.merge(carroads, self.drivenroads.groupby(['fid']).sum(), on="fid", how="left")
         print(self.drivenroads.head())
         self.AirPollGrid = gpd.sjoin(self.drivenroads, self.AirPollGrid, how="right", predicate="overlaps")
         print(self.AirPollGrid.plot("count", cmap="Set1"))
@@ -583,18 +565,23 @@ class TransportAirPollutionExposureModel(Model):
         if self.current_datetime.day == 1 and self.current_datetime.hour == 0: # new month
             self.DetermineWeather()
 
-        for agent in self.schedule.agents:     
-            agent.ScheduleManager(self.weekday, self.activitystep)
+        # for agent in self.schedule.agents:     
+        #     agent.ScheduleManager(self.weekday, self.activitystep)
         
-        with cf.ProcessPoolExecutor() as executor:
-          for agent in self.schedule.agents:     
-              if agent.traveldecision == 1:
-                agent.RouteVars, agent.OrigVars, agent.DestVars = executor.submit(PerceiveEnvironment,agent.route_eucl_line, agent.pos, agent.destination_activity, self.EnvBehavDeterms).result()
-                print(agent.RouteVars, agent.OrigVars, agent.DestVars)
-                
-                
-        self.schedule.step()
+        # with cf.ProcessPoolExecutor() as executor:
+        #   for agent in self.schedule.agents:     
+        #       if agent.traveldecision == 1:
+        #         agent.RouteVars, agent.OrigVars, agent.DestVars = executor.submit(PerceiveEnvironment,agent.route_eucl_line, agent.pos, agent.destination_activity, self.EnvBehavDeterms).result()                
+        
+        # with cf.ThreadPoolExecutor() as executor:
+        #     executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )    
 
+        with cf.ProcessPoolExecutor() as executor:
+            results = executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )    
+        # for result in results:
+        #     print(result)
+
+        print(self.schedule.agents[0].current_activity, self.schedule.agents[0].minute)
 
         # self.dc.collect(self)
 
@@ -605,7 +592,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 10000
+    nb_humans = 1000
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
@@ -644,7 +631,14 @@ if __name__ == "__main__":
     ShopsnServ = gpd.read_feather(path_data+"FeatherDataABM/ShopsnServ.feather")
     Nightlife = gpd.read_feather(path_data+"FeatherDataABM/Nightlife.feather")
     Profess = gpd.read_feather(path_data+"FeatherDataABM/Profess.feather")
+    EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
+    carroads = gpd.read_feather(path_data+"FeatherDataABM/carroads.feather")
     
+    # Read the Environmental Stressor Data and Model
+    AirPollGrid = gpd.read_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
+    AirPollPred = pd.read_csv(path_data+"Air Pollution Determinants/Pred_50m.csv")
+    AirPollGrid["NO2"] = AirPollPred["baseline_NO2"]
+
     # Start OSRM Servers
     print("Starting OSRM Servers")
     subprocess.Popen(['cmd.exe', '/c', 'C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/start_OSRM_Servers.bat'],stdout = subprocess.DEVNULL)
