@@ -1,7 +1,3 @@
-import os
-import csv
-import math
-import random
 from datetime import datetime, timedelta
 from mesa import Agent, Model
 from mesa.space import ContinuousSpace
@@ -14,28 +10,24 @@ import pandas as pd
 import fiona
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import seaborn as sns
 from shapely.ops import nearest_points, substring,transform,snap, split
 import shapely as shp
 from shapely.geometry import LineString, Point, Polygon, GeometryCollection
 from sklearn.neighbors import BallTree
 import numpy as np
 from geopandas.tools import sjoin
-from functools import partial
 from pyproj import Transformer
 import geopy.distance as distance
 import requests as rq
 import polyline
 import subprocess
 from sklearn_pmml_model.tree import PMMLTreeClassifier
-import random
-import multiprocessing
 import cProfile
 import pstats
-#import dask_geopandas as dgp
 import itertools as it
 import warnings
-import cupy as cp
+import cuspatial as cus
+import os
 
 warnings.filterwarnings("ignore", module="shapely")
   
@@ -342,16 +334,16 @@ class Humans(Agent):
     # OSRM Routing Machine
     def Routing(self):
       if self.modechoice == "bike":
-        self.server = "http://127.0.0.1:5001/"
+        self.server = "http://172.31.192.1:5001/"
         self.lua_profile = "bike"
       elif self.modechoice == "drive":
-        self.server = "http://127.0.0.1:5000/"
+        self.server = "http://172.31.192.1:5000/"
         self.lua_profile = "car"
       elif self.modechoice == "walk":
-        self.server = "http://127.0.0.1:5002/"
+        self.server = "http://172.31.192.1:5002/"
         self.lua_profile = "foot"
       elif self.modechoice == "transit":
-        self.server = "http://127.0.0.1:5002/"
+        self.server = "http://172.31.192.1:5002/"
         self.lua_profile = "foot"
       
       self.orig_point = transform(project_to_WSG84, Point(tuple(self.pos)))
@@ -650,11 +642,11 @@ class TransportAirPollutionExposureModel(Model):
 
 if __name__ == "__main__":
   # Read Main Data
-    path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
+    path_data = "/mnt/c/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 4000
+    nb_humans = 400
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
@@ -668,8 +660,7 @@ if __name__ == "__main__":
     
     # Start OSRM Servers
     print("Starting OSRM Servers")
-    subprocess.call([r"C:\Users\Tabea\Documents\GitHub\Spatial-Agent-based-Modeling-of-Urban-Health-Interventions\start_OSRM_Servers.bat"])
-
+    subprocess.Popen(['cmd.exe', '/c', 'C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/start_OSRM_Servers.bat'])
 
     m = TransportAirPollutionExposureModel(
       nb_humans=nb_humans, path_data=path_data)
