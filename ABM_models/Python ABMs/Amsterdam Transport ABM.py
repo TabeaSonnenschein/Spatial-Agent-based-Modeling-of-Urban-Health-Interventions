@@ -29,16 +29,16 @@ import polyline
 import subprocess
 from sklearn_pmml_model.tree import PMMLTreeClassifier
 import random
-import multiprocessing
+#import multiprocessing as mp
 import cProfile
 import pstats
 #import dask_geopandas as dgp
 import itertools as it
 import warnings
-import cupy as cp
-
+import concurrent.futures as cf
 warnings.filterwarnings("ignore", module="shapely")
-  
+PYDEVD_DISABLE_FILE_VALIDATION=1
+
 
 
 
@@ -130,6 +130,67 @@ def flip(x, y):
     """Flips the x and y coordinate values"""
     return y, x
   
+  
+## Parallelized agent functions
+def PerceiveEnvironment(route, orig, dest, EnvBehavDeterms):
+  # variables to be joined to route
+  RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [route]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
+                         "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "MinSpeed", "NrStrLight", "CrimeIncid",
+                          "MaxNoisDay", "MxNoisNigh", "OpenSpace", "PNonWester", "PWelfarDep", "pubTraDns", "SumTraffVo"]].mean(axis=0).values
+  #variables to be joined to current location
+  OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(orig))]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
+  #variables to be joined to destination
+  DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(dest))]}, geometry="geometry",crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
+  return RouteVars, OrigVars, DestVars
+    
+
+class agentinitializer(Agent):
+  def __init__(self, vector, schedules, weekday, activitystep, Residences, Universities, Schools, Profess):
+    self.unique_id = vector[0]
+    # socio-demographic attributes
+    self.Neighborhood = vector[1]
+    self.current_edu = vector[8]          # "high", "middle", "low", "no_current_edu"
+    self.IndModalPreds = [vector[i] for i in [19,2,13,20,21,22,17,11,12,5,7,15,14,16]]    # individual modal choice predictions: ["sex_male", "age", "car_access", 
+                                                          # "Western", "Non_Western", "Dutch", 'income','employed',
+                                                          #'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit',
+                                                          # 'transit_habit']
+    # need to add hhsize and nrchildren
+
+    # Activity Schedules
+    self.ScheduleID = vector[18]          # Schedule IDs
+    self.WeekSchedules = []
+    for x in range(7):
+      self.WeekSchedules.append(list(schedules[x].loc[schedules[x]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+    self.former_activity = self.WeekSchedules[weekday][activitystep]
+    self.activity = "perform_activity"
+    try:
+        self.Residence = Residences.loc[Residences["nghb_cd"] == self.Neighborhood, "geometry"].sample(1).values[0].coords[0]
+    # there are some very few synthetic population agents that come from a neighborhood without residential buildings (CENSUS)
+    except:
+        self.Residence = Residences["geometry"].sample(1).values[0].coords[0]
+    else:
+        pass
+    if self.current_edu == "high":
+        self.University = Universities["geometry"].sample(1).values[0].coords[0]
+    elif self.current_edu != "no_current_edu":
+        # select school that is closest to self.Residence
+        self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][1]
+    if 3 in list(np.concatenate(self.WeekSchedules).flat):
+        self.Workplace = Profess["geometry"].sample(1).values[0].coords[0]
+
+    # mobility behavior variables
+    self.path_memory = 0
+    self.traveldecision = 0
+    self.thishourtrack, self.thishourmode = [], []
+    self.nexthoursmodes, self.nexthourstracks = [], []  
+
+    # exposure variables
+    self.visitedPlaces = [Point(tuple(self.Residence))]
+    self.newplace = 0
+    self.durationPlaces = [0]
+    self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
+
+
 class Humans(Agent):
     """
     Humans:
@@ -140,76 +201,65 @@ class Humans(Agent):
   - have personal exposure
     """
 
-    def __init__(self, vector, model):
-        self.unique_id = vector[0]
+    def __init__(self, agentwithattr, model):
+        # self.unique_id = vector[0]
+        self = agentwithattr
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
-        self.Neighborhood = vector[1]
-        self.current_edu = vector[8]          # "high", "middle", "low", "no_current_edu"
-        self.IndModalPreds = [vector[i] for i in [19,2,13,20,21,22,17,11,12,5,7,15,14,16]]    # individual modal choice predictions: ["sex_male", "age", "car_access", 
-                                                             # "Western", "Non_Western", "Dutch", 'income','employed',
-                                                             #'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit',
-                                                             # 'transit_habit']
-        # need to add hhsize and nrchildren
+        # self.Neighborhood = vector[1]
+        # self.current_edu = vector[8]          # "high", "middle", "low", "no_current_edu"
+        # self.IndModalPreds = [vector[i] for i in [19,2,13,20,21,22,17,11,12,5,7,15,14,16]]    # individual modal choice predictions: ["sex_male", "age", "car_access", 
+        #                                                      # "Western", "Non_Western", "Dutch", 'income','employed',
+        #                                                      #'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit',
+        #                                                      # 'transit_habit']
+        # # need to add hhsize and nrchildren
 
-        # Activity Schedules
-        self.ScheduleID = vector[18]          # Schedule IDs
-        self.MondaySchedule = model.scheduledf_monday.loc[model.scheduledf_monday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.TuesdaySchedule = model.scheduledf_tuesday.loc[model.scheduledf_tuesday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.WednesdaySchedule = model.scheduledf_wednesday.loc[model.scheduledf_wednesday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.ThursdaySchedule = model.scheduledf_thursday.loc[model.scheduledf_thursday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.FridaySchedule = model.scheduledf_friday.loc[model.scheduledf_friday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.SaturdaySchedule = model.scheduledf_saturday.loc[model.scheduledf_saturday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.SundaySchedule = model.scheduledf_sunday.loc[model.scheduledf_sunday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.former_activity = self.TuesdaySchedule[int((self.model.hour * 6) + (self.model.minute / 10)-1)]
-        self.activity = "perform_activity"
+        # # Activity Schedules
+        # self.ScheduleID = vector[18]          # Schedule IDs
+        # self.WeekSchedules = []
+        # self.WeekSchedules.append(list(model.scheduledf_monday.loc[model.scheduledf_monday["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        # self.WeekSchedules.append(list(model.scheduledf_tuesday.loc[model.scheduledf_tuesday["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        # self.WeekSchedules.append(list(model.scheduledf_wednesday.loc[model.scheduledf_wednesday["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        # self.WeekSchedules.append(list(model.scheduledf_thursday.loc[model.scheduledf_thursday["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        # self.WeekSchedules.append(list(model.scheduledf_friday.loc[model.scheduledf_friday["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        # self.WeekSchedules.append(list(model.scheduledf_saturday.loc[model.scheduledf_saturday["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        # self.WeekSchedules.append(list(model.scheduledf_sunday.loc[model.scheduledf_sunday["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        # self.former_activity = self.WeekSchedules[self.model.weekday][self.model.activitystep]
+        # self.activity = "perform_activity"
         
-        
-        # regular destinations
-        try:
-            self.Residence = model.Residences.loc[model.Residences["nghb_cd"] == self.Neighborhood, "geometry"].sample(1).values[0].coords[0]
-        # there are some very few synthetic population agents that come from a neighborhood without residential buildings (CENSUS)
-        except:
-            self.Residence = model.Residences["geometry"].sample(1).values[0].coords[0]
-        else:
-            pass
-        if self.current_edu == "high":
-            self.University = model.Universities["geometry"].sample(1).values[0].coords[0]
-        elif self.current_edu != "no_current_edu":
-            # select school that is closest to self.Residence
-            self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), self.model.Schools["geometry"].unary_union)][1]
-        if 3 in np.concatenate((self.MondaySchedule, self.TuesdaySchedule, self.WednesdaySchedule, self.ThursdaySchedule, self.FridaySchedule, self.SaturdaySchedule, self.SundaySchedule), axis=None):
-            self.Workplace = self.model.Profess["geometry"].sample(1).values[0].coords[0]
+        # # regular destinations
+        # try:
+        #     self.Residence = model.Residences.loc[model.Residences["nghb_cd"] == self.Neighborhood, "geometry"].sample(1).values[0].coords[0]
+        # # there are some very few synthetic population agents that come from a neighborhood without residential buildings (CENSUS)
+        # except:
+        #     self.Residence = model.Residences["geometry"].sample(1).values[0].coords[0]
+        # else:
+        #     pass
+        # if self.current_edu == "high":
+        #     self.University = model.Universities["geometry"].sample(1).values[0].coords[0]
+        # elif self.current_edu != "no_current_edu":
+        #     # select school that is closest to self.Residence
+        #     self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), self.model.Schools["geometry"].unary_union)][1]
+        # if 3 in list(np.concatenate(self.WeekSchedules).flat):
+        #     self.Workplace = self.model.Profess["geometry"].sample(1).values[0].coords[0]
 
-        # mobility behavior variables
-        self.path_memory = 0
-        self.traveldecision = 0
-        self.thishourtrack, self.thishourmode = [], []
-        self.nexthoursmodes, self.nexthourstracks = [], []  
+        # # mobility behavior variables
+        # self.path_memory = 0
+        # self.traveldecision = 0
+        # self.thishourtrack, self.thishourmode = [], []
+        # self.nexthoursmodes, self.nexthourstracks = [], []  
 
-        # exposure variables
-        self.visitedPlaces = [Point(tuple(self.Residence))]
-        self.newplace = 0
-        self.durationPlaces = [0]
-        self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
+        # # exposure variables
+        # self.visitedPlaces = [Point(tuple(self.Residence))]
+        # self.newplace = 0
+        # self.durationPlaces = [0]
+        # self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
         
-    def ScheduleManager(self):
+    def IdentifyActivity(self, weekday, activitystep):
       # identifying the current activity
-      if self.model.weekday == 0:
-        self.current_activity = self.MondaySchedule[self.model.activitystep]
-      if self.model.weekday == 1:
-        self.current_activity = self.TuesdaySchedule[self.model.activitystep]
-      if self.model.weekday == 2:
-        self.current_activity = self.WednesdaySchedule[self.model.activitystep]
-      if self.model.weekday == 3:
-        self.current_activity = self.ThursdaySchedule[self.model.activitystep]
-      if self.model.weekday == 4:
-        self.current_activity = self.FridaySchedule[self.model.activitystep]
-      if self.model.weekday == 5:
-        self.current_activity = self.SaturdaySchedule[self.model.activitystep]
-      if self.model.weekday == 6:
-        self.current_activity = self.SundaySchedule[self.model.activitystep]
-
+      self.current_activity = self.WeekSchedules[weekday][activitystep]
+    
+    def ScheduleManager(self):
         # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
       if self.current_activity != self.former_activity:
         if self.current_activity == 3:  # 3 = work
@@ -307,7 +357,7 @@ class Humans(Agent):
         elif self.current_activity in [12, 9, 8]:  # 12 = traveling
           self.destination_activity = self.model.Residences["geometry"].sample(1).values[0].coords[0]
 
-        #print("Current Activity: ", self.current_activity," Former Activity: ", self.former_activity)
+        # print("Current Activity: ", self.current_activity," Former Activity: ", self.former_activity)
 
         # Identifuing whether agent needs to travel to new destination
         if self.destination_activity != self.pos:
@@ -326,13 +376,13 @@ class Humans(Agent):
           self.activity = "perform_activity"
           self.traveldecision = 0
 
-    def PerceiveEnvironment(self):
-      # variables to be joined to route
-      self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values
-      #variables to be joined to current location
-      self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0]
-      #variables to be joined to destination
-      self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.destinvariables].values[0]
+    # def PerceiveEnvironment(self):
+    #   # variables to be joined to route
+    #   self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values
+    #   #variables to be joined to current location
+    #   self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0]
+    #   #variables to be joined to destination
+    #   self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.destinvariables].values[0]
       
     def ModeChoice(self):
       self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
@@ -454,14 +504,12 @@ class Humans(Agent):
   
     def step(self):
         # Schedule Manager
-        if self.model.minute % 10 == 0 or self.model.minute == 0:
-            self.ScheduleManager()
-        else:
-            pass
-
+        # if self.model.minute % 10 == 0 or self.model.minute == 0:
+        #     self.IdentifyActivity(self.model.weekday, self.model.activitystep)
+        #     self.ScheduleManager()
+        # print(self.traveldecision)
         # Travel Decision
         if self.traveldecision == 1:
-            self.PerceiveEnvironment()
             self.ModeChoice()
             self.Routing()
             self.SavingRoute()
@@ -494,6 +542,7 @@ class TransportAirPollutionExposureModel(Model):
         self.minute = self.current_datetime.minute
         self.weekday = self.current_datetime.weekday()
         self.hour = self.current_datetime.hour
+        self.activitystep = int((self.hour * 6) + (self.minute / 10))
         self.nb_humans = nb_humans
         self.modelrunname = modelrunname
         self.crs = crs
@@ -573,25 +622,28 @@ class TransportAirPollutionExposureModel(Model):
         self.originvariables_suff = add_suffix(self.originvariables, ".orig")
         self.destinvariables_suff = add_suffix(self.destinvariables, ".dest")
 
-        # Activity Schedules
-        print("Reading Activity Schedules")
-        self.scheduledf_monday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day1.csv")
-        self.scheduledf_tuesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day2.csv")
-        self.scheduledf_wednesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day3.csv")
-        self.scheduledf_thursday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day4.csv")
-        self.scheduledf_friday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day5.csv")
-        self.scheduledf_saturday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day6.csv")
-        self.scheduledf_sunday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day7.csv")
-
 
         # Create the agents
         print("Creating Agents")
         print(datetime.now())
-        for i in range(self.nb_humans):
-            agent = Humans(vector=list(random_subset.iloc[i]), model=self)
-            # Add the agent to a Home in their neighborhood
+        with cf.ProcessPoolExecutor() as executor:
+            agents = [executor.submit(agentinitializer(vector=list(random_subset.iloc[i]), schedules = schedulelist, 
+                                                      weekday = self.weekday, activitystep = self.activitystep, Residences = self.Residences,
+                                                      Universities = self.Universities, Schools = self.Schools, 
+                                                      Profess = self.Profess)) for i in range(self.nb_humans)]
+            for f in cf.as_completed(agents):
+              agents = f.result()
+              
+
+        Humansagents = [Humans(agent, self) for agent in agents]
+        for agent in Humansagents:
             self.continoussp.place_agent(agent, agent.Residence)
             self.schedule.add(agent)
+        # for i in range(self.nb_humans):
+        #     agent = Humans(vector=list(random_subset.iloc[i]), model=self)
+        #     # Add the agent to a Home in their neighborhood
+        #     self.continoussp.place_agent(agent, agent.Residence)
+        #     self.schedule.add(agent)
  
         print(datetime.now())
         # self.dc = DataCollector(model_reporters={"agent_count":
@@ -642,6 +694,16 @@ class TransportAirPollutionExposureModel(Model):
             self.DetermineWeather()
 
 
+        for agent in self.schedule.agents:     
+            agent.IdentifyActivity(self.weekday, self.activitystep)
+            agent.ScheduleManager()
+        
+        with cf.ProcessPoolExecutor() as executor:
+          for agent in self.schedule.agents:     
+              if agent.traveldecision == 1:
+                agent.RouteVars, agent.OrigVars, agent.DestVars = executor.submit(PerceiveEnvironment,agent.route_eucl_line, agent.pos, agent.destination_activity, self.EnvBehavDeterms).result()
+                print(agent.RouteVars, agent.OrigVars, agent.DestVars)
+
         self.schedule.step()
 
 
@@ -654,10 +716,22 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 4000
+    nb_humans = 400
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
+
+    # Activity Schedules
+    print("Reading Activity Schedules")
+    scheduledf_monday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day1.csv")
+    scheduledf_tuesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day2.csv")
+    scheduledf_wednesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day3.csv")
+    scheduledf_thursday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day4.csv")
+    scheduledf_friday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day5.csv")
+    scheduledf_saturday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day6.csv")
+    scheduledf_sunday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day7.csv")
+    schedulelist = [scheduledf_monday, scheduledf_tuesday, scheduledf_wednesday, scheduledf_thursday, scheduledf_friday, scheduledf_saturday, scheduledf_sunday]
+
 
     # Coordinate Reference System and CRS transformers
     crs = "epsg:28992"
@@ -673,18 +747,18 @@ if __name__ == "__main__":
 
     m = TransportAirPollutionExposureModel(
       nb_humans=nb_humans, path_data=path_data)
-    f = open(path_data+'profile_results.txt', 'w')
+    # f = open(path_data+'profile_results.txt', 'w')
     for t in range(100):
-      # m.step()
+      m.step()
     
-      # Profile the ABM run
-      cProfile.run('m.step()', 'profile_results')
-      # Print or save the profiling results
-      p = pstats.Stats('profile_results', stream=f)
-      # p.strip_dirs().sort_stats('cumulative').print_stats()
-      p.strip_dirs().sort_stats('time').print_stats()
+    #   # Profile the ABM run
+    #   cProfile.run('m.step()', 'profile_results')
+    #   # Print or save the profiling results
+    #   p = pstats.Stats('profile_results', stream=f)
+    #   # p.strip_dirs().sort_stats('cumulative').print_stats()
+    #   p.strip_dirs().sort_stats('time').print_stats()
 
-    f.close()
+    # f.close()
 
       
 # model_df = m.dc.get_model_vars_dataframe()

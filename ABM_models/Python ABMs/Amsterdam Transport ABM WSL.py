@@ -28,9 +28,9 @@ import itertools as it
 import warnings
 import cuspatial as cus
 import os
-
+import concurrent.futures as cf
+import multiprocessing
 warnings.filterwarnings("ignore", module="shapely")
-  
 
 
 
@@ -121,7 +121,21 @@ def reverse_geom(geom):
 def flip(x, y):
     """Flips the x and y coordinate values"""
     return y, x
-  
+
+## Parallelized agent functions
+def PerceiveEnvironment(route, orig, dest, EnvBehavDeterms):
+  # variables to be joined to route
+  RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [route]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
+                         "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "MinSpeed", "NrStrLight", "CrimeIncid",
+                          "MaxNoisDay", "MxNoisNigh", "OpenSpace", "PNonWester", "PWelfarDep", "pubTraDns", "SumTraffVo"]].mean(axis=0).values
+  #variables to be joined to current location
+  OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(orig))]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
+  #variables to be joined to destination
+  DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(dest))]}, geometry="geometry",crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
+  return RouteVars, OrigVars, DestVars
+    
+
+
 class Humans(Agent):
     """
     Humans:
@@ -132,7 +146,8 @@ class Humans(Agent):
   - have personal exposure
     """
 
-    def __init__(self, vector, model):
+    def __init__(self,x, model):
+        vector = random_subset.iloc[x]
         self.unique_id = vector[0]
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
@@ -146,32 +161,28 @@ class Humans(Agent):
 
         # Activity Schedules
         self.ScheduleID = vector[18]          # Schedule IDs
-        self.MondaySchedule = model.scheduledf_monday.loc[model.scheduledf_monday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.TuesdaySchedule = model.scheduledf_tuesday.loc[model.scheduledf_tuesday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.WednesdaySchedule = model.scheduledf_wednesday.loc[model.scheduledf_wednesday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.ThursdaySchedule = model.scheduledf_thursday.loc[model.scheduledf_thursday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.FridaySchedule = model.scheduledf_friday.loc[model.scheduledf_friday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.SaturdaySchedule = model.scheduledf_saturday.loc[model.scheduledf_saturday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.SundaySchedule = model.scheduledf_sunday.loc[model.scheduledf_sunday["ScheduleID"]== self.ScheduleID, ].values[0][1:]
-        self.former_activity = self.TuesdaySchedule[int((self.model.hour * 6) + (self.model.minute / 10)-1)]
+        self.WeekSchedules = []
+        for x in range(7):
+          self.WeekSchedules.append(list(schedulelist[x].loc[schedulelist[x]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        self.former_activity = self.WeekSchedules[self.model.weekday][self.model.activitystep]
         self.activity = "perform_activity"
         
         
         # regular destinations
         try:
-            self.Residence = model.Residences.loc[model.Residences["nghb_cd"] == self.Neighborhood, "geometry"].sample(1).values[0].coords[0]
+            self.Residence = Residences.loc[Residences["nghb_cd"] == self.Neighborhood, "geometry"].sample(1).values[0].coords[0]
         # there are some very few synthetic population agents that come from a neighborhood without residential buildings (CENSUS)
         except:
-            self.Residence = model.Residences["geometry"].sample(1).values[0].coords[0]
+            self.Residence = Residences["geometry"].sample(1).values[0].coords[0]
         else:
             pass
         if self.current_edu == "high":
-            self.University = model.Universities["geometry"].sample(1).values[0].coords[0]
+            self.University = Universities["geometry"].sample(1).values[0].coords[0]
         elif self.current_edu != "no_current_edu":
             # select school that is closest to self.Residence
-            self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), self.model.Schools["geometry"].unary_union)][1]
-        if 3 in np.concatenate((self.MondaySchedule, self.TuesdaySchedule, self.WednesdaySchedule, self.ThursdaySchedule, self.FridaySchedule, self.SaturdaySchedule, self.SundaySchedule), axis=None):
-            self.Workplace = self.model.Profess["geometry"].sample(1).values[0].coords[0]
+            self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][1]
+        if 3 in list(np.concatenate(self.WeekSchedules).flat):
+            self.Workplace = Profess["geometry"].sample(1).values[0].coords[0]
 
         # mobility behavior variables
         self.path_memory = 0
@@ -185,24 +196,10 @@ class Humans(Agent):
         self.durationPlaces = [0]
         self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
         
-    def ScheduleManager(self):
+    def ScheduleManager(self, weekday, activitystep):
       # identifying the current activity
-      if self.model.weekday == 0:
-        self.current_activity = self.MondaySchedule[self.model.activitystep]
-      if self.model.weekday == 1:
-        self.current_activity = self.TuesdaySchedule[self.model.activitystep]
-      if self.model.weekday == 2:
-        self.current_activity = self.WednesdaySchedule[self.model.activitystep]
-      if self.model.weekday == 3:
-        self.current_activity = self.ThursdaySchedule[self.model.activitystep]
-      if self.model.weekday == 4:
-        self.current_activity = self.FridaySchedule[self.model.activitystep]
-      if self.model.weekday == 5:
-        self.current_activity = self.SaturdaySchedule[self.model.activitystep]
-      if self.model.weekday == 6:
-        self.current_activity = self.SundaySchedule[self.model.activitystep]
-
-        # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
+      self.current_activity = self.WeekSchedules[weekday][activitystep]
+      # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
       if self.current_activity != self.former_activity:
         if self.current_activity == 3:  # 3 = work
           self.commute = 1
@@ -283,21 +280,21 @@ class Humans(Agent):
 
         elif self.current_activity == 11:
           self.leisure = 1
-          self.destination_activity = self.model.Entertainment["geometry"].sample(1).values[0].coords[0]
+          self.destination_activity = Entertainment["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity == 2:  # 2 = eating
-          if any(self.model.Restaurants["geometry"].within( Point(tuple(self.pos)).buffer(500))):
-              self.nearRestaurants = self.model.Restaurants["geometry"].intersection(Point(tuple(self.pos)).buffer(500))
+          if any(Restaurants["geometry"].within( Point(tuple(self.pos)).buffer(500))):
+              self.nearRestaurants = Restaurants["geometry"].intersection(Point(tuple(self.pos)).buffer(500))
               self.destination_activity = self.nearRestaurants[~self.nearRestaurants.is_empty].sample(1).values[0].coords[0]
 
           else:
-              self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.pos)), self.model.Restaurants["geometry"].unary_union)][1]
+              self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.pos)), Restaurants["geometry"].unary_union)][1]
 
         elif self.current_activity == 10:  # 10 = social life
-          self.destination_activity = self.model.Residences["geometry"].sample(1).values[0].coords[0]
+          self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity in [12, 9, 8]:  # 12 = traveling
-          self.destination_activity = self.model.Residences["geometry"].sample(1).values[0].coords[0]
+          self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
         #print("Current Activity: ", self.current_activity," Former Activity: ", self.former_activity)
 
@@ -318,21 +315,18 @@ class Humans(Agent):
           self.activity = "perform_activity"
           self.traveldecision = 0
 
-    def PerceiveEnvironment(self):
-      # variables to be joined to route
-      #self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values
-      print(self.model.EnvBehavDeterms.intersects(self.route_eucl_line))
-      self.RouteVars = self.model.EnvBehavDeterms.intersects(self.route_eucl_line)[self.model.routevariables].mean(axis=0).values
-
-      #variables to be joined to current location
-      self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0]
-      #variables to be joined to destination
-      self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.destinvariables].values[0]
+    # def PerceiveEnvironment(self):
+    #   # variables to be joined to route
+    #   self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.routevariables].mean(axis=0).values
+    #   #variables to be joined to current location
+    #   self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.originvariables].values[0]
+    #   #variables to be joined to destination
+    #   self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(self.model.EnvBehavDeterms, how="left")[self.model.destinvariables].values[0]
       
     def ModeChoice(self):
       self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
-                                  columns=(self.model.routevariables_suff + self.model.originvariables_suff + self.model.destinvariables_suff + self.model.personalvariables + self.model.tripvariables)).fillna(0)
-      self.modechoice =self.model.ModalChoiceModel.predict(self.pred_df[self.model.OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk")
+                                  columns=(routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables)).fillna(0)
+      self.modechoice =ModalChoiceModel.predict(self.pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk")
 
     # OSRM Routing Machine
     def Routing(self):
@@ -449,14 +443,14 @@ class Humans(Agent):
   
     def step(self):
         # Schedule Manager
-        if self.model.minute % 10 == 0 or self.model.minute == 0:
-            self.ScheduleManager()
-        else:
-            pass
+        # if self.model.minute % 10 == 0 or self.model.minute == 0:
+        #     self.ScheduleManager()
+        # else:
+        #     pass
 
         # Travel Decision
         if self.traveldecision == 1:
-            self.PerceiveEnvironment()
+            # self.PerceiveEnvironment()
             self.ModeChoice()
             self.Routing()
             self.SavingRoute()
@@ -489,6 +483,7 @@ class TransportAirPollutionExposureModel(Model):
         self.minute = self.current_datetime.minute
         self.weekday = self.current_datetime.weekday()
         self.hour = self.current_datetime.hour
+        self.activitystep = int((self.hour * 6) + (self.minute / 10))
         self.nb_humans = nb_humans
         self.modelrunname = modelrunname
         self.crs = crs
@@ -496,27 +491,34 @@ class TransportAirPollutionExposureModel(Model):
         self.schedule = SimultaneousActivation(self)
         print("Current time: ", self.current_datetime)
         print("Nr of Humans: ", self.nb_humans)
-
-        # Load the spatial built environment
-        self.buildings = gpd.read_feather(path_data+"FeatherDataABM/Buildings.feather")
-        self.streets = gpd.read_feather(path_data+"FeatherDataABM/Streets.feather")
-        self.greenspace = gpd.read_feather(path_data+"FeatherDataABM/Greenspace.feather")
-        self.Residences = gpd.read_feather(path_data+"FeatherDataABM/Residences.feather")
-        self.Schools = gpd.read_feather(path_data+"FeatherDataABM/Schools.feather")
-        self.Supermarkets = gpd.read_feather(path_data+"FeatherDataABM/Supermarkets.feather")
-        self.Universities = gpd.read_feather(path_data+"FeatherDataABM/Universities.feather")
-        self.Kindergardens = gpd.read_feather(path_data+"FeatherDataABM/Kindergardens.feather")
-        self.Restaurants = gpd.read_feather(path_data+"FeatherDataABM/Restaurants.feather")
-        self.Entertainment = gpd.read_feather(path_data+"FeatherDataABM/Entertainment.feather")
-        self.ShopsnServ = gpd.read_feather(path_data+"FeatherDataABM/ShopsnServ.feather")
-        self.Nightlife = gpd.read_feather(path_data+"FeatherDataABM/Nightlife.feather")
-        self.Profess = gpd.read_feather(path_data+"FeatherDataABM/Profess.feather")
-        self.spatial_extent = gpd.read_feather(path_data+"FeatherDataABM/SpatialExtent.feather")
-        self.EnvBehavDeterms = cus.from_geopandas(gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather"))
-        self.carroads = cus.from_geopandas(gpd.read_feather(path_data+"FeatherDataABM/carroads.feather"))
-        self.extentbox = self.spatial_extent.total_bounds
+        self.extentbox = spatial_extent.total_bounds
         self.continoussp = ContinuousSpace(x_max=self.extentbox[2], y_max=self.extentbox[3],
                                            torus=bool, x_min=self.extentbox[0], y_min=self.extentbox[1])
+        
+        # Create the agents
+        print("Creating Agents")
+        print(datetime.now())
+        for i in range(self.nb_humans):
+            agent = Humans(i, self)
+            # Add the agent to a Home in their neighborhood
+            self.continoussp.place_agent(agent, agent.Residence)
+            self.schedule.add(agent)
+ 
+        print(datetime.now())
+
+        # with cf.ProcessPoolExecutor() as executor:
+        #     # agents = [executor.submit(Humans(x=i, model = self)) for i in range(self.nb_humans)]
+        #     agents = executor.map(Humans, range(self.nb_humans), it.repeat(self, self.nb_humans)) 
+        # for agent in agents:
+        #     self.continoussp.place_agent(agent, agent.Residence)
+        #     self.schedule.add(agent)
+        # print(datetime.now())
+
+
+        # Load the spatial built environment
+        self.EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
+        self.carroads = gpd.read_feather(path_data+"FeatherDataABM/carroads.feather")
+
 
         # Load Weather data and set initial weather conditions
         self.monthly_weather_df = pd.read_csv(path_data+"Weather/monthlyWeather2019TempDiff.csv") 
@@ -532,63 +534,8 @@ class TransportAirPollutionExposureModel(Model):
         self.AirPollGrid = gpd.read_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
         self.AirPollPred = pd.read_csv(path_data+"Air Pollution Determinants/Pred_50m.csv")
         self.AirPollGrid["NO2"] = self.AirPollPred["baseline_NO2"]
-        
-        # Read the Mode of Transport Choice Model
-        print("Reading Mode of Transport Choice Model")
-        self.ModalChoiceModel = PMMLTreeClassifier(pmml=path_data+"ModalChoiceModel/modalChoice.pmml")
-        self.ModalChoiceModel.splitter = "random"
-        self.OrderPredVars = [x for x in self.ModalChoiceModel.fields][1:]
 
 
-        # self.modelvars = "allvars"
-        self.modelvars = "allvars_strict"
-        if self.modelvars == "allvars":
-            self.routevariables = ["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
-                         "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "NrStrLight", "CrimeIncid",
-                          "MaxNoisDay", "OpenSpace", "PNonWester", "PWelfarDep"]
-            self.personalvariables = ["sex_male", "age", "car_access", "Western", "Non_Western", "Dutch", 'income','employed',
-                                   'edu_3_levels','HH_size', 'Nrchildren', 'student', 'driving_habit','biking_habit','transit_habit']
-            self.tripvariables = ["trip_distance", "purpose_commute", 'purpose_leisure','purpose_groceries_shopping',
-                                  'purpose_education', 'purpose_bring_person']
-            self.weathervariables = ['Rain', 'Temperature', 'Winddirection', 'Windspeed']
-            self.originvariables = ["pubTraDns", "DistCBD"]
-            self.destinvariables = ["pubTraDns", "DistCBD", "NrParkSpac", "PrkPricPre", "PrkPricPos"]
-            
-        elif self.modelvars == "allvars_strict":
-            self.routevariables = ["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
-                         "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "MinSpeed", "NrStrLight", "CrimeIncid",
-                          "MaxNoisDay", "MxNoisNigh", "OpenSpace", "PNonWester", "PWelfarDep", "pubTraDns", "SumTraffVo"]
-            self.personalvariables = ["sex_male", "age", "car_access", "Western", "Non_Western", "Dutch", 'income','employed',
-                                  'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit','transit_habit']
-            self.tripvariables = ["trip_distance"]
-            self.originvariables = ["pubTraDns", "DistCBD"]
-            self.destinvariables = ["pubTraDns", "DistCBD"]
-        
-        self.routevariables_suff = add_suffix(self.routevariables, ".route")
-        self.originvariables_suff = add_suffix(self.originvariables, ".orig")
-        self.destinvariables_suff = add_suffix(self.destinvariables, ".dest")
-
-        # Activity Schedules
-        print("Reading Activity Schedules")
-        self.scheduledf_monday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day1.csv")
-        self.scheduledf_tuesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day2.csv")
-        self.scheduledf_wednesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day3.csv")
-        self.scheduledf_thursday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day4.csv")
-        self.scheduledf_friday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day5.csv")
-        self.scheduledf_saturday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day6.csv")
-        self.scheduledf_sunday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day7.csv")
-
-
-        # Create the agents
-        print("Creating Agents")
-        print(datetime.now())
-        for i in range(self.nb_humans):
-            agent = Humans(vector=list(random_subset.iloc[i]), model=self)
-            # Add the agent to a Home in their neighborhood
-            self.continoussp.place_agent(agent, agent.Residence)
-            self.schedule.add(agent)
- 
-        print(datetime.now())
         # self.dc = DataCollector(model_reporters={"agent_count":
         #                             lambda m: m.schedule.get_type_count(Humans)},
         #                         agent_reporters={"age": lambda m: (a.age for a in m.schedule.agents_by_type[Humans].values())})
@@ -636,7 +583,16 @@ class TransportAirPollutionExposureModel(Model):
         if self.current_datetime.day == 1 and self.current_datetime.hour == 0: # new month
             self.DetermineWeather()
 
-
+        for agent in self.schedule.agents:     
+            agent.ScheduleManager(self.weekday, self.activitystep)
+        
+        with cf.ProcessPoolExecutor() as executor:
+          for agent in self.schedule.agents:     
+              if agent.traveldecision == 1:
+                agent.RouteVars, agent.OrigVars, agent.DestVars = executor.submit(PerceiveEnvironment,agent.route_eucl_line, agent.pos, agent.destination_activity, self.EnvBehavDeterms).result()
+                print(agent.RouteVars, agent.OrigVars, agent.DestVars)
+                
+                
         self.schedule.step()
 
 
@@ -649,10 +605,22 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 400
+    nb_humans = 10000
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
+
+    # Activity Schedules
+    print("Reading Activity Schedules")
+    scheduledf_monday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day1.csv")
+    scheduledf_tuesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day2.csv")
+    scheduledf_wednesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day3.csv")
+    scheduledf_thursday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day4.csv")
+    scheduledf_friday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day5.csv")
+    scheduledf_saturday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day6.csv")
+    scheduledf_sunday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day7.csv")
+    schedulelist = [scheduledf_monday, scheduledf_tuesday, scheduledf_wednesday, scheduledf_thursday, scheduledf_friday, scheduledf_saturday, scheduledf_sunday]
+    del scheduledf_monday, scheduledf_tuesday, scheduledf_wednesday, scheduledf_thursday, scheduledf_friday, scheduledf_saturday, scheduledf_sunday
 
     # Coordinate Reference System and CRS transformers
     crs = "epsg:28992"
@@ -660,25 +628,78 @@ if __name__ == "__main__":
     projecy_to_crs = Transformer.from_crs("epsg:4326", crs, always_xy=True).transform
     project_to_meters = Transformer.from_crs(crs, 'epsg:3857')
     project_to_latlng = Transformer.from_crs('epsg:3857', crs, always_xy=True).transform
+
+    # Load the spatial built environment
+    spatial_extent = gpd.read_feather(path_data+"FeatherDataABM/SpatialExtent.feather")
+    buildings = gpd.read_feather(path_data+"FeatherDataABM/Buildings.feather")
+    streets = gpd.read_feather(path_data+"FeatherDataABM/Streets.feather")
+    greenspace = gpd.read_feather(path_data+"FeatherDataABM/Greenspace.feather")
+    Residences = gpd.read_feather(path_data+"FeatherDataABM/Residences.feather")
+    Schools = gpd.read_feather(path_data+"FeatherDataABM/Schools.feather")
+    Supermarkets = gpd.read_feather(path_data+"FeatherDataABM/Supermarkets.feather")
+    Universities = gpd.read_feather(path_data+"FeatherDataABM/Universities.feather")
+    Kindergardens = gpd.read_feather(path_data+"FeatherDataABM/Kindergardens.feather")
+    Restaurants = gpd.read_feather(path_data+"FeatherDataABM/Restaurants.feather")
+    Entertainment = gpd.read_feather(path_data+"FeatherDataABM/Entertainment.feather")
+    ShopsnServ = gpd.read_feather(path_data+"FeatherDataABM/ShopsnServ.feather")
+    Nightlife = gpd.read_feather(path_data+"FeatherDataABM/Nightlife.feather")
+    Profess = gpd.read_feather(path_data+"FeatherDataABM/Profess.feather")
     
     # Start OSRM Servers
     print("Starting OSRM Servers")
-    subprocess.Popen(['cmd.exe', '/c', 'C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/start_OSRM_Servers.bat'])
+    subprocess.Popen(['cmd.exe', '/c', 'C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/start_OSRM_Servers.bat'],stdout = subprocess.DEVNULL)
+
+
+    # Read the Mode of Transport Choice Model
+    print("Reading Mode of Transport Choice Model")
+    ModalChoiceModel = PMMLTreeClassifier(pmml=path_data+"ModalChoiceModel/modalChoice.pmml")
+    ModalChoiceModel.splitter = "random"
+    OrderPredVars = [x for x in ModalChoiceModel.fields][1:]
+
+
+    # modelvars = "allvars"
+    modelvars = "allvars_strict"
+    if modelvars == "allvars":
+        routevariables = ["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
+                        "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "NrStrLight", "CrimeIncid",
+                        "MaxNoisDay", "OpenSpace", "PNonWester", "PWelfarDep"]
+        personalvariables = ["sex_male", "age", "car_access", "Western", "Non_Western", "Dutch", 'income','employed',
+                                'edu_3_levels','HH_size', 'Nrchildren', 'student', 'driving_habit','biking_habit','transit_habit']
+        tripvariables = ["trip_distance", "purpose_commute", 'purpose_leisure','purpose_groceries_shopping',
+                                'purpose_education', 'purpose_bring_person']
+        weathervariables = ['Rain', 'Temperature', 'Winddirection', 'Windspeed']
+        originvariables = ["pubTraDns", "DistCBD"]
+        destinvariables = ["pubTraDns", "DistCBD", "NrParkSpac", "PrkPricPre", "PrkPricPos"]
+        
+    elif modelvars == "allvars_strict":
+        routevariables = ["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
+                        "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "MinSpeed", "NrStrLight", "CrimeIncid",
+                        "MaxNoisDay", "MxNoisNigh", "OpenSpace", "PNonWester", "PWelfarDep", "pubTraDns", "SumTraffVo"]
+        personalvariables = ["sex_male", "age", "car_access", "Western", "Non_Western", "Dutch", 'income','employed',
+                                'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit','transit_habit']
+        tripvariables = ["trip_distance"]
+        originvariables = ["pubTraDns", "DistCBD"]
+        destinvariables = ["pubTraDns", "DistCBD"]
+    
+    routevariables_suff = add_suffix(routevariables, ".route")
+    originvariables_suff = add_suffix(originvariables, ".orig")
+    destinvariables_suff = add_suffix(destinvariables, ".dest")
+
 
     m = TransportAirPollutionExposureModel(
       nb_humans=nb_humans, path_data=path_data)
-    f = open(path_data+'profile_results.txt', 'w')
+    # f = open(path_data+'profile_results.txt', 'w')
     for t in range(100):
-      # m.step()
+      m.step()
     
-      # Profile the ABM run
-      cProfile.run('m.step()', 'profile_results')
-      # Print or save the profiling results
-      p = pstats.Stats('profile_results', stream=f)
-      # p.strip_dirs().sort_stats('cumulative').print_stats()
-      p.strip_dirs().sort_stats('time').print_stats()
+    #   # Profile the ABM run
+    #   cProfile.run('m.step()', 'profile_results')
+    #   # Print or save the profiling results
+    #   p = pstats.Stats('profile_results', stream=f)
+    #   # p.strip_dirs().sort_stats('cumulative').print_stats()
+    #   p.strip_dirs().sort_stats('time').print_stats()
 
-    f.close()
+    # f.close()
 
       
 # model_df = m.dc.get_model_vars_dataframe()
