@@ -23,9 +23,13 @@ from sklearn_pmml_model.tree import PMMLTreeClassifier
 import itertools as it
 import warnings
 import concurrent.futures as cf
+from multiprocessing import Pool
 warnings.filterwarnings("ignore", module="shapely")
-
-
+import dns.resolver
+nameserver = dns.resolver.Resolver().nameservers[0]
+print("Localhost:", nameserver)
+import os
+n = os.cpu_count()*2
 
 def get_nearest(src_points, candidates, k_neighbors=1):
     """Find nearest neighbors for all source points from a set of candidate points"""
@@ -323,21 +327,21 @@ class Humans(Agent):
     # OSRM Routing Machine
     def Routing(self):
       if self.modechoice == "bike":
-        self.server = "http://172.31.192.1:5001/"
+        self.server = ":5001/"
         self.lua_profile = "bike"
       elif self.modechoice == "drive":
-        self.server = "http://172.31.192.1:5000/"
+        self.server = ":5000/"
         self.lua_profile = "car"
       elif self.modechoice == "walk":
-        self.server = "http://172.31.192.1:5002/"
+        self.server = ":5002/"
         self.lua_profile = "foot"
       elif self.modechoice == "transit":
-        self.server = "http://172.31.192.1:5002/"
+        self.server = ":5002/"
         self.lua_profile = "foot"
       
       self.orig_point = transform(project_to_WSG84, Point(tuple(self.pos)))
       self.dest_point = transform(project_to_WSG84, Point(tuple(self.destination_activity)))
-      self.url = (self.server + "route/v1/"+ self.lua_profile + "/" + str(self.orig_point.x)+ ","+ str(self.orig_point.y)+ ";"+ str(self.dest_point.x)+ ","+ str(self.dest_point.y) + "?overview=full&geometries=polyline")
+      self.url = ("http://" + nameserver + self.server + "route/v1/"+ self.lua_profile + "/" + str(self.orig_point.x)+ ","+ str(self.orig_point.y)+ ";"+ str(self.dest_point.x)+ ","+ str(self.dest_point.y) + "?overview=full&geometries=polyline")
       self.res = rq.get(self.url).json()
       self.track_geometry = transform(projecy_to_crs, transform(flip, LineString(polyline.decode(self.res['routes'][0]['geometry']))))
       self.track_duration = (self.res['routes'][0]['duration'])/60  # minutes
@@ -408,7 +412,6 @@ class Humans(Agent):
     def AtPlaceExposure(self):
         self.thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),AirPollGrid, how="inner", predicate= "intersects")
         self.hourlyplaceNO2 = sum(self.thishourplaces['NO2'] * (self.thishourplaces['duration']/6))
-        print(self.hourlyplaceNO2)
         if self.activity== "perform_activity":
           self.visitedPlaces = [self.visitedPlaces[-1]]
           self.durationPlaces = [0]
@@ -422,7 +425,6 @@ class Humans(Agent):
         self.thishourtrack['length'] = self.thishourtrack.length
         self.thishourtrack['speed']= self.thishourtrack['mode'].replace({'bike': 12000, 'drive': 30000, 'walk': 5000, 'transit': 50000})
         self.hourlytravelNO2 = sum(self.thishourtrack['NO2'] * (self.thishourtrack['length'] / self.thishourtrack['speed']))
-        print(self.hourlytravelNO2)
         if len(self.nexthourstracks) > 0:
           self.thishourmode = [self.nexthoursmodes[0]]
           self.thishourtrack = [self.nexthourstracks[0]]
@@ -532,16 +534,12 @@ class TransportAirPollutionExposureModel(Model):
       for agent in self.schedule.agents:     
         if "drive" in agent.thishourmode:
           self.HourlyTraffic.extend([agent.thishourtrack[count] for count, value in enumerate(agent.thishourmode) if value == "drive"])
-        print(len(self.HourlyTraffic))
       if len(self.HourlyTraffic) > 0:   
         self.HourlyTraffic = gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs)
         self.drivenroads = pd.DataFrame(gpd.sjoin(self.HourlyTraffic, carroads, how="right", predicate="overlaps"))[["count", "fid"]].fillna(0)
         self.drivenroads = pd.merge(carroads, self.drivenroads.groupby(['fid']).sum(), on="fid", how="left")
-        print(self.drivenroads.head())
-        self.drivenroads.plot()
-        plt.show()
         self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid, how="right", predicate="overlaps")
-        self.AirPollGrid.plot("count", cmap="Set1")
+        print(self.AirPollGrid["count"].value_counts())
     def OnRoadEmission(self):
       pass
     
@@ -569,12 +567,21 @@ class TransportAirPollutionExposureModel(Model):
         #       if agent.traveldecision == 1:
         #         agent.RouteVars, agent.OrigVars, agent.DestVars = executor.submit(PerceiveEnvironment,agent.route_eucl_line, agent.pos, agent.destination_activity, self.EnvBehavDeterms).result()                
         
-        with cf.ThreadPoolExecutor() as executor:
-            executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )    
-
+        # with cf.ThreadPoolExecutor(n) as executor:
+        #     executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )
+        # print(datetime.now())
         # with cf.ProcessPoolExecutor() as executor:
-        #     executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )    
+        #       executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )   
+            # executor.submit(Humans.step, self.schedule.agents,self.current_datetime)
+            # executor.shutdown(wait=False) 
+        print(datetime.now())
+        
+        with Pool() as pool:
+              pool.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) ) 
+        
+        print(datetime.now())
 
+        
         print(self.schedule.agents[0].current_activity, self.schedule.agents[0].minute)
 
         # self.dc.collect(self)
@@ -586,7 +593,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 100
+    nb_humans = 4000
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
