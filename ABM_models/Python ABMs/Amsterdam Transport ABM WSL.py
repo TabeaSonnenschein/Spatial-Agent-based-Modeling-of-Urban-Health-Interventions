@@ -6,8 +6,6 @@ from mesa.datacollection import DataCollector
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 import pandas as pd
-# import mesa_geo
-import fiona
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.ops import nearest_points, substring,transform,snap, split
@@ -22,8 +20,6 @@ import requests as rq
 import polyline
 import subprocess
 from sklearn_pmml_model.tree import PMMLTreeClassifier
-import cProfile
-import pstats
 import itertools as it
 import warnings
 import concurrent.futures as cf
@@ -410,9 +406,9 @@ class Humans(Agent):
 
 
     def AtPlaceExposure(self):
-        self.thishourplaces = gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs).overlay(AirPollGrid, how="intersection")
         self.thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),AirPollGrid, how="inner", predicate= "intersects")
         self.hourlyplaceNO2 = sum(self.thishourplaces['NO2'] * (self.thishourplaces['duration']/6))
+        print(self.hourlyplaceNO2)
         if self.activity== "perform_activity":
           self.visitedPlaces = [self.visitedPlaces[-1]]
           self.durationPlaces = [0]
@@ -426,6 +422,7 @@ class Humans(Agent):
         self.thishourtrack['length'] = self.thishourtrack.length
         self.thishourtrack['speed']= self.thishourtrack['mode'].replace({'bike': 12000, 'drive': 30000, 'walk': 5000, 'transit': 50000})
         self.hourlytravelNO2 = sum(self.thishourtrack['NO2'] * (self.thishourtrack['length'] / self.thishourtrack['speed']))
+        print(self.hourlytravelNO2)
         if len(self.nexthourstracks) > 0:
           self.thishourmode = [self.nexthoursmodes[0]]
           self.thishourtrack = [self.nexthourstracks[0]]
@@ -449,7 +446,6 @@ class Humans(Agent):
         # Schedule Manager
         if self.minute % 10 == 0 or self.minute == 0:
             self.ScheduleManager(current_datetime)
-            print(self.activitystep)
 
         # Travel Decision
         if self.traveldecision == 1:
@@ -536,14 +532,16 @@ class TransportAirPollutionExposureModel(Model):
       for agent in self.schedule.agents:     
         if "drive" in agent.thishourmode:
           self.HourlyTraffic.extend([agent.thishourtrack[count] for count, value in enumerate(agent.thishourmode) if value == "drive"])
+        print(len(self.HourlyTraffic))
       if len(self.HourlyTraffic) > 0:   
         self.HourlyTraffic = gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs)
         self.drivenroads = pd.DataFrame(gpd.sjoin(self.HourlyTraffic, carroads, how="right", predicate="overlaps"))[["count", "fid"]].fillna(0)
         self.drivenroads = pd.merge(carroads, self.drivenroads.groupby(['fid']).sum(), on="fid", how="left")
         print(self.drivenroads.head())
-        self.AirPollGrid = gpd.sjoin(self.drivenroads, self.AirPollGrid, how="right", predicate="overlaps")
-        print(self.AirPollGrid.plot("count", cmap="Set1"))
-      
+        self.drivenroads.plot()
+        plt.show()
+        self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid, how="right", predicate="overlaps")
+        self.AirPollGrid.plot("count", cmap="Set1")
     def OnRoadEmission(self):
       pass
     
@@ -565,21 +563,17 @@ class TransportAirPollutionExposureModel(Model):
         if self.current_datetime.day == 1 and self.current_datetime.hour == 0: # new month
             self.DetermineWeather()
 
-        # for agent in self.schedule.agents:     
-        #     agent.ScheduleManager(self.weekday, self.activitystep)
         
         # with cf.ProcessPoolExecutor() as executor:
         #   for agent in self.schedule.agents:     
         #       if agent.traveldecision == 1:
         #         agent.RouteVars, agent.OrigVars, agent.DestVars = executor.submit(PerceiveEnvironment,agent.route_eucl_line, agent.pos, agent.destination_activity, self.EnvBehavDeterms).result()                
         
-        # with cf.ThreadPoolExecutor() as executor:
-        #     executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )    
+        with cf.ThreadPoolExecutor() as executor:
+            executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )    
 
-        with cf.ProcessPoolExecutor() as executor:
-            results = executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )    
-        for result in results:
-            print(result)
+        # with cf.ProcessPoolExecutor() as executor:
+        #     executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )    
 
         print(self.schedule.agents[0].current_activity, self.schedule.agents[0].minute)
 
