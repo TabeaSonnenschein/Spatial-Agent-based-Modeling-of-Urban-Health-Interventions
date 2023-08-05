@@ -632,7 +632,7 @@ if __name__ == "__main__":
 
     # Start OSRM Servers
     print("Starting OSRM Servers")
-    subprocess.Popen(['cmd.exe', '/c', 'C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/start_OSRM_Servers.bat'],stdout = subprocess.DEVNULL)
+    OSRMservers = subprocess.Popen(['cmd.exe', '/c', 'C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/start_OSRM_Servers.bat'],stdout = subprocess.DEVNULL, stderr )
 
 
     # Read the Mode of Transport Choice Model
@@ -671,20 +671,27 @@ if __name__ == "__main__":
     destinvariables_suff = add_suffix(destinvariables, ".dest")
 
 
-    m = TransportAirPollutionExposureModel(
-      nb_humans=nb_humans, path_data=path_data)
-    f = open(path_data+'profile_results.txt', 'w')
-    for t in range(100):
-      # m.step()
-    
-      # Profile the ABM run
-      cProfile.run('m.step()', 'profile_results')
-      # Print or save the profiling results
-      p = pstats.Stats('profile_results', stream=f)
-      # p.strip_dirs().sort_stats('cumulative').print_stats()
-      p.strip_dirs().sort_stats('time').print_stats()
 
-    f.close()
+    
+    try: 
+      print("Initializing")
+    except KeyboardInterrupt:
+      OSRMservers.terminate()
+    finally:
+      m = TransportAirPollutionExposureModel(
+      nb_humans=nb_humans, path_data=path_data)
+      f = open(path_data+'profile_results.txt', 'w')
+      for t in range(100):
+        # m.step()
+      
+        # Profile the ABM run
+        cProfile.run('m.step()', 'profile_results')
+        # Print or save the profiling results
+        p = pstats.Stats('profile_results', stream=f)
+        # p.strip_dirs().sort_stats('cumulative').print_stats()
+        p.strip_dirs().sort_stats('time').print_stats()
+
+      f.close()
     # subprocess.Popen(['taskkill', '/f', 'cmd.exe' ])
     
 # model_df = m.dc.get_model_vars_dataframe()
