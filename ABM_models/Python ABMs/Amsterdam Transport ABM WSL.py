@@ -564,16 +564,8 @@ class TransportAirPollutionExposureModel(Model):
         if self.current_datetime.day == 1 and self.current_datetime.hour == 0: # new month
             self.DetermineWeather()
 
-        
-        # with cf.ProcessPoolExecutor() as executor:
-        #   for agent in self.schedule.agents:     
-        #       if agent.traveldecision == 1:
-        #         agent.RouteVars, agent.OrigVars, agent.DestVars = executor.submit(PerceiveEnvironment,agent.route_eucl_line, agent.pos, agent.destination_activity, self.EnvBehavDeterms).result()                
+                 
         print(datetime.now())
-
-        # with cf.ThreadPoolExecutor(n) as executor:
-        #     executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )
-        # print(datetime.now())
         
         with Pool() as pool:
               self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents])
