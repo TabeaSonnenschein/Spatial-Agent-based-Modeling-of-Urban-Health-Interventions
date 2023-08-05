@@ -23,6 +23,8 @@ from sklearn_pmml_model.tree import PMMLTreeClassifier
 import itertools as it
 import warnings
 import concurrent.futures as cf
+import cProfile
+import pstats
 from multiprocessing import Pool
 warnings.filterwarnings("ignore", module="shapely")
 import dns.resolver
@@ -384,7 +386,7 @@ class Humans(Agent):
       if self.arrival_time.hour != self.hour:
           self.track_length = self.track_geometry.length
           self.trip_segments = [((60 - self.minute)/self.track_duration)]
-          if (60/(self.track_duration-(60 - self.minute))) <1:  #if the trip intersects more than two hour slots
+          if (self.track_duration-(60 - self.minute)) > 60:  #if the trip intersects more than two hour slots
             self.trip_segments.extend(list(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.minute))/60))))
           self.segment_geometry = [self.track_geometry]
           for x in self.trip_segments:
@@ -471,6 +473,7 @@ class Humans(Agent):
             self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
             self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
         self.former_activity = self.current_activity
+        return self
 
 
 class TransportAirPollutionExposureModel(Model):
@@ -498,11 +501,11 @@ class TransportAirPollutionExposureModel(Model):
         
         # Create the agents
         print("Creating Agents")
-        with cf.ProcessPoolExecutor() as executor:
-            agents = executor.map(Humans, range(self.nb_humans), it.repeat(self, self.nb_humans)) 
-        for agent in agents:
+        with Pool() as pool:
+            self.agents = pool.starmap(Humans, [(x, self) for x in range(self.nb_humans)]) 
+        for agent in self.agents:
             self.continoussp.place_agent(agent, agent.Residence)
-            self.schedule.add(agent)
+            #self.schedule.add(agent)
 
 
         # Load Weather data and set initial weather conditions
@@ -566,23 +569,19 @@ class TransportAirPollutionExposureModel(Model):
         #   for agent in self.schedule.agents:     
         #       if agent.traveldecision == 1:
         #         agent.RouteVars, agent.OrigVars, agent.DestVars = executor.submit(PerceiveEnvironment,agent.route_eucl_line, agent.pos, agent.destination_activity, self.EnvBehavDeterms).result()                
-        
+        print(datetime.now())
+
         # with cf.ThreadPoolExecutor(n) as executor:
         #     executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )
         # print(datetime.now())
-        # with cf.ProcessPoolExecutor() as executor:
-        #       executor.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) )   
-            # executor.submit(Humans.step, self.schedule.agents,self.current_datetime)
-            # executor.shutdown(wait=False) 
-        print(datetime.now())
         
         with Pool() as pool:
-              pool.map(Humans.step, self.schedule.agents, it.repeat(self.current_datetime, self.nb_humans) ) 
+              self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents])
         
         print(datetime.now())
-
+        print(self.agents)
         
-        print(self.schedule.agents[0].current_activity, self.schedule.agents[0].minute)
+        print(self.agents[0].current_activity, self.agents[0].minute)
 
         # self.dc.collect(self)
 
@@ -683,20 +682,20 @@ if __name__ == "__main__":
 
     m = TransportAirPollutionExposureModel(
       nb_humans=nb_humans, path_data=path_data)
-    # f = open(path_data+'profile_results.txt', 'w')
+    f = open(path_data+'profile_results.txt', 'w')
     for t in range(100):
-      m.step()
+      # m.step()
     
-    #   # Profile the ABM run
-    #   cProfile.run('m.step()', 'profile_results')
-    #   # Print or save the profiling results
-    #   p = pstats.Stats('profile_results', stream=f)
-    #   # p.strip_dirs().sort_stats('cumulative').print_stats()
-    #   p.strip_dirs().sort_stats('time').print_stats()
+      # Profile the ABM run
+      cProfile.run('m.step()', 'profile_results')
+      # Print or save the profiling results
+      p = pstats.Stats('profile_results', stream=f)
+      # p.strip_dirs().sort_stats('cumulative').print_stats()
+      p.strip_dirs().sort_stats('time').print_stats()
 
-    # f.close()
-
-      
+    f.close()
+    # subprocess.Popen(['taskkill', '/f', 'cmd.exe' ])
+    
 # model_df = m.dc.get_model_vars_dataframe()
 # agent_df = m.dc.get_agent_vars_dataframe()
 # agent_df.head()
