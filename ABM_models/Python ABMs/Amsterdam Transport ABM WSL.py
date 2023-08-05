@@ -579,7 +579,6 @@ class TransportAirPollutionExposureModel(Model):
               self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents])
         
         print(datetime.now())
-        print(self.agents)
         
         print(self.agents[0].current_activity, self.agents[0].minute)
 
