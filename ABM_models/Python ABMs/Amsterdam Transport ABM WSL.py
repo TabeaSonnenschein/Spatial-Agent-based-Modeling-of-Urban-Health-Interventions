@@ -26,6 +26,8 @@ import concurrent.futures as cf
 import cProfile
 import pstats
 from multiprocessing import Pool
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
 
 warnings.filterwarnings("ignore", module="shapely")
 import dns.resolver
@@ -469,8 +471,8 @@ class Humans(Agent):
             self.PlaceTracker()
         
         if self.minute == 0:
-            self.TravelExposure()
-            self.AtPlaceExposure()
+            # self.TravelExposure()
+            # self.AtPlaceExposure()
             self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
             self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
         self.former_activity = self.current_activity
@@ -492,7 +494,6 @@ class TransportAirPollutionExposureModel(Model):
         self.nb_humans = nb_humans
         self.modelrunname = modelrunname
         self.crs = crs
-        # self.schedule = ParallelScheduler(self)
         self.schedule = SimultaneousActivation(self)
         print("Current time: ", self.current_datetime)
         print("Nr of Humans: ", self.nb_humans)
@@ -502,11 +503,13 @@ class TransportAirPollutionExposureModel(Model):
         
         # Create the agents
         print("Creating Agents")
+        print(datetime.now())
         with Pool() as pool:
             self.agents = pool.starmap(Humans, [(x, self) for x in range(self.nb_humans)]) 
         for agent in self.agents:
             self.continoussp.place_agent(agent, agent.Residence)
             #self.schedule.add(agent)
+        print(datetime.now())
 
 
         # Load Weather data and set initial weather conditions
@@ -519,10 +522,6 @@ class TransportAirPollutionExposureModel(Model):
         self.tempdifference = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "TempDifference"].values[0]
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
 
-
-        # self.dc = DataCollector(model_reporters={"agent_count":
-        #                             lambda m: m.schedule.get_type_count(Humans)},
-        #                         agent_reporters={"age": lambda m: (a.age for a in m.schedule.agents_by_type[Humans].values())})
         print("Starting Simulation")
         
     def DetermineWeather(self):
@@ -535,15 +534,26 @@ class TransportAirPollutionExposureModel(Model):
 
     def TrafficAssignment(self):
       self.HourlyTraffic = []
-      for agent in self.schedule.agents:     
+      for agent in self.agents:     
         if "drive" in agent.thishourmode:
           self.HourlyTraffic.extend([agent.thishourtrack[count] for count, value in enumerate(agent.thishourmode) if value == "drive"])
+      print("hourly Traff tracks", len(self.HourlyTraffic))
       if len(self.HourlyTraffic) > 0:   
         self.HourlyTraffic = gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs)
         self.drivenroads = pd.DataFrame(gpd.sjoin(self.HourlyTraffic, carroads, how="right", predicate="overlaps"))[["count", "fid"]].fillna(0)
         self.drivenroads = pd.merge(carroads, self.drivenroads.groupby(['fid']).sum(), on="fid", how="left")
         self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid, how="right", predicate="overlaps")
         print(self.AirPollGrid["count"].value_counts())
+        plt.plot(self.AirPollGrid["count"])
+        plt.title(f"Traffic at {self.hour} o'clock")
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/Traffic_{self.hour}.png')
+        plt.show()
+        
+        reg = LinearRegression().fit(self.AirPollGrid["count", "MaxSpeedLimit", "StreetIntersectDensity"].query('ON_ROAD == 1'), AirPollGrid[f"TrV{self.hour-1}_{self.hour}"].query('ON_ROAD == 1'))
+        print(reg)
+        print(reg.score(self.AirPollGrid["count"].query('ON_ROAD == 1'), AirPollGrid[f"TrV{self.hour-1}_{self.hour}"].query('ON_ROAD == 1')))
+
+
     def OnRoadEmission(self):
       pass
     
@@ -568,13 +578,11 @@ class TransportAirPollutionExposureModel(Model):
                  
         print(datetime.now())
         
-        with Pool() as pool:
+        with Pool(15) as pool:
               self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents])
         
         print(datetime.now())
         
-        print(self.agents[0].current_activity, self.agents[0].minute)
-
         # self.dc.collect(self)
 
 
@@ -584,7 +592,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 4000
+    nb_humans = 21750     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
@@ -629,8 +637,10 @@ if __name__ == "__main__":
     # Read the Environmental Stressor Data and Model
     AirPollGrid = gpd.read_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
     AirPollPred = pd.read_csv(path_data+"Air Pollution Determinants/Pred_50m.csv")
-    AirPollGrid["NO2"] = AirPollPred["baseline_NO2"]
-
+    AirPollGrid[["NO2", "ON_ROAD"]] = AirPollPred[["baseline_NO2", "ON_ROAD"]]
+    TraffDat = pd.read_csv(path_data+ "Air Pollution Determinants/AirPollRaster50m_TraffVdata.csv")
+    AirPollGrid = AirPollGrid.merge(TraffDat, how = "left", on = "int_id")
+    
     # Start OSRM Servers
     print("Starting OSRM Servers")
     OSRMservers = subprocess.Popen(['cmd.exe', '/c', 'C:/Users/Tabea/Documents/GitHub/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/start_OSRM_Servers.bat'],stdout = subprocess.DEVNULL )
@@ -674,20 +684,21 @@ if __name__ == "__main__":
 
     m = TransportAirPollutionExposureModel(
     nb_humans=nb_humans, path_data=path_data)
-    f = open(path_data+'profile_results.txt', 'w')
-    for t in range(100):
-      # m.step()
     
-      # Profile the ABM run
-      cProfile.run('m.step()', 'profile_results')
-      # Print or save the profiling results
-      p = pstats.Stats('profile_results', stream=f)
-      # p.strip_dirs().sort_stats('cumulative').print_stats()
-      p.strip_dirs().sort_stats('time').print_stats()
-
-    f.close()
-    OSRMservers.terminate()
+    profile = False
+    
+    if profile:
+      f = open(path_data+'profile_results.txt', 'w')
+      for t in range(100):      
+        # Profile the ABM run
+        cProfile.run('m.step()', 'profile_results')
+        # Print or save the profiling results
+        p = pstats.Stats('profile_results', stream=f)
+        # p.strip_dirs().sort_stats('cumulative').print_stats()
+        p.strip_dirs().sort_stats('time').print_stats()
+      f.close()
+      OSRMservers.terminate()
    
-# model_df = m.dc.get_model_vars_dataframe()
-# agent_df = m.dc.get_agent_vars_dataframe()
-# agent_df.head()
+    else:
+      for t in range(100):
+        m.step()

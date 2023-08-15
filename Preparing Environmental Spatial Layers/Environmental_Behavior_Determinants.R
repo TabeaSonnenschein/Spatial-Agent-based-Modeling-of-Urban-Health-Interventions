@@ -30,6 +30,7 @@ write.csv(csv, "walkability_measures2.csv" )
 
 walkability_grid_raster <- raster("walkability_grid.tif")
 
+walkability_grid = readOGR(dsn = getwd(), layer = "AirPollDeterm_grid50")
 
 ########################################
 # Making a grid of size: 100mx100m
@@ -156,6 +157,9 @@ plot(Fsq_retail_extent, add = T)
 #######################################
 setwd(paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = ""))
 Streets = readOGR(dsn=paste(dataFolder, "/Built Environment/Transport Infrastructure", sep = "" ),layer="Amsterdam_roads_RDNew")
+
+Streets = readOGR(dsn = "D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Traffic/car traffic/may19-march2020workday/TrafficVolumeRawValuesANDinterpolation",layer = "TrafficVolume_interpolated_allstreets_clean")
+
 Streets = spTransform(Streets, CRSobj = crs)
 plot(Streets, add = T)
 Streets = st_as_sfc(Streets)
@@ -164,10 +168,12 @@ street_intersections_df = as.data.frame(street_intersections)
 street_intersections_df$nr_coordinates = nchar(street_intersections_df$geometry)/16
 street_intersections_df = street_intersections_df[which(street_intersections_df$nr_coordinates < 3),]
 
-intersection_points_data = as.data.frame(matrix(NA, nrow = length(intersection_points)))
 intersection_points = as(street_intersections_df$geometry, "Spatial")
+
+intersection_points_data = as.data.frame(matrix(NA, nrow = length(intersection_points)))
 intersection_points= SpatialPointsDataFrame(intersection_points, data = intersection_points_data)
 writeOGR(intersection_points, dsn=getwd() ,layer= "intersection_points",driver="ESRI Shapefile")
+writeOGR(intersection_points, dsn="D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Traffic/car traffic/may19-march2020workday/TrafficVolumeRawValuesANDinterpolation" ,layer= "intersection_points",driver="ESRI Shapefile")
 
 plot(Streets)
 plot(intersection_points, col= "Red", add= T)
@@ -179,9 +185,14 @@ for(x in walkability_grid@data$unique_id){
   walkability_grid$street_intersection_density[which(walkability_grid$unique_id == x)] = length(which(street_intersections_gridjoin$unique_id == x))
 }
 
+for(x in walkability_grid@data$int_id){
+  walkability_grid$street_intersection_density[which(walkability_grid$int_id == x)] = length(which(street_intersections_gridjoin$int_id == x))
+}
+
 ggplot(data = st_as_sf(walkability_grid)) +
-  geom_sf(aes(fill = walkability_grid$street_intersection_density), size= 0.01)+
-  scale_fill_viridis_c(option = "D")
+  geom_sf(aes(fill = walkability_grid$street_intersection_density, color = ''), size= 0.01)+
+  scale_fill_viridis_c(option = "D")+
+  scale_colour_manual(values='transparent')
 summary(walkability_grid$street_intersection_density)
 
 
@@ -426,22 +437,37 @@ for(x in walkability_grid@data$unique_id){
   }
 }
 
+for(x in walkability_grid@data$int_id){
+  if(length(which(StreetLimits_gridjoin$int_id == x))>0){
+    walkability_grid$MaxSpeedLimit[which(walkability_grid$int_id == x)] = max(na.omit(StreetLimits_gridjoin$wettelijke[which(StreetLimits_gridjoin$int_id == x)]))
+    walkability_grid$MeanSpeedLimit[which(walkability_grid$int_id == x)] = mean(na.omit(StreetLimits_gridjoin$wettelijke[which(StreetLimits_gridjoin$int_id == x)]))
+    walkability_grid$MinSpeedLimit[which(walkability_grid$int_id == x)] = min(na.omit(StreetLimits_gridjoin$wettelijke[which(StreetLimits_gridjoin$int_id == x)]))
+  }
+}
+
+
 summary(walkability_grid$MaxSpeedLimit)
 summary(walkability_grid$MinSpeedLimit)
 summary(walkability_grid$MeanSpeedLimit)
 
 ggplot(data = st_as_sf(walkability_grid)) +
-  geom_sf(aes(fill = walkability_grid$MaxSpeedLimit), size= 0.01)+
-  scale_fill_viridis_c(option = "D")
+  geom_sf(aes( fill = walkability_grid$MaxSpeedLimit,  color = ''), size= 0.01)+
+  scale_fill_viridis_c(option = "D") +
+  scale_colour_manual(values='transparent')
 
 ggplot(data = st_as_sf(walkability_grid)) +
-  geom_sf(aes(fill = walkability_grid$MinSpeedLimit), size= 0.01)+
-  scale_fill_viridis_c(option = "D")
+  geom_sf(aes(fill = walkability_grid$MinSpeedLimit, color = ''), size= 0.01)+
+  scale_fill_viridis_c(option = "D") +
+  scale_colour_manual(values='transparent')
 
 ggplot(data = st_as_sf(walkability_grid)) +
-  geom_sf(aes(fill = walkability_grid$MeanSpeedLimit), size= 0.01)+
-  scale_fill_viridis_c(option = "D")
+  geom_sf(aes(fill = walkability_grid$MeanSpeedLimit, color = ''), size= 0.01)+
+  scale_fill_viridis_c(option = "D") +
+  scale_colour_manual(values='transparent')
 
+writeOGR(walkability_grid, dsn=getwd() ,layer= "AirPollDeterm_grid50_intersectSpeedLimit",driver="ESRI Shapefile")
+walkability_grid_data = as.data.frame(walkability_grid@data)
+write.csv(walkability_grid_data, file = "AirPollDeterm_grid50_intersectSpeedLimit.csv")
 
 ##########################################
 # Street Lights
