@@ -428,7 +428,7 @@ class Humans(Agent):
           self.durationPlaces = []
     
     def TravelExposure(self):
-      if len(self.thishourtrack) > 0:
+      if len(self.thishourtrack) > 0:       # transform overlay function to point in polygon, get points along line (10m), joining points with grid cellsize/2
         self.thishourtrack = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(AirPollGrid, how="intersection")
         self.thishourtrack['length'] = self.thishourtrack.length
         self.thishourtrack['speed']= self.thishourtrack['mode'].replace({'bike': 12000, 'drive': 30000, 'walk': 5000, 'transit': 50000})
@@ -540,31 +540,32 @@ class TransportAirPollutionExposureModel(Model):
       for agent in self.agents:     
         if "drive" in agent.thishourmode:
           self.HourlyTraffic.extend([agent.thishourtrack[count] for count, value in enumerate(agent.thishourmode) if value == "drive"])
-      print("hourly Traff tracks", len(self.HourlyTraffic))
+      TraffAssDat.write("hourly Traff tracks: " + len(self.HourlyTraffic) +'\n')
       if len(self.HourlyTraffic) > 0:   
         self.HourlyTraffic = gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs)
-        self.drivenroads = gpd.sjoin_nearest( carroads, self.HourlyTraffic, how="inner")[["fid", "count"]]
+        self.drivenroads = gpd.sjoin_nearest( carroads, self.HourlyTraffic, how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
         self.drivenroads = carroads.merge(self.drivenroads.groupby(['fid']).sum(), on="fid")
         self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid, how="right", predicate="intersects")
-        self.AirPollGrid.query('ON_ROAD == 1')['count'] = self.AirPollGrid.query('ON_ROAD == 1')['count'].fillna(0)
+        self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,'count'] = self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,'count'].fillna(0)
         self.AirPollGrid.plot("count", antialiased=False, legend = True) 
         plt.title(f"Traffic of {nb_humans} assigned at {self.hour} o'clock")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{self.hour}_assigned.png')
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{nb_humans}Agents_{self.hour}_assigned.png')
         plt.close()
         self.AirPollGrid.plot(f"TrV{self.hour-1}_{self.hour}", antialiased=False, legend = True) 
         plt.title(f"Traffic observed at {self.hour} o'clock")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{self.hour}_observed.png')
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid{self.hour}_observed.png')
         plt.close()
-        reg = LinearRegression().fit(self.AirPollGrid.query('ON_ROAD == 1')[["count", "MaxSpeedLimit"]], self.AirPollGrid.query('ON_ROAD == 1')[f"TrV{self.hour-1}_{self.hour}"])
-        print("Intercept", reg.intercept_, "count", reg.coef_[0],"MaxSpeedLimit", reg.coef_[1])
-        self.R2 =  c
-        print("R2", reg.score(self.AirPollGrid.query('ON_ROAD == 1')[["count", "MaxSpeedLimit"]], self.AirPollGrid.query('ON_ROAD == 1')[f"TrV{self.hour-1}_{self.hour}"]))
+        predictors = ["count", "MaxSpeedLimit"]
+        self.AirPollGrid["speed_TV_interact"] = self.AirPollGrid["count"] * self.AirPollGrid["MaxSpeedLimit"]
+        reg = LinearRegression().fit(self.AirPollGrid.query('ON_ROAD == 1')[predictors], self.AirPollGrid.query('ON_ROAD == 1')[f"TrV{self.hour-1}_{self.hour}"])
+        TraffAssDat.write("Intercept: " + reg.intercept_ + "count: " + reg.coef_[0] + "speed_TV_interact" + reg.coef_[1] + "MaxSpeedLimit" + reg.coef_[2] + '\n') 
+        self.R2 =  reg.score(self.AirPollGrid.query('ON_ROAD == 1')[["count", "speed_TV_interact", "MaxSpeedLimit"]], self.AirPollGrid.query('ON_ROAD == 1')[f"TrV{self.hour-1}_{self.hour}"])
+        TraffAssDat.write("R2" +  self.R2 + '\n')
         self.AirPollGrid["TraffV"] = np.nan
-        print(reg.predict(self.AirPollGrid.query('ON_ROAD == 1')[["count", "MaxSpeedLimit"]]))
-        self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"] = reg.predict(self.AirPollGrid.query('ON_ROAD == 1')[["count", "MaxSpeedLimit"]])
+        self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"] = reg.predict(self.AirPollGrid.query('ON_ROAD == 1')[["count", "speed_TV_interact", "MaxSpeedLimit"]])
         self.AirPollGrid.plot("TraffV", antialiased=False, legend = True) 
         plt.title(f"Traffic predicted at {self.hour} o'clock")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{self.hour}_predicted.png')
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{nb_humans}Agents_{self.hour}_predicted_{self.R2}.png')
         plt.close()
 
     def OnRoadEmission(self):
@@ -579,7 +580,8 @@ class TransportAirPollutionExposureModel(Model):
         print(self.current_datetime)
         self.minute = self.current_datetime.minute
         if self.minute == 0:  # new hour
-            print("Current time: ", self.current_datetime)
+            TraffAssDat.write("hour" +  self.current_datetime + '\n')
+            # print("Current time: ", self.current_datetime)
             self.hour = self.current_datetime.hour
             self.TrafficAssignment()
         self.activitystep = int((self.hour * 6) + (self.minute / 10))
@@ -606,7 +608,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 2000     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
+    nb_humans = 8700     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
@@ -649,6 +651,7 @@ if __name__ == "__main__":
     carroads = gpd.read_feather(path_data+"FeatherDataABM/carroads.feather")
 
     # Read the Environmental Stressor Data and Model
+    # cellsize = 50
     AirPollGrid = gpd.read_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
     AirPollPred = pd.read_csv(path_data+"Air Pollution Determinants/Pred_50m.csv")
     AirPollGrid[["NO2", "ON_ROAD"]] = AirPollPred[["baseline_NO2", "ON_ROAD"]]
@@ -695,6 +698,9 @@ if __name__ == "__main__":
     routevariables_suff = add_suffix(routevariables, ".route")
     originvariables_suff = add_suffix(originvariables, ".orig")
     destinvariables_suff = add_suffix(destinvariables, ".dest")
+
+    TraffAssDat = open(path_data+'TraffAssignModelPerf.txt', 'a')
+    TraffAssDat.write("Number of Agents: " + nb_humans  + '\n')
 
 
     m = TransportAirPollutionExposureModel(
