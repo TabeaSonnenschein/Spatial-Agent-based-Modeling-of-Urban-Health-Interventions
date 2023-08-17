@@ -28,7 +28,10 @@ import pstats
 from multiprocessing import Pool
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
-
+import time
+import logging
+import multiprocessing.util
+multiprocessing.util.log_to_stderr(level=logging.DEBUG)
 
 
 
@@ -326,6 +329,7 @@ class Humans(Agent):
       self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[originvariables].values[0]
       #variables to be joined to destination
       self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
+      # time.sleep(0.01)
       
     def ModeChoice(self):
       self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
@@ -357,6 +361,11 @@ class Humans(Agent):
         self.track_duration = self.track_duration/10
       self.trip_distance = self.res['routes'][0]['distance']  # meters
 
+    def RoutingDummy(self):
+      self.track_geometry = self.route_eucl_line
+      self.track_duration  = 20
+      self.trip_distance = 200
+      
     def SavingRoute(self):
       if(self.former_activity in [5, 1, 6, 7]):
         if self.current_activity == 3 : 
@@ -459,7 +468,9 @@ class Humans(Agent):
 
         # Travel Decision
         if self.traveldecision == 1:
+            print("PerceiveEnv")
             self.PerceiveEnvironment()
+            print("Modechoice")
             self.ModeChoice()
             self.Routing()
             self.SavingRoute()
@@ -476,6 +487,7 @@ class Humans(Agent):
         if self.minute == 0:
             # self.TravelExposure()
             # self.AtPlaceExposure()
+            print("exposure")
             self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
             self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
         self.former_activity = self.current_activity
@@ -512,7 +524,6 @@ class TransportAirPollutionExposureModel(Model):
         for agent in self.agents:
             self.continoussp.place_agent(agent, agent.Residence)
             #self.schedule.add(agent)
-        print(datetime.now())
 
 
         # Load Weather data and set initial weather conditions
@@ -540,7 +551,7 @@ class TransportAirPollutionExposureModel(Model):
       for agent in self.agents:     
         if "drive" in agent.thishourmode:
           self.HourlyTraffic.extend([agent.thishourtrack[count] for count, value in enumerate(agent.thishourmode) if value == "drive"])
-      TraffAssDat.write("hourly Traff tracks: " + len(self.HourlyTraffic) +'\n')
+      TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
       if len(self.HourlyTraffic) > 0:   
         self.HourlyTraffic = gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs)
         self.drivenroads = gpd.sjoin_nearest( carroads, self.HourlyTraffic, how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
@@ -555,14 +566,15 @@ class TransportAirPollutionExposureModel(Model):
         plt.title(f"Traffic observed at {self.hour} o'clock")
         plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid{self.hour}_observed.png')
         plt.close()
-        predictors = ["count", "MaxSpeedLimit"]
+        predictors = ["count", "speed_TV_interact"]
         self.AirPollGrid["speed_TV_interact"] = self.AirPollGrid["count"] * self.AirPollGrid["MaxSpeedLimit"]
         reg = LinearRegression().fit(self.AirPollGrid.query('ON_ROAD == 1')[predictors], self.AirPollGrid.query('ON_ROAD == 1')[f"TrV{self.hour-1}_{self.hour}"])
-        TraffAssDat.write("Intercept: " + reg.intercept_ + "count: " + reg.coef_[0] + "speed_TV_interact" + reg.coef_[1] + "MaxSpeedLimit" + reg.coef_[2] + '\n') 
-        self.R2 =  reg.score(self.AirPollGrid.query('ON_ROAD == 1')[["count", "speed_TV_interact", "MaxSpeedLimit"]], self.AirPollGrid.query('ON_ROAD == 1')[f"TrV{self.hour-1}_{self.hour}"])
-        TraffAssDat.write("R2" +  self.R2 + '\n')
+        TraffAssDat.write(f"Intercept: {reg.intercept_} \n") 
+        TraffAssDat.write(pd.DataFrame(zip(predictors, reg.coef_)).to_string()) 
+        self.R2 =  reg.score(self.AirPollGrid.query('ON_ROAD == 1')[predictors], self.AirPollGrid.query('ON_ROAD == 1')[f"TrV{self.hour-1}_{self.hour}"])
+        TraffAssDat.write(f"\nR2 {self.R2}\n")
         self.AirPollGrid["TraffV"] = np.nan
-        self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"] = reg.predict(self.AirPollGrid.query('ON_ROAD == 1')[["count", "speed_TV_interact", "MaxSpeedLimit"]])
+        self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"] = reg.predict(self.AirPollGrid.query('ON_ROAD == 1')[predictors])
         self.AirPollGrid.plot("TraffV", antialiased=False, legend = True) 
         plt.title(f"Traffic predicted at {self.hour} o'clock")
         plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{nb_humans}Agents_{self.hour}_predicted_{self.R2}.png')
@@ -580,7 +592,7 @@ class TransportAirPollutionExposureModel(Model):
         print(self.current_datetime)
         self.minute = self.current_datetime.minute
         if self.minute == 0:  # new hour
-            TraffAssDat.write("hour" +  self.current_datetime + '\n')
+            TraffAssDat.write(f"hour {self.current_datetime} \n")
             # print("Current time: ", self.current_datetime)
             self.hour = self.current_datetime.hour
             self.TrafficAssignment()
@@ -595,12 +607,9 @@ class TransportAirPollutionExposureModel(Model):
         
         with Pool() as pool:
             self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents])
-            # pool.close()
+            pool.close()
               
-        print(datetime.now())
         
-        # self.dc.collect(self)
-
 
 if __name__ == "__main__":
   # Read Main Data
@@ -699,18 +708,17 @@ if __name__ == "__main__":
     originvariables_suff = add_suffix(originvariables, ".orig")
     destinvariables_suff = add_suffix(destinvariables, ".dest")
 
-    TraffAssDat = open(path_data+'TraffAssignModelPerf.txt', 'a')
-    TraffAssDat.write("Number of Agents: " + nb_humans  + '\n')
+    TraffAssDat = open(path_data+'TraffAssignModelPerf.txt', 'a',buffering=1)
+    TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
 
 
-    m = TransportAirPollutionExposureModel(
-    nb_humans=nb_humans, path_data=path_data)
+    m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
     
     profile = False
     
     if profile:
       f = open(path_data+'profile_results.txt', 'w')
-      for t in range(100):      
+      for t in range(144):      
         # Profile the ABM run
         cProfile.run('m.step()', 'profile_results')
         # Print or save the profiling results
@@ -718,8 +726,10 @@ if __name__ == "__main__":
         # p.strip_dirs().sort_stats('cumulative').print_stats()
         p.strip_dirs().sort_stats('time').print_stats()
       f.close()
-      OSRMservers.terminate()
-   
+      
     else:
-      for t in range(100):
+      for t in range(144):
         m.step()
+        
+    OSRMservers.terminate()    
+    TraffAssDat.close()
