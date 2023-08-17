@@ -25,14 +25,14 @@ import warnings
 import concurrent.futures as cf
 import cProfile
 import pstats
-
+from multiprocessing import Pool
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import time
-import multiprocessing as mp
 # import logging
 # import multiprocessing.util
 # multiprocessing.util.log_to_stderr(level=logging.DEBUG)
+
 
 
 warnings.filterwarnings("ignore", module="shapely")
@@ -173,8 +173,8 @@ class Humans(Agent):
         # Activity Schedules
         self.ScheduleID = vector[18]          # Schedule IDs
         self.WeekSchedules = []
-        for i in range(7):
-          self.WeekSchedules.append(list(schedulelist[i].loc[schedulelist[i]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        for x in range(7):
+          self.WeekSchedules.append(list(schedulelist[x].loc[schedulelist[x]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
         self.former_activity = self.WeekSchedules[self.model.weekday][self.model.activitystep]
         self.activity = "perform_activity"
         self.weekday = self.model.weekday
@@ -518,7 +518,7 @@ class TransportAirPollutionExposureModel(Model):
         # Create the agents
         print("Creating Agents")
         print(datetime.now())
-        with ctx_in_main.Pool() as pool:
+        with Pool() as pool:
             self.agents = pool.starmap(Humans, [(x, self) for x in range(self.nb_humans)]) 
         for agent in self.agents:
             self.continoussp.place_agent(agent, agent.Residence)
@@ -546,7 +546,7 @@ class TransportAirPollutionExposureModel(Model):
       print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
 
     def TrafficAssignment(self):
-      with mp.Pool() as pool:
+      with Pool() as pool:
           self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
           pool.close()
           pool.join()
@@ -607,7 +607,7 @@ class TransportAirPollutionExposureModel(Model):
                  
         print(datetime.now())
         
-        with ctx_in_main.Pool() as pool:
+        with Pool() as pool:
             self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents],  chunksize=1000)
             pool.close()
             pool.join()
@@ -616,10 +616,6 @@ class TransportAirPollutionExposureModel(Model):
         
 
 if __name__ == "__main__":
-    mp.set_start_method('forkserver')
-    ctx_in_main = mp.get_context('forkserver')
-    
-    
   # Read Main Data
     path_data = "/mnt/c/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 
@@ -719,7 +715,6 @@ if __name__ == "__main__":
     TraffAssDat = open(path_data+'TraffAssignModelPerf.txt', 'a',buffering=1)
     TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
 
-    ctx_in_main.set_forkserver_preload([random_subset, schedulelist])
 
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
     
