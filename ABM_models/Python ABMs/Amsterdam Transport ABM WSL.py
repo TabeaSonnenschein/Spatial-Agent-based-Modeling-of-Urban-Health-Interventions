@@ -25,14 +25,14 @@ import warnings
 import concurrent.futures as cf
 import cProfile
 import pstats
-from multiprocessing import Pool
+
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import time
-import logging
-import multiprocessing.util
-multiprocessing.util.log_to_stderr(level=logging.DEBUG)
-
+import multiprocessing as mp
+# import logging
+# import multiprocessing.util
+# multiprocessing.util.log_to_stderr(level=logging.DEBUG)
 
 
 warnings.filterwarnings("ignore", module="shapely")
@@ -142,6 +142,9 @@ def flip(x, y):
 #   DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(dest))]}, geometry="geometry",crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
 #   return RouteVars, OrigVars, DestVars
     
+def RetrieveRoutes(thishourmode, thishourtrack):
+   if "drive" in thishourmode:
+      return([thishourtrack[count] for count, value in enumerate(thishourmode) if value == "drive"])
 
 
 class Humans(Agent):
@@ -170,8 +173,8 @@ class Humans(Agent):
         # Activity Schedules
         self.ScheduleID = vector[18]          # Schedule IDs
         self.WeekSchedules = []
-        for x in range(7):
-          self.WeekSchedules.append(list(schedulelist[x].loc[schedulelist[x]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        for i in range(7):
+          self.WeekSchedules.append(list(schedulelist[i].loc[schedulelist[i]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
         self.former_activity = self.WeekSchedules[self.model.weekday][self.model.activitystep]
         self.activity = "perform_activity"
         self.weekday = self.model.weekday
@@ -329,8 +332,7 @@ class Humans(Agent):
       self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[originvariables].values[0]
       #variables to be joined to destination
       self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
-      # time.sleep(0.01)
-      
+
     def ModeChoice(self):
       self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
                                   columns=(routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables)).fillna(0)
@@ -468,9 +470,7 @@ class Humans(Agent):
 
         # Travel Decision
         if self.traveldecision == 1:
-            print("PerceiveEnv")
             self.PerceiveEnvironment()
-            print("Modechoice")
             self.ModeChoice()
             self.Routing()
             self.SavingRoute()
@@ -487,7 +487,6 @@ class Humans(Agent):
         if self.minute == 0:
             # self.TravelExposure()
             # self.AtPlaceExposure()
-            print("exposure")
             self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
             self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
         self.former_activity = self.current_activity
@@ -519,7 +518,7 @@ class TransportAirPollutionExposureModel(Model):
         # Create the agents
         print("Creating Agents")
         print(datetime.now())
-        with Pool() as pool:
+        with ctx_in_main.Pool() as pool:
             self.agents = pool.starmap(Humans, [(x, self) for x in range(self.nb_humans)]) 
         for agent in self.agents:
             self.continoussp.place_agent(agent, agent.Residence)
@@ -547,27 +546,30 @@ class TransportAirPollutionExposureModel(Model):
       print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
 
     def TrafficAssignment(self):
-      self.HourlyTraffic = []
-      for agent in self.agents:     
-        if "drive" in agent.thishourmode:
-          self.HourlyTraffic.extend([agent.thishourtrack[count] for count, value in enumerate(agent.thishourmode) if value == "drive"])
+      with mp.Pool() as pool:
+          self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
+          pool.close()
+          pool.join()
+          pool.terminate()
+      self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
+      print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
       TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
       if len(self.HourlyTraffic) > 0:   
-        self.HourlyTraffic = gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs)
-        self.drivenroads = gpd.sjoin_nearest( carroads, self.HourlyTraffic, how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
+        self.drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
         self.drivenroads = carroads.merge(self.drivenroads.groupby(['fid']).sum(), on="fid")
         self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid, how="right", predicate="intersects")
         self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,'count'] = self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,'count'].fillna(0)
-        self.AirPollGrid.plot("count", antialiased=False, legend = True) 
-        plt.title(f"Traffic of {nb_humans} assigned at {self.hour} o'clock")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{nb_humans}Agents_{self.hour}_assigned.png')
-        plt.close()
-        self.AirPollGrid.plot(f"TrV{self.hour-1}_{self.hour}", antialiased=False, legend = True) 
-        plt.title(f"Traffic observed at {self.hour} o'clock")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid{self.hour}_observed.png')
-        plt.close()
-        predictors = ["count", "speed_TV_interact"]
-        self.AirPollGrid["speed_TV_interact"] = self.AirPollGrid["count"] * self.AirPollGrid["MaxSpeedLimit"]
+        print("joined traffic tracks to grid")
+        # self.AirPollGrid.plot("count", antialiased=False, legend = True) 
+        # plt.title(f"Traffic of {nb_humans} assigned at {self.hour} o'clock")
+        # plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{nb_humans}Agents_{self.hour}_assigned.png')
+        # plt.close()
+        # self.AirPollGrid.plot(f"TrV{self.hour-1}_{self.hour}", antialiased=False, legend = True) 
+        # plt.title(f"Traffic observed at {self.hour} o'clock")
+        # plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid{self.hour}_observed.png')
+        # plt.close()
+        predictors = ["count", "MaxSpeedLimit"]
+        # self.AirPollGrid["speed_TV_interact"] = self.AirPollGrid["count"] * self.AirPollGrid["MaxSpeedLimit"]
         reg = LinearRegression().fit(self.AirPollGrid.query('ON_ROAD == 1')[predictors], self.AirPollGrid.query('ON_ROAD == 1')[f"TrV{self.hour-1}_{self.hour}"])
         TraffAssDat.write(f"Intercept: {reg.intercept_} \n") 
         TraffAssDat.write(pd.DataFrame(zip(predictors, reg.coef_)).to_string()) 
@@ -605,13 +607,19 @@ class TransportAirPollutionExposureModel(Model):
                  
         print(datetime.now())
         
-        with Pool() as pool:
-            self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents])
+        with ctx_in_main.Pool() as pool:
+            self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents],  chunksize=1000)
             pool.close()
+            pool.join()
+            pool.terminate()
               
         
 
 if __name__ == "__main__":
+    mp.set_start_method('forkserver')
+    ctx_in_main = mp.get_context('forkserver')
+    
+    
   # Read Main Data
     path_data = "/mnt/c/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 
@@ -711,6 +719,7 @@ if __name__ == "__main__":
     TraffAssDat = open(path_data+'TraffAssignModelPerf.txt', 'a',buffering=1)
     TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
 
+    ctx_in_main.set_forkserver_preload([random_subset, schedulelist])
 
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
     
