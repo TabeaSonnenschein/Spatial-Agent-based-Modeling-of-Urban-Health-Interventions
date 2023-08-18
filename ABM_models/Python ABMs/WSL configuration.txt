@@ -1,0 +1,17 @@
+
+https://github.com/MicrosoftDocs/wsl/blob/main/WSL/wsl-config.md
+
+create “.wslconfig“ file in %UserProfile% directory
+e.g. C:\Users\<UserName>\.wslconfig
+File should contain
+
+[wsl2]
+memory=50GB
+
+
+In VSCode press Cntr+Shift+P  go to “Preferences: Open Remote Settings (WSL: Ubuntu)”
+Go to Edit Settings.json, add
+
+"remote.WSL2.connectionMethod": "localhost"
+or
+"remote.WSL2.connectionMethod": "wslExeProxy"
