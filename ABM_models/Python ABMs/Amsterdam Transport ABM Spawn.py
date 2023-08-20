@@ -158,7 +158,7 @@ class Humans(Agent):
   - have personal exposure
     """
 
-    def __init__(self,vector,schedulelist, Residences, Universities, Schools, Profess, model):
+    def __init__(self,vector, model):
         self.unique_id = vector[0]
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
@@ -458,11 +458,12 @@ class Humans(Agent):
         if self.hour == 0: # new day
             self.weekday = current_datetime.weekday()
     
-    def TimeAndActivityDecision(self, current_datetime, Entertainment, Residences, Restaurants):
-        self.ManageTime(current_datetime)
+    def TimeAndActivityDecision(self):
+        global curr_datetime, Entertain, Resid, Restaur
+        self.ManageTime(curr_datetime)
         # Schedule Manager
         if self.minute % 10 == 0 or self.minute == 0:
-            self.ScheduleManager(current_datetime,Entertainment, Residences, Restaurants)
+            self.ScheduleManager(curr_datetime, Entertain, Resid, Restaur)
         return self 
   
     # def MakeTravelDecision(self, current_datetime, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs):
@@ -510,8 +511,28 @@ class Humans(Agent):
         self.former_activity = self.current_activity
         return self
 
+def init_worker_init(schedules, Resid, univers, Scho, Prof):
+    # declare scope of a new global variable
+    global schedulelist, Residences, Universities, Schools, Profess
+    # store argument in the global variable for this process
+    schedulelist = schedules
+    Residences = Resid
+    Universities = univers
+    Schools = Scho
+    Profess = Prof
+
+        # initialize worker processes
+def init_worker(current_datetime, Entertainment, Residences, Restaurants):
+    # declare scope of a new global variable
+    global curr_datetime, Entertain, Resid, Restaur
+    # store argument in the global variable for this process
+    curr_datetime = current_datetime
+    Entertain = Entertainment
+    Resid = Residences
+    Restaur = Restaurants
 
 class TransportAirPollutionExposureModel(Model):
+           
     def __init__(self, nb_humans, path_data, crs="epsg:28992",
                  starting_date=datetime(2019, 1, 1, 6, 50, 0), steps_minute=10, modelrunname="intervention_scenario"):
         # Insert the global definitions, variables, and actions here
@@ -533,11 +554,12 @@ class TransportAirPollutionExposureModel(Model):
         self.continoussp = ContinuousSpace(x_max=self.extentbox[2], y_max=self.extentbox[3],
                                            torus=bool, x_min=self.extentbox[0], y_min=self.extentbox[1])
         
+        
         # Create the agents
         print("Creating Agents")
         print(datetime.now())
-        with Pool() as pool:
-            self.agents = pool.starmap(Humans, [(random_subset.iloc[x], schedulelist, Residences, Universities, Schools, Profess, self) for x in range(self.nb_humans)]) 
+        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
+            self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)]) 
         for agent in self.agents:
             self.continoussp.place_agent(agent, agent.Residence)
             #self.schedule.add(agent)
@@ -639,7 +661,6 @@ class TransportAirPollutionExposureModel(Model):
         self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
       self.TrafficRemainderCalc()
       
-      
 
     def OnRoadEmission(self):
       pass
@@ -666,7 +687,7 @@ class TransportAirPollutionExposureModel(Model):
         print(datetime.now())
         print("managing time and schedule")
         with Pool(initializer=init_worker, initargs=(self.current_datetime, Entertainment, Residences, Restaurants)) as pool:
-            self.agents = pool.starmap(Humans.TimeAndActivityDecision, [(agent) for agent in self.agents],  chunksize=500)
+            self.agents = pool.starmap(Humans.TimeAndActivityDecision, [agent for agent in self.agents],  chunksize=500)
             pool.close()
             pool.join()
             pool.terminate()         
@@ -694,7 +715,6 @@ class TransportAirPollutionExposureModel(Model):
         
 
 if __name__ == "__main__":
-    mp.freeze_support()
 
     # Read Main Data
     path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
@@ -801,15 +821,7 @@ if __name__ == "__main__":
     TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}.txt', 'a',buffering=1)
     TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
 
-    # initialize worker processes
-    def init_worker( current_datetime, Entertainment, Residences, Restaurants):
-        # declare scope of a new global variable
-        global curr_datetime, Entertain, Resid, Restaur
-        # store argument in the global variable for this process
-        curr_datetime = current_datetime
-        Entertain = Entertainment
-        Resid = Residences
-        Restaur = Restaurants
+
 
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
     
