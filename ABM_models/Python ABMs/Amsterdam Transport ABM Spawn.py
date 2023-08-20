@@ -158,8 +158,7 @@ class Humans(Agent):
   - have personal exposure
     """
 
-    def __init__(self,x, model):
-        vector = random_subset.iloc[x]
+    def __init__(self,vector,schedulelist, Residences, Universities, Schools, Profess, model):
         self.unique_id = vector[0]
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
@@ -209,7 +208,7 @@ class Humans(Agent):
         self.durationPlaces = [0]
         self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
         
-    def ScheduleManager(self, current_datetime):
+    def ScheduleManager(self, current_datetime, Entertainment, Residences, Restaurants):
       # identifying the current activity
       self.current_activity = self.WeekSchedules[self.weekday][self.activitystep]
       # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
@@ -334,13 +333,13 @@ class Humans(Agent):
       #variables to be joined to destination
       self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
 
-    def ModeChoice(self):
+    def ModeChoice(self, ModalChoiceModel, OrderPredVars, colvars):
       self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
-                                  columns=(routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables)).fillna(0)
+                                  columns=colvars).fillna(0)
       self.modechoice =ModalChoiceModel.predict(self.pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk")
 
     # OSRM Routing Machine
-    def Routing(self):
+    def Routing(self, project_to_WSG84, projecy_to_crs):
       if self.modechoice == "bike":
         self.server = ":5001/"
         self.lua_profile = "bike"
@@ -459,19 +458,19 @@ class Humans(Agent):
         if self.hour == 0: # new day
             self.weekday = current_datetime.weekday()
     
-    # def TimeAndActivityDecision(self, current_datetime):
-    #     self.ManageTime(current_datetime)
-    #     # Schedule Manager
-    #     if self.minute % 10 == 0 or self.minute == 0:
-    #         self.ScheduleManager(current_datetime)
-    #     return self 
+    def TimeAndActivityDecision(self, current_datetime, Entertainment, Residences, Restaurants):
+        self.ManageTime(current_datetime)
+        # Schedule Manager
+        if self.minute % 10 == 0 or self.minute == 0:
+            self.ScheduleManager(current_datetime,Entertainment, Residences, Restaurants)
+        return self 
   
-    # def MakeTravelDecision(self, current_datetime):
+    # def MakeTravelDecision(self, current_datetime, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs):
     #     # Travel Decision
     #     if self.traveldecision == 1:
-    #         self.PerceiveEnvironment()
-    #         self.ModeChoice()
-    #         self.Routing()
+    #         self.PerceiveEnvironment(EnvBehavDeterms)
+    #         self.ModeChoice(ModalChoiceModel, OrderPredVars, colvars)
+    #         self.Routing(project_to_WSG84, projecy_to_crs)
     #         self.SavingRoute()
     #         self.arrival_time = current_datetime + timedelta(minutes=self.track_duration)
     #         self.activity = "traveling"
@@ -479,17 +478,17 @@ class Humans(Agent):
     #         self.TripSegmentsPerHour()
     #     return self
   
-    def step(self,  current_datetime):
-        self.ManageTime(current_datetime)
-        # Schedule Manager
-        if self.minute % 10 == 0 or self.minute == 0:
-            self.ScheduleManager(current_datetime)
+    def step(self, current_datetime, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs):
+        # self.ManageTime(current_datetime)
+        # # Schedule Manager
+        # if self.minute % 10 == 0 or self.minute == 0:
+        #     self.ScheduleManager(current_datetime)
 
         # Travel Decision
         if self.traveldecision == 1:
-            self.PerceiveEnvironment()
-            self.ModeChoice()
-            self.Routing()
+            self.PerceiveEnvironment(EnvBehavDeterms)
+            self.ModeChoice(ModalChoiceModel, OrderPredVars, colvars)
+            self.Routing(project_to_WSG84, projecy_to_crs)
             self.SavingRoute()
             self.arrival_time = current_datetime + timedelta(minutes=self.track_duration)
             self.activity = "traveling"
@@ -538,10 +537,11 @@ class TransportAirPollutionExposureModel(Model):
         print("Creating Agents")
         print(datetime.now())
         with Pool() as pool:
-            self.agents = pool.starmap(Humans, [(x, self) for x in range(self.nb_humans)]) 
+            self.agents = pool.starmap(Humans, [(random_subset.iloc[x], schedulelist, Residences, Universities, Schools, Profess, self) for x in range(self.nb_humans)]) 
         for agent in self.agents:
             self.continoussp.place_agent(agent, agent.Residence)
             #self.schedule.add(agent)
+        print(datetime.now())
 
 
         # Load Weather data and set initial weather conditions
@@ -614,7 +614,7 @@ class TransportAirPollutionExposureModel(Model):
 
     def TrafficAssignment(self):
       with Pool() as pool:
-          self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
+          self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 800)
           pool.close()
           pool.join()
           pool.terminate()
@@ -663,30 +663,34 @@ class TransportAirPollutionExposureModel(Model):
         if self.current_datetime.day == 1 and self.current_datetime.hour == 0: # new month
             self.DetermineWeather()
 
-        # print("managing time and schedule")
-        # with Pool() as pool:
-        #     self.agents = pool.starmap(Humans.TimeAndActivityDecision, [(agent, self.current_datetime) for agent in self.agents],  chunksize=100)
-        #     pool.close()
-        #     pool.join()
-        #     pool.terminate()         
-        
-        # print("making travel decisions")
-        # with Pool() as pool:
-        #     self.agents = pool.starmap(Humans.MakeTravelDecision, [(agent, self.current_datetime) for agent in self.agents],  chunksize=100)
-        #     pool.close()
-        #     pool.join()
-        #     pool.terminate()         
-        # self.agents = [Humans.MakeTravelDecision(agent, self.current_datetime) for agent in self.agents]
-        # self.agents = [Humans.step(agent, self.current_datetime) for agent in self.agents]
-
-        print("stepping agents")
         print(datetime.now())
-        with Pool(7) as pool:
-            self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents],  chunksize=500)
+        print("managing time and schedule")
+        with Pool(initializer=init_worker, initargs=(self.current_datetime, Entertainment, Residences, Restaurants)) as pool:
+            self.agents = pool.starmap(Humans.TimeAndActivityDecision, [(agent) for agent in self.agents],  chunksize=500)
             pool.close()
             pool.join()
-            pool.terminate()
-              
+            pool.terminate()         
+        
+        print("making travel decisions")
+        with Pool() as pool:
+            self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs) for agent in self.agents],  chunksize=500)
+            pool.close()
+            pool.join()
+            pool.terminate()         
+        
+        # self.agents = [Humans.MakeTravelDecision(agent, self.current_datetime) for agent in self.agents]
+
+        # print("stepping agents")
+        # with Pool(7) as pool:
+        #     self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents],  chunksize=500)
+        #     pool.close()
+        #     pool.join()
+        #     pool.terminate()
+        
+        print(datetime.now())
+
+        # self.agents = [Humans.step(agent, self.current_datetime) for agent in self.agents]
+      
         
 
 if __name__ == "__main__":
@@ -792,9 +796,20 @@ if __name__ == "__main__":
     originvariables_suff = add_suffix(originvariables, ".orig")
     destinvariables_suff = add_suffix(destinvariables, ".dest")
 
+    colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables
+
     TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}.txt', 'a',buffering=1)
     TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
 
+    # initialize worker processes
+    def init_worker( current_datetime, Entertainment, Residences, Restaurants):
+        # declare scope of a new global variable
+        global curr_datetime, Entertain, Resid, Restaur
+        # store argument in the global variable for this process
+        curr_datetime = current_datetime
+        Entertain = Entertainment
+        Resid = Residences
+        Restaur = Restaurants
 
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
     
