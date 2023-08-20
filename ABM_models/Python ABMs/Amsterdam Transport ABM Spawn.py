@@ -147,7 +147,38 @@ def RetrieveRoutes(thishourmode, thishourtrack):
    if "drive" in thishourmode:
       return([thishourtrack[count] for count, value in enumerate(thishourmode) if value == "drive"])
 
+def init_worker_init(schedules, Resid, univers, Scho, Prof):
+    # declare scope of a new global variable
+    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants
+    # store argument in the global variable for this process
+    schedulelist = schedules
+    Residences = Resid
+    Universities = univers
+    Schools = Scho
+    Profess = Prof
+    
 
+
+    # initialize worker processes
+def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars):
+    # declare scope of a new global variable
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
+    # store argument in the global variable for this process
+    Residences = Resid
+    Entertainment = Entertain
+    Restaurants = Restaur
+    EnvBehavDeterms = envdeters
+    ModalChoiceModel = modalchoice
+    OrderPredVars = ordprevars
+    colvars = cols
+    project_to_WSG84 = projectWSG84
+    projecy_to_crs = projcrs
+    crs = crs_string
+    routevariables = routevars
+    originvariables = originvars
+    destinvariables = destinvars
+    
+    
 class Humans(Agent):
     """
     Humans:
@@ -208,7 +239,7 @@ class Humans(Agent):
         self.durationPlaces = [0]
         self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
         
-    def ScheduleManager(self, current_datetime, Entertainment, Residences, Restaurants):
+    def ScheduleManager(self, current_datetime):
       # identifying the current activity
       self.current_activity = self.WeekSchedules[self.weekday][self.activitystep]
       # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
@@ -333,13 +364,13 @@ class Humans(Agent):
       #variables to be joined to destination
       self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
 
-    def ModeChoice(self, ModalChoiceModel, OrderPredVars, colvars):
+    def ModeChoice(self):
       self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
                                   columns=colvars).fillna(0)
       self.modechoice =ModalChoiceModel.predict(self.pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk")
 
     # OSRM Routing Machine
-    def Routing(self, project_to_WSG84, projecy_to_crs):
+    def Routing(self):
       if self.modechoice == "bike":
         self.server = ":5001/"
         self.lua_profile = "bike"
@@ -458,12 +489,11 @@ class Humans(Agent):
         if self.hour == 0: # new day
             self.weekday = current_datetime.weekday()
     
-    def TimeAndActivityDecision(self):
-        global curr_datetime, Entertain, Resid, Restaur
-        self.ManageTime(curr_datetime)
+    def TimeAndActivityDecision(self, current_datetime):
+        self.ManageTime(current_datetime)
         # Schedule Manager
         if self.minute % 10 == 0 or self.minute == 0:
-            self.ScheduleManager(curr_datetime, Entertain, Resid, Restaur)
+            self.ScheduleManager(current_datetime)
         return self 
   
     # def MakeTravelDecision(self, current_datetime, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs):
@@ -479,17 +509,17 @@ class Humans(Agent):
     #         self.TripSegmentsPerHour()
     #     return self
   
-    def step(self, current_datetime, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs):
-        # self.ManageTime(current_datetime)
-        # # Schedule Manager
-        # if self.minute % 10 == 0 or self.minute == 0:
-        #     self.ScheduleManager(current_datetime)
+    def step(self, current_datetime):
+        self.ManageTime(current_datetime)
+        # Schedule Manager
+        if self.minute % 10 == 0 or self.minute == 0:
+            self.ScheduleManager(current_datetime)
 
         # Travel Decision
         if self.traveldecision == 1:
-            self.PerceiveEnvironment(EnvBehavDeterms)
-            self.ModeChoice(ModalChoiceModel, OrderPredVars, colvars)
-            self.Routing(project_to_WSG84, projecy_to_crs)
+            self.PerceiveEnvironment()
+            self.ModeChoice()
+            self.Routing()
             self.SavingRoute()
             self.arrival_time = current_datetime + timedelta(minutes=self.track_duration)
             self.activity = "traveling"
@@ -511,25 +541,7 @@ class Humans(Agent):
         self.former_activity = self.current_activity
         return self
 
-def init_worker_init(schedules, Resid, univers, Scho, Prof):
-    # declare scope of a new global variable
-    global schedulelist, Residences, Universities, Schools, Profess
-    # store argument in the global variable for this process
-    schedulelist = schedules
-    Residences = Resid
-    Universities = univers
-    Schools = Scho
-    Profess = Prof
 
-        # initialize worker processes
-def init_worker(current_datetime, Entertainment, Residences, Restaurants):
-    # declare scope of a new global variable
-    global curr_datetime, Entertain, Resid, Restaur
-    # store argument in the global variable for this process
-    curr_datetime = current_datetime
-    Entertain = Entertainment
-    Resid = Residences
-    Restaur = Restaurants
 
 class TransportAirPollutionExposureModel(Model):
            
@@ -559,7 +571,10 @@ class TransportAirPollutionExposureModel(Model):
         print("Creating Agents")
         print(datetime.now())
         with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
-            self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)]) 
+            self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
+            pool.close()
+            pool.join()
+            pool.terminate()
         for agent in self.agents:
             self.continoussp.place_agent(agent, agent.Residence)
             #self.schedule.add(agent)
@@ -576,7 +591,6 @@ class TransportAirPollutionExposureModel(Model):
         self.tempdifference = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "TempDifference"].values[0]
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
 
-        print("Starting Simulation")
         
     def DetermineWeather(self):
       self.temperature = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "Temperature"].values[0]
@@ -635,22 +649,17 @@ class TransportAirPollutionExposureModel(Model):
 
 
     def TrafficAssignment(self):
-      with Pool() as pool:
-          self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 800)
-          pool.close()
-          pool.join()
-          pool.terminate()
+      self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
       self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
       print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
       TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
       if len(self.HourlyTraffic) > 0:   
         self.drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
         self.drivenroads = carroads.merge(self.drivenroads.groupby(['fid']).sum(), on="fid")
-        
-        self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid , how="right", predicate="intersects")
+        self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
         self.AirPollGrid['count'] = self.AirPollGrid['count'].fillna(0)
-        self.AirPollGrid = AirPollGrid.merge(self.AirPollGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
-      
+        self.AirPollGrid = AirPollGrid.drop("count", axis= 1).merge(self.AirPollGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
+        
       else:
         self.AirPollGrid = AirPollGrid
         self.AirPollGrid['count'] = 0
@@ -668,7 +677,7 @@ class TransportAirPollutionExposureModel(Model):
     def OffRoadDispersion(self):
       pass
     
-    def step(self):
+    def step(self, pool):
         # manage time variables
         self.current_datetime += self.steps_minute
         print(self.current_datetime)
@@ -685,37 +694,13 @@ class TransportAirPollutionExposureModel(Model):
             self.DetermineWeather()
 
         print(datetime.now())
-        print("managing time and schedule")
-        with Pool(initializer=init_worker, initargs=(self.current_datetime, Entertainment, Residences, Restaurants)) as pool:
-            self.agents = pool.starmap(Humans.TimeAndActivityDecision, [agent for agent in self.agents],  chunksize=500)
-            pool.close()
-            pool.join()
-            pool.terminate()         
-        
-        print("making travel decisions")
-        with Pool() as pool:
-            self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs) for agent in self.agents],  chunksize=500)
-            pool.close()
-            pool.join()
-            pool.terminate()         
-        
-        # self.agents = [Humans.MakeTravelDecision(agent, self.current_datetime) for agent in self.agents]
-
-        # print("stepping agents")
-        # with Pool(7) as pool:
-        #     self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents],  chunksize=500)
-        #     pool.close()
-        #     pool.join()
-        #     pool.terminate()
-        
+        self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=50)
         print(datetime.now())
 
-        # self.agents = [Humans.step(agent, self.current_datetime) for agent in self.agents]
       
         
 
 if __name__ == "__main__":
-
     # Read Main Data
     path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 
@@ -824,9 +809,15 @@ if __name__ == "__main__":
 
 
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
+    print("Initializing Multiprocessing Pool")
+    pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
+                                                          ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
+                                                          projecy_to_crs, crs, routevariables, originvariables, destinvariables))
     
+    print("Starting Simulation")
+
     profile = False
-    
+
     if profile:
       f = open(path_data+'profile_results.txt', 'w')
       for t in range(144):      
@@ -840,8 +831,11 @@ if __name__ == "__main__":
       
     else:
       for t in range(164):
-        m.step()
+        m.step(pool)
 
+
+    pool.terminate()         
+            
     pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
         
     TraffAssDat.close()
