@@ -32,13 +32,12 @@ import time
 import multiprocessing as mp
 from multiprocessing import Pool
 from scipy.stats import pearsonr
-
+# from memory_profiler import profile
+import gc
 # import logging
 # import multiprocessing.util
 # multiprocessing.util.log_to_stderr(level=logging.DEBUG)
-
-
-
+   
 warnings.filterwarnings("ignore", module="shapely")
 import os
 n = os.cpu_count()*2
@@ -131,17 +130,9 @@ def flip(x, y):
     """Flips the x and y coordinate values"""
     return y, x
 
-# ## Parallelized agent functions
-# def PerceiveEnvironment(route, orig, dest, EnvBehavDeterms):
-#   # variables to be joined to route
-#   RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [route]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
-#                          "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "MinSpeed", "NrStrLight", "CrimeIncid",
-#                           "MaxNoisDay", "MxNoisNigh", "OpenSpace", "PNonWester", "PWelfarDep", "pubTraDns", "SumTraffVo"]].mean(axis=0).values
-#   #variables to be joined to current location
-#   OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(orig))]}, geometry="geometry", crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
-#   #variables to be joined to destination
-#   DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(dest))]}, geometry="geometry",crs="epsg:28992").sjoin(EnvBehavDeterms, how="left")[["pubTraDns", "DistCBD"]].values[0]
-#   return RouteVars, OrigVars, DestVars
+def is_even(number):
+    return number % 2 == 0
+
     
 def RetrieveRoutes(thishourmode, thishourtrack):
    if "drive" in thishourmode:
@@ -156,7 +147,8 @@ def init_worker_init(schedules, Resid, univers, Scho, Prof):
     Universities = univers
     Schools = Scho
     Profess = Prof
-    
+
+
 
 
     # initialize worker processes
@@ -508,8 +500,8 @@ class Humans(Agent):
     #         self.traveldecision = 0
     #         self.TripSegmentsPerHour()
     #     return self
-  
     def step(self, current_datetime):
+        global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
         self.ManageTime(current_datetime)
         # Schedule Manager
         if self.minute % 10 == 0 or self.minute == 0:
@@ -668,7 +660,7 @@ class TransportAirPollutionExposureModel(Model):
         self.TraffVcolumn = f"TrV23_24"
       else:
         self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
-      self.TrafficRemainderCalc()
+      self.TotalTraffCalc()
       
 
     def OnRoadEmission(self):
@@ -677,7 +669,7 @@ class TransportAirPollutionExposureModel(Model):
     def OffRoadDispersion(self):
       pass
     
-    def step(self, pool):
+    def step(self):
         # manage time variables
         self.current_datetime += self.steps_minute
         print(self.current_datetime)
@@ -694,7 +686,10 @@ class TransportAirPollutionExposureModel(Model):
             self.DetermineWeather()
 
         print(datetime.now())
-        self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=50)
+        self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=100)
+        gc.collect(generation=0)
+        gc.collect(generation=1)
+        gc.collect(generation=2)
         print(datetime.now())
 
       
@@ -755,8 +750,8 @@ if __name__ == "__main__":
     AirPollGrid[["NO2", "ON_ROAD"]] = AirPollPred[["baseline_NO2", "ON_ROAD"]]
     TraffDat = pd.read_csv(path_data+ "Air Pollution Determinants/AirPollRaster50m_TraffVdata.csv")
     AirPollGrid = AirPollGrid.merge(TraffDat[['int_id','StreetIntersectDensity', 'MaxSpeedLimit', 'MinSpeedLimit', 'MeanSpeedLimit']], how = "left", on = "int_id")
-    # TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
-    # AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
+    TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
+    AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
     print("AirPollGrid Columns: ", AirPollGrid.columns)
     print("AirPollGrid Shape: ", AirPollGrid.shape)    
     
@@ -809,16 +804,19 @@ if __name__ == "__main__":
 
 
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
-    print("Initializing Multiprocessing Pool")
-    pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
-                                                          ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
-                                                          projecy_to_crs, crs, routevariables, originvariables, destinvariables))
+   
+    
+
+    pool =  Pool()
     
     print("Starting Simulation")
+    NrHours = 24
+    NrDays = 1
+    # profile = "computation"
+    # profile = "memory"
+    profile = None
 
-    profile = False
-
-    if profile:
+    if profile == "computation":
       f = open(path_data+'profile_results.txt', 'w')
       for t in range(144):      
         # Profile the ABM run
@@ -828,14 +826,26 @@ if __name__ == "__main__":
         # p.strip_dirs().sort_stats('cumulative').print_stats()
         p.strip_dirs().sort_stats('time').print_stats()
       f.close()
-      
+    
+    elif profile == "memory":
+      pass
     else:
-      for t in range(164):
-        m.step(pool)
+      for day in range(NrDays):
+        for hour in range(NrHours):
+          if is_even(hour) :
+            pool.close()
+            pool.join()
+            pool.terminate()
+            print("Reinitializing Multiprocessing Pool")
+            pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
+                                                          ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
+                                                          projecy_to_crs, crs, routevariables, originvariables, destinvariables))
+          for t in range(6):
+            m.step()
 
 
     pool.terminate()         
             
-    pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
+    # pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
         
     TraffAssDat.close()
