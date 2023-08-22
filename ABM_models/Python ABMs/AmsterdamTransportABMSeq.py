@@ -37,7 +37,13 @@ import gc
 # import logging
 # import multiprocessing.util
 # multiprocessing.util.log_to_stderr(level=logging.DEBUG)
-
+import utils
+import os
+import xarray as xr
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from xrspatial.utils import ngjit
  
 warnings.filterwarnings("ignore", module="shapely")
 import os
@@ -484,12 +490,12 @@ class Humans(Agent):
         if self.hour == 0: # new day
             self.weekday = current_datetime.weekday()
     
-    def TimeAndActivityDecision(self, current_datetime):
-        self.ManageTime(current_datetime)
-        # Schedule Manager
-        if self.minute % 10 == 0 or self.minute == 0:
-            self.ScheduleManager(current_datetime)
-        return self 
+    # def TimeAndActivityDecision(self, current_datetime):
+    #     self.ManageTime(current_datetime)
+    #     # Schedule Manager
+    #     if self.minute % 10 == 0 or self.minute == 0:
+    #         self.ScheduleManager(current_datetime)
+    #     return self 
   
     # def MakeTravelDecision(self, current_datetime, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs):
     #     # Travel Decision
@@ -503,6 +509,7 @@ class Humans(Agent):
     #         self.traveldecision = 0
     #         self.TripSegmentsPerHour()
     #     return self
+    
     def step(self, current_datetime):
         global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
         self.ManageTime(current_datetime)
@@ -563,6 +570,7 @@ class TransportAirPollutionExposureModel(Model):
         
         self.hourlyext = 0
 
+
         # Create the agents
         print("Creating Agents")
         st = time.time()
@@ -585,7 +593,12 @@ class TransportAirPollutionExposureModel(Model):
         self.rain = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "Rain"].values[0]
         self.tempdifference = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "TempDifference"].values[0]
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
-
+        
+        self.weightsmatrix = utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
+                               windspeed = self.windspeed , winddirection = self.winddirection, 
+                               temperature =self.temperature, rain = self.rain, 
+                               temp_diff = self.tempdifference)
+        print(self.weightsmatrix)
         
     def DetermineWeather(self):
       self.temperature = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "Temperature"].values[0]
@@ -595,6 +608,11 @@ class TransportAirPollutionExposureModel(Model):
       self.tempdifference = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "TempDifference"].values[0]
       print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
 
+    def CalculateMonthlyWeightMatrix(self):
+      self.weightsmatrix = utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
+                    windspeed = self.windspeed , winddirection = self.winddirection, 
+                    temperature =self.temperature, rain = self.rain, 
+                    temp_diff = self.tempdifference)
 
     def TraffCountRegression(self):
       print("joined traffic tracks to grid")
@@ -634,7 +652,7 @@ class TransportAirPollutionExposureModel(Model):
       AirPollGrid.loc[AirPollGrid["ON_ROAD"] == 1, f"TraffVrest{self.hour}"] = list(Remainders)
 
     def TotalTraffCalc(self):
-      self.AirPollGrid["TraffV"] = np.nan
+      self.AirPollGrid["TraffV"] = 0
       self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"] = (self.AirPollGrid.query('ON_ROAD == 1')["count"]*  1.793033) \
                                                                         + (self.AirPollGrid.query('ON_ROAD == 1')["MaxSpeedLimit"] * 5.2686245) \
                                                                         + (AirPollGrid.query('ON_ROAD == 1')[f"TraffVrest{self.hour}"])
@@ -644,38 +662,56 @@ class TransportAirPollutionExposureModel(Model):
 
 
     def TrafficAssignment(self):
-      self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
-      self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
-      print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
-      TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
-      if len(self.HourlyTraffic) > 0:   
-        self.drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
-        self.drivenroads = carroads.merge(self.drivenroads.groupby(['fid']).sum(), on="fid")
-        self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
-        self.AirPollGrid['count'] = self.AirPollGrid['count'].fillna(0)
-        self.AirPollGrid = AirPollGrid.drop("count", axis= 1).merge(self.AirPollGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
+        with Pool() as pool:
+            self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
+            pool.close()
+            pool.join()
+            pool.terminate()
+        self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
+        print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
+        TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
+        if len(self.HourlyTraffic) > 0:   
+            self.drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
+            self.drivenroads = carroads.merge(self.drivenroads.groupby(['fid']).sum(), on="fid")
+            self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
+            self.AirPollGrid['count'] = self.AirPollGrid['count'].fillna(0)
+            self.AirPollGrid = AirPollGrid.drop("count", axis= 1).merge(self.AirPollGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
+            
+        else:
+            self.AirPollGrid = AirPollGrid
+            self.AirPollGrid['count'] = 0
         
-      else:
-        self.AirPollGrid = AirPollGrid
-        self.AirPollGrid['count'] = 0
-      
-      if self.hour == 0:
-        self.TraffVcolumn = f"TrV23_24"
-      else:
-        self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
-      self.TotalTraffCalc()
-      
+        if self.hour == 0:
+            self.TraffVcolumn = f"TrV23_24"
+        else:
+            self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
+        self.TotalTraffCalc()
+    
 
     def OnRoadEmission(self):
-      pass
+        self.AirPollGrid["TraffNO2"] = self.AirPollGrid["TraffV"] * TraffCoeff 
     
     def OffRoadDispersion(self):
-      pass
-    
+        global airpoll_grid_raster, moderator_df
+        # assigning the trafficV values to the raster
+        airpoll_grid_raster[:] = np.array(self.AirPollGrid["TraffNO2"].values).reshape(airpoll_grid_raster.shape)
+        airpoll_grid_raster = utils.cellautom_dispersion(weightmatrix = self.weightsmatrix, 
+                                                         airpollraster = airpoll_grid_raster, 
+                                                         monthlyweather = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month],
+                                                         moderator_df = moderator_df, 
+                                                         include_baseline_in_dispersion = False,
+                                                         baseline_NO2 = self.AirPollGrid["baseline_NO2"],
+                                                         params = list(paramvalues["values"]))
+        self.AirPollGrid["NO2"] = np.asarray(airpoll_grid_raster[:]).flatten() 
+        self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"NO2"] = self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffNO2"] + self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"baseline_NO2"]
+
     def step(self):
         # manage time variables
         self.current_datetime += self.steps_minute
         print(self.current_datetime)
+        if self.current_datetime.day == 1 and self.current_datetime.hour == 0 and self.current_datetime.minute == 0: # new month
+            self.DetermineWeather() 
+            self.CalculateMonthlyWeightMatrix()   
         self.minute = self.current_datetime.minute
         if self.minute == 0:  # new hour
             print("hourly executiontime Human Steps: ", self.hourlyext)
@@ -686,18 +722,23 @@ class TransportAirPollutionExposureModel(Model):
             st = time.time()
             self.TrafficAssignment()
             print("Traffic Assignment time: ", time.time() - st, "Seconds")
+            st = time.time()
+            self.OnRoadEmission()
+            self.OffRoadDispersion()
+            print("Hybrid Dispersion Model: ", time.time() - st, "Seconds")
+            self.AirPollGrid.plot("NO2", antialiased=False, legend = True)
+            plt.show()
         self.activitystep = int((self.hour * 6) + (self.minute / 10))
         if self.current_datetime.hour == 0: # new day
             self.weekday = self.current_datetime.weekday()
-        if self.current_datetime.day == 1 and self.current_datetime.hour == 0: # new month
-            self.DetermineWeather()
+
 
         st = time.time()
-        self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=100)
+        # self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=100)
         # self.agents = pool.imap_unordered(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=500)
         # results = pool.starmap_async(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=500, error_callback=custom_error_callback)
         # self.agents = [value for value in results.get()]
-        
+        self.agents = [Humans.step(agent, self.current_datetime) for agent in self.agents]
         gc.collect(generation=0)
         gc.collect(generation=1)
         gc.collect(generation=2)
@@ -757,22 +798,31 @@ if __name__ == "__main__":
     carroads = gpd.read_feather(path_data+"FeatherDataABM/carroads.feather")
 
     # Read the Environmental Stressor Data and Model
-    # cellsize = 50
-    AirPollGrid = gpd.read_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
-    AirPollPred = pd.read_csv(path_data+"Air Pollution Determinants/Pred_50m.csv")
-    AirPollGrid[["NO2", "ON_ROAD"]] = AirPollPred[["baseline_NO2", "ON_ROAD"]]
+    # Set cell size
+    cellsize = 50
+    AirPollGrid = gpd.read_feather(path_data+f"FeatherDataABM/AirPollgrid{cellsize}m.feather")
+    AirPollPred = pd.read_csv(path_data+f"Air Pollution Determinants/Pred_{cellsize}m.csv")
     TraffDat = pd.read_csv(path_data+ "Air Pollution Determinants/AirPollRaster50m_TraffVdata.csv")
-    AirPollGrid = AirPollGrid.merge(TraffDat[['int_id','StreetIntersectDensity', 'MaxSpeedLimit', 'MinSpeedLimit', 'MeanSpeedLimit']], how = "left", on = "int_id")
     TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
+    airpoll_grid_raster = xr.open_dataarray(path_data+ f"Air Pollution Determinants/AirPollDeterm_grid_{cellsize}m.tif", engine="rasterio")[0] # Read raster data using rasterio
+    moderator_df = pd.read_csv(path_data+ f"Air Pollution Determinants/moderator_{cellsize}m.csv")     # Read moderator DataFrame
+    paramvalues = pd.read_csv(path_data+ f"Air Pollution Determinants/GAparam_results_python_5_{cellsize}m.csv") # Read calibrated parameters
+    TraffCoeff = 0.03096377438925   # for 50m cellsize
+    
+    # Preparing Data    
+    AirPollGrid[["baseline_NO2", "ON_ROAD"]] = AirPollPred[["baseline_NO2", "ON_ROAD"]]
+    AirPollGrid = AirPollGrid.merge(TraffDat[['int_id','StreetIntersectDensity', 'MaxSpeedLimit', 'MinSpeedLimit', 'MeanSpeedLimit']], how = "left", on = "int_id")
     AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
+    
+    # Looking at Data
     print("AirPollGrid Columns: ", AirPollGrid.columns)
     print("AirPollGrid Shape: ", AirPollGrid.shape)    
-    
+    print("Moderator Columns: ", moderator_df.columns)
+    print("AirPollRaster Shape: ", airpoll_grid_raster.shape)    
     
     # Start OSRM Servers
     print("Starting OSRM Servers")
     subprocess.call([r"C:\Users\Tabea\Documents\GitHub\Spatial-Agent-based-Modeling-of-Urban-Health-Interventions\start_OSRM_Servers.bat"])
-
 
     # Read the Mode of Transport Choice Model
     print("Reading Mode of Transport Choice Model")
@@ -811,6 +861,8 @@ if __name__ == "__main__":
 
     colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables
 
+
+    
     TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}.txt', 'a',buffering=1)
     TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
 
@@ -819,9 +871,9 @@ if __name__ == "__main__":
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
    
     
-    pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
-                                                          ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
-                                                          projecy_to_crs, crs, routevariables, originvariables, destinvariables))
+    # pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
+    #                                                       ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
+    #                                                       projecy_to_crs, crs, routevariables, originvariables, destinvariables))
     # pool =  Pool()
     
     print("Starting Simulation")
@@ -861,7 +913,7 @@ if __name__ == "__main__":
             m.step()
 
 
-    pool.terminate()         
+    # pool.terminate()         
             
     # pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
         
