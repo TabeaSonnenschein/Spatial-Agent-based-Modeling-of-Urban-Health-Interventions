@@ -37,11 +37,21 @@ import gc
 # import logging
 # import multiprocessing.util
 # multiprocessing.util.log_to_stderr(level=logging.DEBUG)
-
+import sys
+import random
+import threading
  
 warnings.filterwarnings("ignore", module="shapely")
 import os
-n = os.cpu_count()*2
+n = os.cpu_count()
+
+
+
+def worker_process( agents, current_datetime):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
+    for agent in agents:
+        agent.step(current_datetime)
+    return agents
 
 def get_nearest(src_points, candidates, k_neighbors=1):
     """Find nearest neighbors for all source points from a set of candidate points"""
@@ -323,8 +333,8 @@ class Humans(Agent):
 
         elif self.current_activity == 2:  # 2 = eating
           if any(Restaurants["geometry"].within( Point(tuple(self.pos)).buffer(500))):
-              self.nearRestaurants = Restaurants["geometry"].intersection(Point(tuple(self.pos)).buffer(500))
-              self.destination_activity = self.nearRestaurants[~self.nearRestaurants.is_empty].sample(1).values[0].coords[0]
+              nearRestaurants = Restaurants["geometry"].intersection(Point(tuple(self.pos)).buffer(500))
+              self.destination_activity = nearRestaurants[~nearRestaurants.is_empty].sample(1).values[0].coords[0]
 
           else:
               self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.pos)), Restaurants["geometry"].unary_union)][1]
@@ -352,6 +362,7 @@ class Humans(Agent):
           self.traveldecision = 0
 
     def PerceiveEnvironment(self):
+      global EnvBehavDeterms
       # variables to be joined to route
       self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[routevariables].mean(axis=0).values
       #variables to be joined to current location
@@ -360,35 +371,35 @@ class Humans(Agent):
       self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
 
     def ModeChoice(self):
-      self.pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
+      pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
                                   columns=colvars).fillna(0)
-      self.modechoice =ModalChoiceModel.predict(self.pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk")
+      self.modechoice = ModalChoiceModel.predict(pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk")
 
     # OSRM Routing Machine
     def Routing(self):
       if self.modechoice == "bike":
-        self.server = ":5001/"
-        self.lua_profile = "bike"
+        server = ":5001/"
+        lua_profile = "bike"
       elif self.modechoice == "drive":
-        self.server = ":5000/"
-        self.lua_profile = "car"
+        server = ":5000/"
+        lua_profile = "car"
       elif self.modechoice == "walk":
-        self.server = ":5002/"
-        self.lua_profile = "foot"
+        server = ":5002/"
+        lua_profile = "foot"
       elif self.modechoice == "transit":
-        self.server = ":5002/"
-        self.lua_profile = "foot"
+        server = ":5002/"
+        lua_profile = "foot"
       
-      self.orig_point = transform(project_to_WSG84, Point(tuple(self.pos)))
-      self.dest_point = transform(project_to_WSG84, Point(tuple(self.destination_activity)))
-      self.url = ("http://127.0.0.1" + self.server + "route/v1/"+ self.lua_profile + "/" + str(self.orig_point.x)+ ","+ str(self.orig_point.y)+ ";"+ str(self.dest_point.x)+ ","+ str(self.dest_point.y) + "?overview=full&geometries=polyline")
-      self.res = rq.get(self.url).json()
-      self.track_geometry = transform(projecy_to_crs, transform(flip, LineString(polyline.decode(self.res['routes'][0]['geometry']))))
-      self.track_duration = (self.res['routes'][0]['duration'])/60  # minutes
+      orig_point = transform(project_to_WSG84, Point(tuple(self.pos)))
+      dest_point = transform(project_to_WSG84, Point(tuple(self.destination_activity)))
+      url = ("http://127.0.0.1" + server + "route/v1/"+ lua_profile + "/" + str(orig_point.x)+ ","+ str(orig_point.y)+ ";"+ str(dest_point.x)+ ","+ str(dest_point.y) + "?overview=full&geometries=polyline")
+      res = rq.get(url).json()
+      self.track_geometry = transform(projecy_to_crs, transform(flip, LineString(polyline.decode(res['routes'][0]['geometry']))))
+      self.track_duration = (res['routes'][0]['duration'])/60  # minutes
       if self.modechoice == "transit":
         self.track_duration = self.track_duration/10
-      self.trip_distance = self.res['routes'][0]['distance']  # meters
-      
+      self.trip_distance = res['routes'][0]['distance']  # meters
+    
     def SavingRoute(self):
       if(self.former_activity in [5, 1, 6, 7]):
         if self.current_activity == 3 : 
@@ -515,7 +526,7 @@ class Humans(Agent):
             self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
             self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
         self.former_activity = self.current_activity
-        return self
+        # return self
 
 
 
@@ -583,12 +594,13 @@ class TransportAirPollutionExposureModel(Model):
       plt.title(f"Traffic of {nb_humans} assigned at {self.hour} o'clock")
       plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{nb_humans}Agents_{self.hour}_assigned.png')
       plt.close()
-      self.AirPollGrid.plot(self.TraffVcolumn, antialiased=False, legend = True) 
-      plt.title(f"Traffic observed at {self.hour} o'clock")
-      plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid{self.hour}_observed.png')
-      plt.close()
-      predictors = ["count", "MaxSpeedLimit"]
-      self.AirPollGrid["speed_TV_interact"] = self.AirPollGrid["count"] * self.AirPollGrid["MaxSpeedLimit"]
+      # self.AirPollGrid.plot(self.TraffVcolumn, antialiased=False, legend = True) 
+      # plt.title(f"Traffic observed at {self.hour} o'clock")
+      # plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid{self.hour}_observed.png')
+      # plt.close()
+      # predictors = ["count", "MaxSpeedLimit"]
+      predictors = ["count"]
+      # self.AirPollGrid["speed_TV_interact"] = self.AirPollGrid["count"] * self.AirPollGrid["MaxSpeedLimit"]
       
       # Prediction
       reg = LinearRegression().fit(self.AirPollGrid.query('ON_ROAD == 1')[predictors], self.AirPollGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
@@ -635,16 +647,16 @@ class TransportAirPollutionExposureModel(Model):
         self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
         self.AirPollGrid['count'] = self.AirPollGrid['count'].fillna(0)
         self.AirPollGrid = AirPollGrid.drop("count", axis= 1).merge(self.AirPollGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
-        
+        self.TraffCountRegression()
       else:
         self.AirPollGrid = AirPollGrid
         self.AirPollGrid['count'] = 0
-      
+      print("joined the tracks to the grid")
       if self.hour == 0:
         self.TraffVcolumn = f"TrV23_24"
       else:
         self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
-      self.TotalTraffCalc()
+      
       
 
     def OnRoadEmission(self):
@@ -674,16 +686,21 @@ class TransportAirPollutionExposureModel(Model):
             self.DetermineWeather()
 
         st = time.time()
-        self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=100)
+        # self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=500)
+        
+        self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
+        
+        
         # self.agents = pool.imap_unordered(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=500)
         # results = pool.starmap_async(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=500, error_callback=custom_error_callback)
         # self.agents = [value for value in results.get()]
-        
         gc.collect(generation=0)
         gc.collect(generation=1)
         gc.collect(generation=2)
         self.hourlyext += time.time() - st
         print("Human Step Time: ", time.time() - st, "Seconds")
+
+
 
 
       
@@ -695,7 +712,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 8700     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
+    nb_humans = 21750     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
@@ -716,8 +733,6 @@ if __name__ == "__main__":
     crs = "epsg:28992"
     project_to_WSG84 = Transformer.from_crs(crs, "epsg:4326", always_xy=True).transform
     projecy_to_crs = Transformer.from_crs("epsg:4326", crs, always_xy=True).transform
-    project_to_meters = Transformer.from_crs(crs, 'epsg:3857')
-    project_to_latlng = Transformer.from_crs('epsg:3857', crs, always_xy=True).transform
 
     # Load the spatial built environment
     spatial_extent = gpd.read_feather(path_data+"FeatherDataABM/SpatialExtent.feather")
@@ -744,8 +759,8 @@ if __name__ == "__main__":
     AirPollGrid[["NO2", "ON_ROAD"]] = AirPollPred[["baseline_NO2", "ON_ROAD"]]
     TraffDat = pd.read_csv(path_data+ "Air Pollution Determinants/AirPollRaster50m_TraffVdata.csv")
     AirPollGrid = AirPollGrid.merge(TraffDat[['int_id','StreetIntersectDensity', 'MaxSpeedLimit', 'MinSpeedLimit', 'MeanSpeedLimit']], how = "left", on = "int_id")
-    TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
-    AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
+    # TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
+    # AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
     print("AirPollGrid Columns: ", AirPollGrid.columns)
     print("AirPollGrid Shape: ", AirPollGrid.shape)    
     
@@ -799,7 +814,7 @@ if __name__ == "__main__":
 
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
    
-    
+    print("Starting Multiprocessing Pool")
     pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
                                                           ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
                                                           projecy_to_crs, crs, routevariables, originvariables, destinvariables))
@@ -821,6 +836,8 @@ if __name__ == "__main__":
         p = pstats.Stats('profile_results', stream=f)
         # p.strip_dirs().sort_stats('cumulative').print_stats()
         p.strip_dirs().sort_stats('time').print_stats()
+        p.print_callees()
+
       f.close()
     
     elif profile == "memory":
@@ -828,16 +845,6 @@ if __name__ == "__main__":
     else:
       for day in range(NrDays):
         for hour in range(NrHours):
-          # if is_even(hour) :
-          #   pool.close()
-          #   pool.join()
-          #   pool.terminate()
-          #   print("Reinitializing Multiprocessing Pool")
-          #   st = time.time()
-          #   pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
-          #                                                 ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
-          #                                                 projecy_to_crs, crs, routevariables, originvariables, destinvariables))
-          #   print("Execuion time: ", time.time() - st, "Seconds")
           for t in range(6):
             m.step()
 
