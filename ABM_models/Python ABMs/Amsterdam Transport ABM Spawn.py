@@ -484,25 +484,6 @@ class Humans(Agent):
         if self.hour == 0: # new day
             self.weekday = current_datetime.weekday()
     
-    def TimeAndActivityDecision(self, current_datetime):
-        self.ManageTime(current_datetime)
-        # Schedule Manager
-        if self.minute % 10 == 0 or self.minute == 0:
-            self.ScheduleManager(current_datetime)
-        return self 
-  
-    # def MakeTravelDecision(self, current_datetime, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs):
-    #     # Travel Decision
-    #     if self.traveldecision == 1:
-    #         self.PerceiveEnvironment(EnvBehavDeterms)
-    #         self.ModeChoice(ModalChoiceModel, OrderPredVars, colvars)
-    #         self.Routing(project_to_WSG84, projecy_to_crs)
-    #         self.SavingRoute()
-    #         self.arrival_time = current_datetime + timedelta(minutes=self.track_duration)
-    #         self.activity = "traveling"
-    #         self.traveldecision = 0
-    #         self.TripSegmentsPerHour()
-    #     return self
     def step(self, current_datetime):
         global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
         self.ManageTime(current_datetime)
