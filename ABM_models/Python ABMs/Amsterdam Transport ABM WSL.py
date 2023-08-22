@@ -177,8 +177,8 @@ class Humans(Agent):
         # Activity Schedules
         self.ScheduleID = vector[18]          # Schedule IDs
         self.WeekSchedules = []
-        for x in range(7):
-          self.WeekSchedules.append(list(schedulelist[x].loc[schedulelist[x]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+        for i in range(7):
+          self.WeekSchedules.append(list(schedulelist[i].loc[schedulelist[i]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
         self.former_activity = self.WeekSchedules[self.model.weekday][self.model.activitystep]
         self.activity = "perform_activity"
         self.weekday = self.model.weekday
@@ -536,7 +536,8 @@ class TransportAirPollutionExposureModel(Model):
         self.extentbox = spatial_extent.total_bounds
         self.continoussp = ContinuousSpace(x_max=self.extentbox[2], y_max=self.extentbox[3],
                                            torus=bool, x_min=self.extentbox[0], y_min=self.extentbox[1])
-        
+        self.hourlyext = 0
+
         # Create the agents
         print("Creating Agents")
         print(datetime.now())
@@ -627,10 +628,9 @@ class TransportAirPollutionExposureModel(Model):
       if len(self.HourlyTraffic) > 0:   
         self.drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
         self.drivenroads = carroads.merge(self.drivenroads.groupby(['fid']).sum(), on="fid")
-        
-        self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid , how="right", predicate="intersects")
+        self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
         self.AirPollGrid['count'] = self.AirPollGrid['count'].fillna(0)
-        self.AirPollGrid = AirPollGrid.merge(self.AirPollGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
+        self.AirPollGrid = AirPollGrid.drop("count", axis= 1).merge(self.AirPollGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
       
       else:
         self.AirPollGrid = AirPollGrid
@@ -640,7 +640,7 @@ class TransportAirPollutionExposureModel(Model):
         self.TraffVcolumn = f"TrV23_24"
       else:
         self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
-      self.TrafficRemainderCalc()
+      self.TotalTraffCalc()
       
       
 
@@ -656,6 +656,8 @@ class TransportAirPollutionExposureModel(Model):
         print(self.current_datetime)
         self.minute = self.current_datetime.minute
         if self.minute == 0:  # new hour
+            print("hourly executiontime Human Steps: ", self.hourlyext)
+            self.hourlyext = 0
             TraffAssDat.write(f"hour {self.current_datetime} \n")
             # print("Current time: ", self.current_datetime)
             self.hour = self.current_datetime.hour
@@ -680,15 +682,17 @@ class TransportAirPollutionExposureModel(Model):
         #     pool.join()
         #     pool.terminate()         
         # self.agents = [Humans.MakeTravelDecision(agent, self.current_datetime) for agent in self.agents]
-        self.agents = [Humans.step(agent, self.current_datetime) for agent in self.agents]
 
         # print("stepping agents")
         # print(datetime.now())
-        # with Pool() as pool:
-        #     self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents],  chunksize=500)
-        #     pool.close()
-        #     pool.join()
-        #     pool.terminate()
+        st = time.time()
+        with Pool() as pool:
+            self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime) for agent in self.agents],  chunksize=500)
+            pool.close()
+            pool.join()
+            pool.terminate()
+        self.hourlyext += time.time() - st
+        print("Human Step Time: ", time.time() - st, "Seconds")
               
         
 
@@ -749,8 +753,8 @@ if __name__ == "__main__":
     AirPollGrid[["NO2", "ON_ROAD"]] = AirPollPred[["baseline_NO2", "ON_ROAD"]]
     TraffDat = pd.read_csv(path_data+ "Air Pollution Determinants/AirPollRaster50m_TraffVdata.csv")
     AirPollGrid = AirPollGrid.merge(TraffDat[['int_id','StreetIntersectDensity', 'MaxSpeedLimit', 'MinSpeedLimit', 'MeanSpeedLimit']], how = "left", on = "int_id")
-    # TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
-    # AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
+    TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
+    AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
     print("AirPollGrid Columns: ", AirPollGrid.columns)
     print("AirPollGrid Shape: ", AirPollGrid.shape)    
     
@@ -801,6 +805,8 @@ if __name__ == "__main__":
 
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
     
+    NrHours = 24
+    NrDays = 1
     profile = False
     
     if profile:
@@ -815,10 +821,12 @@ if __name__ == "__main__":
       f.close()
       
     else:
-      for t in range(164):
-        m.step()
+      for day in range(NrDays):
+        for hour in range(NrHours):
+          for t in range(6):
+            m.step()
 
-    pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
+    # pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
         
     OSRMservers.terminate()    
     TraffAssDat.close()
