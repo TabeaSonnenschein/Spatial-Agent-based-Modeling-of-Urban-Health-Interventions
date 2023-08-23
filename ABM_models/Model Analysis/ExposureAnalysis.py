@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
-
+import seaborn as sns
 ####################################################
 nb_agents = 43500
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
@@ -28,6 +28,15 @@ agent_df = pd.merge(agent_df, exposure_df_all, left="agent_ID", right="agent", h
 # plot of exposure distribution per hour per different sociodemographic groups
 
 # sex
+sexdf = agent_df.groupby(['sex'], as_index=False).mean()
+
+# violin plot of NO2 per hour per sex
+fig, ax = plt.subplots()
+sns.violinplot(data = sexdf, x=time, y = NO2, hue = sex, split= True)
+
+# seethrough scatterplot with line of mean and colors by category (income)
+
+# line timetrend with multiple lines
 
 # age
 
