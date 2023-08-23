@@ -62,7 +62,6 @@ def worker_process( agents, current_datetime):
 
 def hourly_worker_process( agents, current_datetime, NO2):
     global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
-    # EnvStressGrid["NO2"] = NO2
     EnvStressGrid[:] = np.array(NO2).reshape(EnvStressGrid.shape)
     for agent in agents:
         agent.Exposure()
@@ -263,7 +262,7 @@ class Humans(Agent):
 
         # exposure variables
         self.newplace = 0
-        self.visitedPlaces, self.durationPlaces =  [Point(tuple(self.Residence))], [1]
+        self.visitedPlaces, self.durationPlaces =  [Point(tuple(self.Residence))], [0]
         self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
         self.hourlytravelMET, self.hourlyplaceMET, self.hourlyMET = 0,0,0
         
@@ -488,12 +487,10 @@ class Humans(Agent):
 
     def AtPlaceExposure(self):
       if len(self.visitedPlaces) > 0:
-        # thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),EnvStressGrid, how="inner", predicate= "intersects")
-        # self.hourlyplaceNO2 = sum(thishourplaces['NO2'] * (thishourplaces['duration']*10))
-        print([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values for point in self.visitedPlaces])
-        self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values for point in self.visitedPlaces], ( self.durationPlaces *10)))
+        # NO2
+        self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [x*10 for x in self.durationPlaces]))
+        # Metabolic Equivalent of Task
         self.hourlyplaceMET = sum([1.5 * 10 * i for i in self.durationPlaces])  # 1.5 MET for 10 minutes times duration measured in 10minute steps
-        print(self.hourlyplaceMET, self.hourlyplaceNO2)
         
     def ResetPlaceTracks(self):
       if self.activity== "perform_activity":
@@ -505,19 +502,11 @@ class Humans(Agent):
     
     def TravelExposure(self):
       if len(self.thishourtrack) > 0:       # transform overlay function to point in polygon, get points along line (10m), joining points with grid cellsize/2
-        # trackpoints = [unary_union([self.thishourtrack[a].interpolate(d) for d in np.arange(0, self.thishourtrack[a].length, 10)]) for a in range(len(self.thishourtrack))]
-        # trackjoin = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.thishourduration, 'geometry':trackpoints}, geometry="geometry", crs=crs),EnvStressGrid, how="inner", predicate= "intersects")[["duration", "NO2"]].groupby(['duration'], as_index=False).mean()
-        # self.hourlytravelNO2 = sum(trackjoin['NO2']*trackjoin['duration'])
-
+        # NO2
         trackpoints = [[self.thishourtrack[a].interpolate(d) for d in np.arange(0, self.thishourtrack[a].length, 10)] for a in range(len(self.thishourtrack))]
-        trackjoin = [mean([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values for point in sublist]) for sublist in trackpoints]
-        self.hourlytravelNO2 = sum(np.multiply(trackjoin, self.thishourduration))
-
-        # trackjoin = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(EnvStressGrid, how="intersection")
-        # trackjoin['length'] = trackjoin.length    # in meter
-        # trackjoin['speed']= trackjoin['mode'].replace({'bike': 200, 'drive': 500, 'walk': 83, 'transit': 800})  # meter per minute
-        # self.hourlytravelNO2 = sum(trackjoin['NO2']*(trackjoin['length'] /trackjoin['speed'])) # minutes spend being exposed to gridcell NO2, then total sum
-        
+        trackjoin = [[EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in sublist] for sublist in trackpoints]
+        self.hourlytravelNO2 = sum(np.multiply([mean(val) if len(val)>0 else 0 for val in trackjoin], self.thishourduration))
+        # Metabolic Equivalent of Task
         self.hourlytravelMET = sum(np.multiply(list(map(lambda x: float(x.replace('bike', "6").replace('drive', "1.5").replace('walk', "3").replace('transit', "2")) , self.thishourmode))
                                                 , self.thishourduration))
         
@@ -800,7 +789,7 @@ if __name__ == "__main__":
     
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 8700     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
+    nb_humans = 43500     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
@@ -922,9 +911,9 @@ if __name__ == "__main__":
     print("Starting Simulation")
     NrHours = 24
     NrDays = 1
-    profile = "computation"
+    # profile = "computation"
     # profile = "memory"
-    # profile = None
+    profile = None
 
     if profile == "computation":
       f = open(path_data+'profile_results.txt', 'w')
