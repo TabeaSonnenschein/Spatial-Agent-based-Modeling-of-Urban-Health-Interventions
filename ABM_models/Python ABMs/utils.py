@@ -95,7 +95,6 @@ def cellautom_dispersion(weightmatrix, airpollraster, monthlyweather, moderator_
     nr_repeats = params[13] + (params[17] * monthlyweather["Windspeed"]) + \
                 (params[18] * monthlyweather["Temperature"]) + \
                 (params[19] * monthlyweather["TempDifference"])
-    print(nr_repeats)
     for i in range(int(nr_repeats.iloc[0])):
             airpollraster[:] =  focal.apply(raster = airpollraster, kernel= np.full((5, 5), 1), func= weightedaverage)
     airpollraster[:] = np.array(adjust_diff_moderators(airpollraster, params[6:12], moderator_df).fillna(0)).reshape(airpollraster.shape)

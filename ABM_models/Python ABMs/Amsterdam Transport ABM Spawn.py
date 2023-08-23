@@ -1,16 +1,19 @@
 from datetime import datetime, timedelta
 from mesa import Agent, Model
 from mesa.space import ContinuousSpace
-from mesa.time import SimultaneousActivation, BaseScheduler
-from mesa.datacollection import DataCollector
+from mesa.time import SimultaneousActivation
 from mesa.visualization.modules import CanvasGrid
 from mesa.visualization.ModularVisualization import ModularServer
 import pandas as pd
 import geopandas as gpd
+import matplotlib
+matplotlib.use('Agg')
+# matplotlib.use('TKAgg')
 import matplotlib.pyplot as plt
 from shapely.ops import nearest_points, substring,transform,snap, split
 import shapely as shp
 from shapely.geometry import LineString, Point, Polygon, GeometryCollection
+from shapely.ops import unary_union
 from sklearn.neighbors import BallTree
 import numpy as np
 from geopandas.tools import sjoin
@@ -33,10 +36,7 @@ import multiprocessing as mp
 from multiprocessing import Pool
 from scipy.stats import pearsonr
 import gc
-# import logging
-# import multiprocessing.util
-# multiprocessing.util.log_to_stderr(level=logging.DEBUG)
-
+from statistics import mean
 import utils
 import os
 import xarray as xr
@@ -44,6 +44,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from xrspatial.utils import ngjit
+# import logging
+# import multiprocessing.util
+# multiprocessing.util.log_to_stderr(level=logging.DEBUG)
 
 warnings.filterwarnings("ignore", module="shapely")
 import os
@@ -57,11 +60,13 @@ def worker_process( agents, current_datetime):
         agent.step(current_datetime)
     return agents
 
-def hourly_worker_process( agents, current_datetime, TraffGrid):
-    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
+def hourly_worker_process( agents, current_datetime, NO2):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
+    # EnvStressGrid["NO2"] = NO2
+    EnvStressGrid[:] = np.array(NO2).reshape(EnvStressGrid.shape)
     for agent in agents:
+        agent.Exposure()
         agent.step(current_datetime)
-        agent.Exposure(TraffGrid)
     return agents
 
 def get_nearest(src_points, candidates, k_neighbors=1):
@@ -160,8 +165,10 @@ def RetrieveRoutes(thishourmode, thishourtrack):
    if "drive" in thishourmode:
       return([thishourtrack[count] for count, value in enumerate(thishourmode) if value == "drive"])
 
-def RetrieveExposure(agents):
+
+def RetrieveExposure(agents, dum):
     return [[agent.unique_id, agent.hourlyNO2, agent.hourlyMET]  for agent in agents]
+
 
 def init_worker_init(schedules, Resid, univers, Scho, Prof):
     # declare scope of a new global variable
@@ -179,9 +186,9 @@ def custom_error_callback(error):
 
 
     # initialize worker processes
-def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars):
+def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid):
     # declare scope of a new global variable
-    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
     # store argument in the global variable for this process
     Residences = Resid
     Entertainment = Entertain
@@ -196,8 +203,10 @@ def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprev
     routevariables = routevars
     originvariables = originvars
     destinvariables = destinvars
+    EnvStressGrid = Grid
     
-    
+
+
 class Humans(Agent):
     """
     Humans:
@@ -253,10 +262,10 @@ class Humans(Agent):
         self.nexthoursmodes, self.nexthourstracks, self.nexthourduration = [], [], []
 
         # exposure variables
-        self.visitedPlaces = [Point(tuple(self.Residence))]
         self.newplace = 0
-        self.durationPlaces = [0]
+        self.visitedPlaces, self.durationPlaces =  [Point(tuple(self.Residence))], [1]
         self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
+        self.hourlytravelMET, self.hourlyplaceMET, self.hourlyMET = 0,0,0
         
     def ScheduleManager(self, current_datetime):
       # identifying the current activity
@@ -367,6 +376,7 @@ class Humans(Agent):
               self.route_eucl_line = LineString([Point(tuple(self.pos)), Point(tuple(self.destination_activity))])
               self.trip_distance = self.route_eucl_line.length
           else:
+              self.TripSegmentsPerHour()
               self.activity = "traveling"
               self.arrival_time = current_datetime + timedelta(minutes=self.track_duration)
           self.path_memory = 0
@@ -454,7 +464,9 @@ class Humans(Agent):
           self.thishourmode.append(self.modechoice)
           self.thishourduration.append(60 - self.minute)
           self.nexthourstracks = self.segment_geometry[1:]
-          self.nexthourduration = list(it.repeat(60, len(self.nexthourstracks)-1), (self.track_duration-(60 - self.minute))%60)
+          self.nexthourduration = [(self.track_duration-(60 - self.minute))%60]
+          if len(self.nexthourstracks)>1:
+            self.nexthourduration = list(it.repeat(60, len(self.nexthourstracks)-1)) + self.nexthourduration
           self.nexthoursmodes = list(it.repeat(self.modechoice, len(self.nexthourstracks)))
       else:
           self.thishourtrack.append(self.track_geometry)
@@ -474,10 +486,14 @@ class Humans(Agent):
       else:
         self.durationPlaces[-1] += 1
 
-    def AtPlaceExposure(self, TraffGrid):
-      thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),TraffGrid, how="inner", predicate= "intersects")
-      self.hourlyplaceNO2 = sum(thishourplaces['NO2'] * (thishourplaces['duration']*10))
-      self.hourlyplaceMET = sum(1.5 * thishourplaces['duration'] * 10)
+    def AtPlaceExposure(self):
+      if len(self.visitedPlaces) > 0:
+        # thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),EnvStressGrid, how="inner", predicate= "intersects")
+        # self.hourlyplaceNO2 = sum(thishourplaces['NO2'] * (thishourplaces['duration']*10))
+        print([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values for point in self.visitedPlaces])
+        self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values for point in self.visitedPlaces], ( self.durationPlaces *10)))
+        self.hourlyplaceMET = sum([1.5 * 10 * i for i in self.durationPlaces])  # 1.5 MET for 10 minutes times duration measured in 10minute steps
+        print(self.hourlyplaceMET, self.hourlyplaceNO2)
         
     def ResetPlaceTracks(self):
       if self.activity== "perform_activity":
@@ -487,14 +503,24 @@ class Humans(Agent):
         self.visitedPlaces = []
         self.durationPlaces = []
     
-    def TravelExposure(self,TraffGrid):
+    def TravelExposure(self):
       if len(self.thishourtrack) > 0:       # transform overlay function to point in polygon, get points along line (10m), joining points with grid cellsize/2
-        trackjoin = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(TraffGrid, how="intersection")
-        trackjoin['length'] = trackjoin.length    # in meter
-        trackjoin['speed']= trackjoin['mode'].replace({'bike': 200, 'drive': 500, 'walk': 83, 'transit': 800})  # meter per minute
-        self.hourlytravelNO2 = sum(trackjoin['NO2']*(trackjoin['length'] /trackjoin['speed'])) # minutes spend being exposed to gridcell NO2, then total sum
-        self.hourlytravelMET =  sum(np.multiply(self.thishourmode.replace({'bike': 6, 'drive': 1.5, 'walk': 3, 'transit': 2}), self.thishourduration))
-    
+        # trackpoints = [unary_union([self.thishourtrack[a].interpolate(d) for d in np.arange(0, self.thishourtrack[a].length, 10)]) for a in range(len(self.thishourtrack))]
+        # trackjoin = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.thishourduration, 'geometry':trackpoints}, geometry="geometry", crs=crs),EnvStressGrid, how="inner", predicate= "intersects")[["duration", "NO2"]].groupby(['duration'], as_index=False).mean()
+        # self.hourlytravelNO2 = sum(trackjoin['NO2']*trackjoin['duration'])
+
+        trackpoints = [[self.thishourtrack[a].interpolate(d) for d in np.arange(0, self.thishourtrack[a].length, 10)] for a in range(len(self.thishourtrack))]
+        trackjoin = [mean([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values for point in sublist]) for sublist in trackpoints]
+        self.hourlytravelNO2 = sum(np.multiply(trackjoin, self.thishourduration))
+
+        # trackjoin = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(EnvStressGrid, how="intersection")
+        # trackjoin['length'] = trackjoin.length    # in meter
+        # trackjoin['speed']= trackjoin['mode'].replace({'bike': 200, 'drive': 500, 'walk': 83, 'transit': 800})  # meter per minute
+        # self.hourlytravelNO2 = sum(trackjoin['NO2']*(trackjoin['length'] /trackjoin['speed'])) # minutes spend being exposed to gridcell NO2, then total sum
+        
+        self.hourlytravelMET = sum(np.multiply(list(map(lambda x: float(x.replace('bike', "6").replace('drive', "1.5").replace('walk', "3").replace('transit', "2")) , self.thishourmode))
+                                                , self.thishourduration))
+        
     def ResetTravelTracks(self):
       if len(self.nexthourstracks) > 0:
         self.thishourmode = [self.nexthoursmodes[0]]
@@ -508,9 +534,9 @@ class Humans(Agent):
         self.thishourtrack = []
         self.thishourduration = []
 
-    def Exposure(self,TraffGrid):
-        self.TravelExposure(TraffGrid)
-        self.AtPlaceExposure(TraffGrid)
+    def Exposure(self):
+        self.TravelExposure()
+        self.AtPlaceExposure()
         self.ResetTravelTracks()
         self.ResetPlaceTracks()
         self.hourlyNO2 = (self.hourlyplaceNO2 + self.hourlytravelNO2)/60
@@ -681,13 +707,13 @@ class TransportAirPollutionExposureModel(Model):
           self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
         if len(self.HourlyTraffic) > 0: 
           drivengrids = gpd.sjoin(AirPollGrid.drop("count", axis= 1), gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
-          self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id']).mean(), on="int_id")
+          self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
           self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
-          # drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
-          # drivenroads = carroads.merge(drivenroads.groupby(['fid']).sum(), on="fid")
+          # drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner", max_distance = 50)[["fid", "count"]] # map matching, improve with leuvenmapmatching
+          # drivenroads = carroads.merge(drivenroads.groupby(['fid'], as_index=False).sum(), on="fid")
           # self.TraffGrid = gpd.sjoin(drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
           # self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
-          # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
+          # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id'], as_index=False).mean(), on="int_id")
           print("joined traffic tracks to grid")
           # self.PlotTrafficCount()
           # self.TraffCountRegression()
@@ -752,9 +778,10 @@ class TransportAirPollutionExposureModel(Model):
 
         st = time.time()        
         if self.minute == 0:
-          self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, self.TraffGrid[["NO2", "geometry"]])  for agents in np.array_split(self.agents, n)], chunksize=1)))
-          self.AgentExposure = pool.starmap(RetrieveExposure, [agents for agents in np.array_split(self.agents, n)], chunksize = 1)
-          pd.DataFrame(self.AgentExposure).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}.csv', index=False)
+          self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          print("collecting and saving exposure")
+          self.AgentExposure = pool.starmap(RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
+          pd.DataFrame([item for items in self.AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}.csv', index=False)
         else:
           self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
         gc.collect(generation=0)
@@ -770,7 +797,7 @@ class TransportAirPollutionExposureModel(Model):
 if __name__ == "__main__":
     # Read Main Data
     path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
-
+    
     # Synthetic Population
     print("Reading Population Data")
     nb_humans = 8700     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
@@ -888,15 +915,16 @@ if __name__ == "__main__":
     print("Starting Multiprocessing Pool")
     pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
                                                           ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
-                                                          projecy_to_crs, crs, routevariables, originvariables, destinvariables))
-    # pool =  Pool()
-    
+                                                          projecy_to_crs, crs, routevariables, originvariables, 
+                                                          destinvariables, airpoll_grid_raster))
+
+    #  AirPollGrid[["ON_ROAD", "geometry"]]
     print("Starting Simulation")
     NrHours = 24
     NrDays = 1
-    # profile = "computation"
+    profile = "computation"
     # profile = "memory"
-    profile = None
+    # profile = None
 
     if profile == "computation":
       f = open(path_data+'profile_results.txt', 'w')
