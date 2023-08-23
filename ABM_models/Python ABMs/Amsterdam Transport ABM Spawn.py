@@ -32,15 +32,19 @@ import time
 import multiprocessing as mp
 from multiprocessing import Pool
 from scipy.stats import pearsonr
-# from memory_profiler import profile
 import gc
 # import logging
 # import multiprocessing.util
 # multiprocessing.util.log_to_stderr(level=logging.DEBUG)
-import sys
-import random
-import threading
- 
+
+import utils
+import os
+import xarray as xr
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from xrspatial.utils import ngjit
+
 warnings.filterwarnings("ignore", module="shapely")
 import os
 n = os.cpu_count()
@@ -51,6 +55,13 @@ def worker_process( agents, current_datetime):
     global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
     for agent in agents:
         agent.step(current_datetime)
+    return agents
+
+def hourly_worker_process( agents, current_datetime, TraffGrid):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
+    for agent in agents:
+        agent.step(current_datetime)
+        agent.Exposure(TraffGrid)
     return agents
 
 def get_nearest(src_points, candidates, k_neighbors=1):
@@ -149,6 +160,9 @@ def RetrieveRoutes(thishourmode, thishourtrack):
    if "drive" in thishourmode:
       return([thishourtrack[count] for count, value in enumerate(thishourmode) if value == "drive"])
 
+def RetrieveExposure(agents):
+    return [[agent.unique_id, agent.hourlyNO2, agent.hourlyMET]  for agent in agents]
+
 def init_worker_init(schedules, Resid, univers, Scho, Prof):
     # declare scope of a new global variable
     global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants
@@ -235,8 +249,8 @@ class Humans(Agent):
         # mobility behavior variables
         self.path_memory = 0
         self.traveldecision = 0
-        self.thishourtrack, self.thishourmode = [], []
-        self.nexthoursmodes, self.nexthourstracks = [], []  
+        self.thishourtrack, self.thishourmode, self.thishourduration = [], [], []
+        self.nexthoursmodes, self.nexthourstracks, self.nexthourduration = [], [], []
 
         # exposure variables
         self.visitedPlaces = [Point(tuple(self.Residence))]
@@ -438,11 +452,14 @@ class Humans(Agent):
           self.segment_geometry = [self.segment_geometry[x] for x in list(range(1, len(self.segment_geometry)-1,2))+[len(self.segment_geometry)-1]]
           self.thishourtrack.append(self.segment_geometry[0])
           self.thishourmode.append(self.modechoice)
+          self.thishourduration.append(60 - self.minute)
           self.nexthourstracks = self.segment_geometry[1:]
+          self.nexthourduration = list(it.repeat(60, len(self.nexthourstracks)-1), (self.track_duration-(60 - self.minute))%60)
           self.nexthoursmodes = list(it.repeat(self.modechoice, len(self.nexthourstracks)))
       else:
           self.thishourtrack.append(self.track_geometry)
           self.thishourmode.append(self.modechoice)
+          self.thishourduration.append(self.track_duration)
     
     def TravelingAlongRoute(self, current_datetime):
       if current_datetime >= self.arrival_time:
@@ -450,41 +467,56 @@ class Humans(Agent):
           self.pos = self.destination_activity
 
     def PlaceTracker(self):
-        if self.newplace == 1:
-          self.visitedPlaces.append(Point(tuple(self.pos)))
-          self.durationPlaces.append(1)
-          self.newplace = 0
-        else:
-          self.durationPlaces[-1] += 1
+      if self.newplace == 1:
+        self.visitedPlaces.append(Point(tuple(self.pos)))
+        self.durationPlaces.append(1)
+        self.newplace = 0
+      else:
+        self.durationPlaces[-1] += 1
 
-    def AtPlaceExposure(self):
-        self.thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),AirPollGrid, how="inner", predicate= "intersects")
-        self.hourlyplaceNO2 = sum(self.thishourplaces['NO2'] * (self.thishourplaces['duration']/6))
+    def AtPlaceExposure(self, TraffGrid):
+      thishourplaces = gpd.sjoin(gpd.GeoDataFrame(data = {'duration': self.durationPlaces, 'geometry':self.visitedPlaces}, geometry="geometry", crs=crs),TraffGrid, how="inner", predicate= "intersects")
+      self.hourlyplaceNO2 = sum(thishourplaces['NO2'] * (thishourplaces['duration']*10))
+      self.hourlyplaceMET = sum(1.5 * thishourplaces['duration'] * 10)
         
     def ResetPlaceTracks(self):
-        if self.activity== "perform_activity":
-          self.visitedPlaces = [self.visitedPlaces[-1]]
-          self.durationPlaces = [0]
-        else:
-          self.visitedPlaces = []
-          self.durationPlaces = []
+      if self.activity== "perform_activity":
+        self.visitedPlaces = [self.visitedPlaces[-1]]
+        self.durationPlaces = [0]
+      else:
+        self.visitedPlaces = []
+        self.durationPlaces = []
     
-    def TravelExposure(self):
+    def TravelExposure(self,TraffGrid):
       if len(self.thishourtrack) > 0:       # transform overlay function to point in polygon, get points along line (10m), joining points with grid cellsize/2
-        self.thishourtrack = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(AirPollGrid, how="intersection")
-        self.thishourtrack['length'] = self.thishourtrack.length
-        self.thishourtrack['speed']= self.thishourtrack['mode'].replace({'bike': 12000, 'drive': 30000, 'walk': 5000, 'transit': 50000})
-        self.hourlytravelNO2 = sum(self.thishourtrack['NO2'] * (self.thishourtrack['length'] / self.thishourtrack['speed']))
+        trackjoin = gpd.GeoDataFrame(data = {'mode': self.thishourmode, 'geometry':self.thishourtrack}, geometry="geometry", crs=crs).overlay(TraffGrid, how="intersection")
+        trackjoin['length'] = trackjoin.length    # in meter
+        trackjoin['speed']= trackjoin['mode'].replace({'bike': 200, 'drive': 500, 'walk': 83, 'transit': 800})  # meter per minute
+        self.hourlytravelNO2 = sum(trackjoin['NO2']*(trackjoin['length'] /trackjoin['speed'])) # minutes spend being exposed to gridcell NO2, then total sum
+        self.hourlytravelMET =  sum(np.multiply(self.thishourmode.replace({'bike': 6, 'drive': 1.5, 'walk': 3, 'transit': 2}), self.thishourduration))
     
     def ResetTravelTracks(self):
-        if len(self.nexthourstracks) > 0:
-          self.thishourmode = [self.nexthoursmodes[0]]
-          self.thishourtrack = [self.nexthourstracks[0]]
-          self.nexthourstracks.pop(0)
-          self.nexthoursmodes.pop(0)
-        else:
-          self.thishourmode = []
-          self.thishourtrack = []
+      if len(self.nexthourstracks) > 0:
+        self.thishourmode = [self.nexthoursmodes[0]]
+        self.thishourtrack = [self.nexthourstracks[0]]
+        self.thishourduration = [self.nexthourduration[0]]
+        self.nexthourduration.pop(0)
+        self.nexthourstracks.pop(0)
+        self.nexthoursmodes.pop(0)
+      else:
+        self.thishourmode = []
+        self.thishourtrack = []
+        self.thishourduration = []
+
+    def Exposure(self,TraffGrid):
+        self.TravelExposure(TraffGrid)
+        self.AtPlaceExposure(TraffGrid)
+        self.ResetTravelTracks()
+        self.ResetPlaceTracks()
+        self.hourlyNO2 = (self.hourlyplaceNO2 + self.hourlytravelNO2)/60
+        self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
+        self.hourlyMET = (self.hourlyplaceMET + self.hourlytravelMET)/60
+        self.hourlytravelMET, self.hourlyplaceMET = 0,0
   
     def ManageTime(self, current_datetime):
         self.minute = current_datetime.minute
@@ -517,16 +549,7 @@ class Humans(Agent):
             self.TravelingAlongRoute(current_datetime)
         if self.activity == "perform_activity":
             self.PlaceTracker()
-        
-        if self.minute == 0:
-            self.ResetTravelTracks()
-            self.ResetPlaceTracks()
-            # self.TravelExposure()
-            # self.AtPlaceExposure()
-            self.hourlyNO2 = self.hourlyplaceNO2 + self.hourlytravelNO2
-            self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
         self.former_activity = self.current_activity
-        # return self
 
 
 
@@ -577,7 +600,12 @@ class TransportAirPollutionExposureModel(Model):
         self.rain = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "Rain"].values[0]
         self.tempdifference = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "TempDifference"].values[0]
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
-
+        
+        self.weightsmatrix = utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
+                               windspeed = self.windspeed , winddirection = self.winddirection, 
+                               temperature =self.temperature, rain = self.rain, 
+                               temp_diff = self.tempdifference)
+        print(self.weightsmatrix)
         
     def DetermineWeather(self):
       self.temperature = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "Temperature"].values[0]
@@ -586,90 +614,123 @@ class TransportAirPollutionExposureModel(Model):
       self.rain = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "Rain"].values[0]
       self.tempdifference = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "TempDifference"].values[0]
       print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
-
-
-    def TraffCountRegression(self):
-      print("joined traffic tracks to grid")
-      self.AirPollGrid.plot("count", antialiased=False, legend = True) 
-      plt.title(f"Traffic of {nb_humans} assigned at {self.hour} o'clock")
-      plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{nb_humans}Agents_{self.hour}_assigned.png')
-      plt.close()
-      # self.AirPollGrid.plot(self.TraffVcolumn, antialiased=False, legend = True) 
-      # plt.title(f"Traffic observed at {self.hour} o'clock")
-      # plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid{self.hour}_observed.png')
-      # plt.close()
-      # predictors = ["count", "MaxSpeedLimit"]
-      predictors = ["count"]
-      # self.AirPollGrid["speed_TV_interact"] = self.AirPollGrid["count"] * self.AirPollGrid["MaxSpeedLimit"]
+    
+    def CalculateMonthlyWeightMatrix(self):
+      self.weightsmatrix = utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
+                    windspeed = self.windspeed , winddirection = self.winddirection, 
+                    temperature =self.temperature, rain = self.rain, 
+                    temp_diff = self.tempdifference)
       
-      # Prediction
-      reg = LinearRegression().fit(self.AirPollGrid.query('ON_ROAD == 1')[predictors], self.AirPollGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
-      TraffAssDat.write(f"Intercept: {reg.intercept_} \n") 
-      TraffAssDat.write(pd.DataFrame(zip(predictors, reg.coef_)).to_string()) 
-      self.R2 =  reg.score(self.AirPollGrid.query('ON_ROAD == 1')[predictors], self.AirPollGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
-      TraffAssDat.write(f"R2 {self.R2}\n\n")
-      self.AirPollGrid["TraffV"] = np.nan
-      self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"] = reg.predict(self.AirPollGrid.query('ON_ROAD == 1')[predictors])
-      self.AirPollGrid.plot("TraffV", antialiased=False, legend = True) 
-      plt.title(f"Traffic predicted at {self.hour} o'clock")
-      plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_{nb_humans}Agents_{self.hour}_predicted_{self.R2}.png')
-      plt.close()
+    def PlotTrafficCount(self):
+        self.TraffGrid.plot("count", antialiased=False, legend = True) 
+        plt.title(f"Traffic of {nb_humans} assigned at {self.hour-1} to {self.hour} o'clock")
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_assign_A{nb_humans}_H{self.hour-1}.png')
+        plt.close()
+    
+    def PlotObservedTraffic(self):
+        self.TraffGrid.plot(self.TraffVcolumn, antialiased=False, legend = True) 
+        plt.title(f"Traffic observed at {self.hour-1} to {self.hour} o'clock")
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid{self.hour-1}_observed.png')
+        plt.close()
+        
+    def TraffCountRegression(self):
+        # predictors = ["count", "MaxSpeedLimit"]
+        # self.TraffGrid["speed_TV_interact"] = self.TraffGrid["count"] * self.TraffGrid["MaxSpeedLimit"]
+        predictors = ["count"]
+        reg = LinearRegression().fit(self.TraffGrid.query('ON_ROAD == 1')[predictors], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
+        TraffAssDat.write(f"Intercept: {reg.intercept_} \n") 
+        TraffAssDat.write(pd.DataFrame(zip(predictors, reg.coef_)).to_string()) 
+        self.R2 =  reg.score(self.TraffGrid.query('ON_ROAD == 1')[predictors], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
+        TraffAssDat.write(f"\nR2 {self.R2}\n\n")
+        self.TraffGrid["TraffV"] = 0
+        self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = reg.predict(self.TraffGrid.query('ON_ROAD == 1')[predictors])
+
 
     def TrafficRemainderCalc(self):
-      # Calculating Remainder
-      self.AirPollGrid["TraffV"] = np.nan
-      self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"] = (self.AirPollGrid.query('ON_ROAD == 1')["count"]*  1.793033) + (self.AirPollGrid.query('ON_ROAD == 1')["MaxSpeedLimit"] * 5.2686245)
-      self.R2, _ = pearsonr(self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"],
-                    self.AirPollGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
-      TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
-      AirPollGrid[f"TraffVrest{self.hour}"] =  np.nan
-      Remainders =  (self.AirPollGrid.query('ON_ROAD == 1')[self.TraffVcolumn])- (self.AirPollGrid.query('ON_ROAD == 1')["TraffV"])
-      AirPollGrid.loc[AirPollGrid["ON_ROAD"] == 1, f"TraffVrest{self.hour}"] = list(Remainders)
+        # Calculating Remainder
+        self.TraffGrid["TraffV"] = 0
+        self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff)
+        self.R2, _ = pearsonr(self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"],
+                      self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
+        TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
+        AirPollGrid[f"TraffVrest{self.hour}"] =  0
+        Remainders =  (self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])- (self.TraffGrid.query('ON_ROAD == 1')["TraffV"])
+        AirPollGrid.loc[AirPollGrid["ON_ROAD"] == 1, f"TraffVrest{self.hour}"] = list(Remainders)
 
     def TotalTraffCalc(self):
-      self.AirPollGrid["TraffV"] = np.nan
-      self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"] = (self.AirPollGrid.query('ON_ROAD == 1')["count"]*  1.793033) \
-                                                                        + (self.AirPollGrid.query('ON_ROAD == 1')["MaxSpeedLimit"] * 5.2686245) \
-                                                                        + (AirPollGrid.query('ON_ROAD == 1')[f"TraffVrest{self.hour}"])
-      self.R2, _ = pearsonr(self.AirPollGrid.loc[self.AirPollGrid["ON_ROAD"] == 1,"TraffV"],
-                    self.AirPollGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
-      TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
+        self.TraffGrid["TraffV"] = 0
+        self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff) \
+                                                                          + (AirPollGrid.query('ON_ROAD == 1')[f"TraffVrest{self.hour}"])
+        self.R2, _ = pearsonr(self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
+        TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
 
+    def PlotTraffPred(self):
+        self.TraffGrid.plot("TraffV", antialiased=False, legend = True) 
+        plt.title(f"Traffic predicted at {self.hour} o'clock")
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_pred_A{nb_humans}_H{self.hour-1}_{self.R2}.png')
+        plt.close()
 
     def TrafficAssignment(self):
-      self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
-      self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
-      print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
-      TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
-      if len(self.HourlyTraffic) > 0:   
-        self.drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
-        self.drivenroads = carroads.merge(self.drivenroads.groupby(['fid']).sum(), on="fid")
-        self.AirPollGrid = gpd.sjoin(self.drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
-        self.AirPollGrid['count'] = self.AirPollGrid['count'].fillna(0)
-        self.AirPollGrid = AirPollGrid.drop("count", axis= 1).merge(self.AirPollGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
-        self.TraffCountRegression()
-      else:
-        self.AirPollGrid = AirPollGrid
-        self.AirPollGrid['count'] = 0
-      print("joined the tracks to the grid")
-      if self.hour == 0:
-        self.TraffVcolumn = f"TrV23_24"
-      else:
-        self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
-      
-      
+        self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
+        self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
+        print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
+        TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
+        if self.hour == 0:
+          self.TraffVcolumn = f"TrV23_24"
+        else:
+          self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
+        if len(self.HourlyTraffic) > 0: 
+          drivengrids = gpd.sjoin(AirPollGrid.drop("count", axis= 1), gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
+          self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id']).mean(), on="int_id")
+          self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
+          # drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner")[["fid", "count"]] # map matching, improve with leuvenmapmatching
+          # drivenroads = carroads.merge(drivenroads.groupby(['fid']).sum(), on="fid")
+          # self.TraffGrid = gpd.sjoin(drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
+          # self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
+          # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id']).mean(), on="int_id")
+          print("joined traffic tracks to grid")
+          # self.PlotTrafficCount()
+          # self.TraffCountRegression()
+        else:
+          self.TraffGrid = AirPollGrid
+          self.TraffGrid['count'] = 0
+        
+        self.TotalTraffCalc()
+        self.PlotTraffPred()
 
     def OnRoadEmission(self):
-      pass
+        self.TraffGrid["TraffNO2"] = self.TraffGrid["TraffV"] * TraffNO2Coeff 
     
     def OffRoadDispersion(self):
-      pass
+        global airpoll_grid_raster, moderator_df
+        # assigning the trafficV values to the raster
+        airpoll_grid_raster[:] = np.array(self.TraffGrid["TraffNO2"].values).reshape(airpoll_grid_raster.shape)
+        airpoll_grid_raster = utils.cellautom_dispersion(weightmatrix = self.weightsmatrix, 
+                                                         airpollraster = airpoll_grid_raster, 
+                                                         monthlyweather = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month],
+                                                         moderator_df = moderator_df, 
+                                                         include_baseline_in_dispersion = False,
+                                                         baseline_NO2 = self.TraffGrid["baseline_NO2"],
+                                                         params = list(paramvalues["values"]))
+        self.TraffGrid["NO2"] = np.asarray(airpoll_grid_raster[:]).flatten() 
+        self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"NO2"] = self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffNO2"] + self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"baseline_NO2"]
+        AirPollGrid[f"prNO2_m{self.current_datetime.month}_h{self.hour}"] = self.TraffGrid["NO2"]
+    
+    def PlotAirPoll(self):
+        self.TraffGrid.plot("NO2", antialiased=False, legend = True)
+        plt.title(f"NO2 Prediction: Month {self.current_datetime.month}, Hour {self.hour -1}")
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/NO2_A{nb_humans}_H{self.hour-1}_M{self.current_datetime.month}.png')
+        plt.close()
+        time.sleep(1)
     
     def step(self):
         # manage time variables
         self.current_datetime += self.steps_minute
         print(self.current_datetime)
         self.minute = self.current_datetime.minute
+        if self.current_datetime.day == 1 and self.current_datetime.hour == 0 and self.current_datetime.minute == 0: # new month
+            self.DetermineWeather() 
+            self.CalculateMonthlyWeightMatrix()   
         if self.minute == 0:  # new hour
             print("hourly executiontime Human Steps: ", self.hourlyext)
             self.hourlyext = 0
@@ -679,32 +740,32 @@ class TransportAirPollutionExposureModel(Model):
             st = time.time()
             self.TrafficAssignment()
             print("Traffic Assignment time: ", time.time() - st, "Seconds")
+            st = time.time()
+            self.OnRoadEmission()
+            self.OffRoadDispersion()
+            print("Hybrid Dispersion Model: ", time.time() - st, "Seconds")
+            self.PlotAirPoll()
+
         self.activitystep = int((self.hour * 6) + (self.minute / 10))
         if self.current_datetime.hour == 0: # new day
             self.weekday = self.current_datetime.weekday()
-        if self.current_datetime.day == 1 and self.current_datetime.hour == 0: # new month
-            self.DetermineWeather()
 
-        st = time.time()
-        # self.agents = pool.starmap(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=500)
-        
-        self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
-        
-        
-        # self.agents = pool.imap_unordered(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=500)
-        # results = pool.starmap_async(Humans.step, [(agent, self.current_datetime)  for agent in self.agents],  chunksize=500, error_callback=custom_error_callback)
-        # self.agents = [value for value in results.get()]
+        st = time.time()        
+        if self.minute == 0:
+          self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, self.TraffGrid[["NO2", "geometry"]])  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          self.AgentExposure = pool.starmap(RetrieveExposure, [agents for agents in np.array_split(self.agents, n)], chunksize = 1)
+          pd.DataFrame(self.AgentExposure).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}.csv', index=False)
+        else:
+          self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
         gc.collect(generation=0)
         gc.collect(generation=1)
         gc.collect(generation=2)
         self.hourlyext += time.time() - st
         print("Human Step Time: ", time.time() - st, "Seconds")
-
-
-
-
-      
         
+
+
+
 
 if __name__ == "__main__":
     # Read Main Data
@@ -712,7 +773,7 @@ if __name__ == "__main__":
 
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 21750     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
+    nb_humans = 8700     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
     pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
     random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
     random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
@@ -753,17 +814,27 @@ if __name__ == "__main__":
     carroads = gpd.read_feather(path_data+"FeatherDataABM/carroads.feather")
 
     # Read the Environmental Stressor Data and Model
-    # cellsize = 50
-    AirPollGrid = gpd.read_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
-    AirPollPred = pd.read_csv(path_data+"Air Pollution Determinants/Pred_50m.csv")
-    AirPollGrid[["NO2", "ON_ROAD"]] = AirPollPred[["baseline_NO2", "ON_ROAD"]]
+    cellsize = 50
+    AirPollGrid = gpd.read_feather(path_data+f"FeatherDataABM/AirPollgrid{cellsize}m.feather")
+    AirPollPred = pd.read_csv(path_data+f"Air Pollution Determinants/Pred_{cellsize}m.csv")
     TraffDat = pd.read_csv(path_data+ "Air Pollution Determinants/AirPollRaster50m_TraffVdata.csv")
+    TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
+    airpoll_grid_raster = xr.open_dataarray(path_data+ f"Air Pollution Determinants/AirPollDeterm_grid_{cellsize}m.tif", engine="rasterio")[0] # Read raster data using rasterio
+    moderator_df = pd.read_csv(path_data+ f"Air Pollution Determinants/moderator_{cellsize}m.csv")     # Read moderator DataFrame
+    paramvalues = pd.read_csv(path_data+ f"Air Pollution Determinants/GAparam_results_python_5_{cellsize}m.csv") # Read calibrated parameters
+    TraffVCoeff = 29.90463443      # 1.793033 for 8700
+    TraffNO2Coeff = 0.03096377438925   # for 50m cellsize
+
+    # Preparing Data    
+    AirPollGrid[["baseline_NO2", "ON_ROAD"]] = AirPollPred[["baseline_NO2", "ON_ROAD"]]
     AirPollGrid = AirPollGrid.merge(TraffDat[['int_id','StreetIntersectDensity', 'MaxSpeedLimit', 'MinSpeedLimit', 'MeanSpeedLimit']], how = "left", on = "int_id")
-    # TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
-    # AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
+    AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
+        
+    # Looking at Data
     print("AirPollGrid Columns: ", AirPollGrid.columns)
     print("AirPollGrid Shape: ", AirPollGrid.shape)    
-    
+    print("Moderator Columns: ", moderator_df.columns)
+    print("AirPollRaster Shape: ", airpoll_grid_raster.shape)       
     
     # Start OSRM Servers
     print("Starting OSRM Servers")
@@ -846,11 +917,14 @@ if __name__ == "__main__":
       for day in range(NrDays):
         for hour in range(NrHours):
           for t in range(6):
-            m.step()
+              m.step()
+      # for t in range(164):
+      #     m.step()
 
 
     pool.terminate()         
             
     # pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
+    pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_NO2_pred{nb_humans}.csv", index=False)
         
     TraffAssDat.close()
