@@ -240,6 +240,9 @@ plt.show()
 
 # line timetrend with multiple lines
 
+
+# radarchart with mean exposure per hour per category (income)
+
 # age
 
 # income
