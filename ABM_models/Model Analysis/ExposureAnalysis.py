@@ -3,21 +3,86 @@ import pandas as pd
 import os
 import seaborn as sns
 ####################################################
+
+
+def ScatterOverTimeColCategory(outcomvar, colcategory, showplots):
+    sns.set(style="whitegrid")
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(x="hour", y=outcomvar, hue=colcategory, data=exposure_df, alpha=0.4)
+    plt.xlabel("Hour")
+    plt.ylabel(outcomvar)
+    plt.title(f"Distribution of {outcomvar} Over Time by {colcategory}")
+    plt.legend(title="Sex")
+    plt.savefig(f'scatterplot_{outcomvar}_by_{colcategory}.pdf', dpi = 300)
+    if showplots:
+        plt.show()
+    plt.close()
+
+def ScatterOverTimeColContinous(outcomvar, colvar, showplots):
+    sns.set(style="whitegrid")
+    color_map = sns.color_palette("RdYlGn_r", as_cmap=True)
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(x="hour", y=outcomvar, hue=colvar, data=exposure_df, alpha=0.4, palette=color_map)
+    plt.xlabel("Hour")
+    plt.ylabel(outcomvar)
+    plt.title(f"Distribution of {outcomvar} Over Time by {colvar}")
+    plt.legend(title="Sex")
+    plt.savefig(f'scatterplot_{outcomvar}_by_{colvar}.pdf', dpi = 300)
+    if showplots:
+        plt.show()
+    plt.close()
+
+
+
+
+
+
+
+
+
+
+######################################################
 nb_agents = 43500
 # path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 path_data ="/Users/tsonnens/Documents/Exposure Results"
 # os.chdir(path_data + 'ModelRuns/AgentExposure/')
 os.chdir(path_data)
 
+modelrun = "StatusQuo"
+
 print("Reading the data")
 # read exposure data
 exposure_df = pd.read_csv(f"AgentExposure_A{nb_agents}_M1_hourAsRowsMerged.csv")
+
+print("Analyzing the data")
 print(exposure_df.head())
 print(exposure_df.info())
 print(exposure_df.describe())
 for column in exposure_df.select_dtypes(include=['object']):
     print("\nValue counts for", column)
     print(exposure_df[column].value_counts())
+
+
+# Renaming some columns for elegance
+exposure_df = exposure_df.rename(columns={"incomeclass_int": "income"})
+
+print("Plotting the data")
+figuresToPlot = ["sex_scatterNO2","sex_scatterMET", "income_scatterNO2", "income_scatterMET"]
+showplots = False
+
+if "sex_scatterNO2" in figuresToPlot:
+    ScatterOverTimeColCategory(outcomvar="NO2", colcategory="sex", showplots=showplots)
+
+if "sex_scatterMET" in figuresToPlot:
+    ScatterOverTimeColCategory(outcomvar="MET", colcategory="sex", showplots=showplots)
+
+if "income_scatterNO2" in figuresToPlot:
+    ScatterOverTimeColContinous(outcomvar="NO2", colvar="income", showplots=showplots)
+
+if "income_scatterMET" in figuresToPlot:
+    ScatterOverTimeColContinous(outcomvar="MET", colvar="income", showplots=showplots)
+
+
 
 # plot of exposure distribution per hour per different sociodemographic groups
 # # sex
@@ -43,57 +108,6 @@ print(sexdf.head())
 # migrationbackground
 
 # per district
-
-print("Plotting the data")
-# Set up Seaborn style
-sns.set(style="whitegrid")
-
-# Create a scatter plot
-plt.figure(figsize=(10, 6))
-sns.scatterplot(x="hour", y="NO2", hue="sex", data=exposure_df, alpha=0.4)
-
-# Customize plot
-plt.xlabel("Hour")
-plt.ylabel("NO2")
-plt.title("Scatter Plot of NO2 Over Time by Sex")
-plt.legend(title="Sex")
-
-plt.savefig('scatterplot_NO2exposure_by_sex.pdf', dpi = 300)
-
-
-# Display the plot
-plt.show()
-
-
-
-
-# Create your DataFrame 'exposure_df'
-
-# Set up Seaborn style
-sns.set(style="whitegrid")
-
-# Define a colormap that transitions from green to red (you can adjust the colormap)
-color_map = sns.color_palette("RdYlGn_r", as_cmap=True)
-
-# Create the scatter plot with continuous color spectrum
-plt.figure(figsize=(10, 6))
-sns.scatterplot(x="hour", y="NO2", hue="incomeclass_int", data=exposure_df, alpha=0.4, palette=color_map)
-
-# Customize plot
-plt.xlabel("Hour")
-plt.ylabel("NO2")
-plt.title("Scatter Plot of NO2 Over Time by Income")
-plt.legend(title="Income")
-
-
-plt.savefig('scatterplot_NO2exposure_by_income.pdf', dpi = 300)
-
-
-# Display the plot
-plt.show()
-
-
-
 
 
 
