@@ -47,7 +47,6 @@ import os
 
 # my own functions
 import CellularAut_utils
-import Parallel_Utils
 import Math_utils
 
 # import logging
@@ -57,6 +56,58 @@ import Math_utils
 warnings.filterwarnings("ignore", module="shapely")
 n = os.cpu_count()
 
+def init_worker_init(schedules, Resid, univers, Scho, Prof):
+    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants
+    schedulelist = schedules
+    Residences = Resid
+    Universities = univers
+    Schools = Scho
+    Profess = Prof
+
+    # initialize worker processes
+def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
+    Residences = Resid
+    Entertainment = Entertain
+    Restaurants = Restaur
+    EnvBehavDeterms = envdeters
+    ModalChoiceModel = modalchoice
+    OrderPredVars = ordprevars
+    colvars = cols
+    project_to_WSG84 = projectWSG84
+    projecy_to_crs = projcrs
+    crs = crs_string
+    routevariables = routevars
+    originvariables = originvars
+    destinvariables = destinvars
+    EnvStressGrid = Grid
+    
+def worker_process( agents, current_datetime):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
+    for agent in agents:
+        agent.step(current_datetime)
+    return agents
+
+def hourly_worker_process( agents, current_datetime, NO2):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
+    EnvStressGrid[:] = np.array(NO2).reshape(EnvStressGrid.shape)
+    for agent in agents:
+        agent.Exposure()
+        agent.step(current_datetime)
+    return agents
+
+def RetrieveRoutes(thishourmode, thishourtrack):
+   if "drive" in thishourmode:
+      return([thishourtrack[count] for count, value in enumerate(thishourmode) if value == "drive"])
+
+def RetrieveExposure(agents, dum):
+    return [[agent.unique_id, agent.hourlyNO2, agent.hourlyMET]  for agent in agents]
+  
+def RetrieveModalSplitStep(agents, dum):
+    return [[agent.unique_id, agent.modalchoice, agent.track_duration, agent.trip_distance]  for agent in agents]
+
+def RetrieveModalSplitHour(agents, dum):
+    return [agent.thishourmode  for agent in agents]
 
 class Humans(Agent):
     """
@@ -449,7 +500,7 @@ class TransportAirPollutionExposureModel(Model):
         # Create the agents
         print("Creating Agents")
         st = time.time()
-        with Pool(initializer=Parallel_Utils.init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
+        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
             self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
             pool.close()
             pool.join()
@@ -504,6 +555,8 @@ class TransportAirPollutionExposureModel(Model):
     def TraffCountRegression(self):
         predictors = ["count"]    #also have tried MaxSpeedLimit, but it takes up too much of the traffic coefficient
         reg = LinearRegression().fit(self.TraffGrid.query('ON_ROAD == 1')[predictors], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
+        TraffAssDat.write(f"hour {self.current_datetime} \n")
+        TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
         TraffAssDat.write(f"Intercept: {reg.intercept_} \n") 
         TraffAssDat.write(pd.DataFrame(zip(predictors, reg.coef_)).to_string()) 
         self.R2 =  reg.score(self.TraffGrid.query('ON_ROAD == 1')[predictors], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
@@ -516,6 +569,8 @@ class TransportAirPollutionExposureModel(Model):
         # Calculating Remainder
         self.TraffGrid["TraffV"] = 0
         self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff)
+        TraffAssDat.write(f"hour {self.current_datetime} \n")
+        TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
         self.R2, _ = pearsonr(self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"],
                       self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
         TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
@@ -527,20 +582,22 @@ class TransportAirPollutionExposureModel(Model):
         self.TraffGrid["TraffV"] = 0
         self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff) \
                                                                           + (AirPollGrid.query('ON_ROAD == 1')[f"TraffVrest{self.hour}"])
-        self.R2, _ = pearsonr(self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
-        TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
+        if TraffStage == "PredictionR2":
+            TraffAssDat.write(f"hour {self.current_datetime} \n")
+            TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
+            self.R2, _ = pearsonr(self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
+            TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
 
     def PlotTraffPred(self):
         self.TraffGrid.plot("TraffV", antialiased=False, legend = True) 
         plt.title(f"Traffic predicted at {self.hour} o'clock")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_pred_A{nb_humans}_H{self.hour-1}_{self.R2}.png')
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_pred_A{nb_humans}_H{self.hour-1}__{modelname}_{self.R2}.png')
         plt.close()
 
     def TrafficAssignment(self):
-        self.HourlyTraffic = pool.starmap(Parallel_Utils.RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
+        self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
         self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
         print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
-        TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
         if self.hour == 0:
           self.TraffVcolumn = f"TrV23_24"
         else:
@@ -555,13 +612,17 @@ class TransportAirPollutionExposureModel(Model):
           # self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
           # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id'], as_index=False).mean(), on="int_id")
           print("joined traffic tracks to grid")
-          # self.PlotTrafficCount()
-          # self.TraffCountRegression()
+          if TraffStage == "Regression":
+              self.PlotTrafficCount()
+              self.TraffCountRegression()
         else:
           self.TraffGrid = AirPollGrid
           self.TraffGrid['count'] = 0
-        
-        self.TotalTraffCalc()
+          
+        if TraffStage in ["PredictionNoR2","PredictionR2"]:
+          self.TotalTraffCalc()
+        elif TraffStage == "Remainder":
+          self.TrafficRemainderCalc()
         self.PlotTraffPred()
 
     def OnRoadEmission(self):
@@ -600,7 +661,6 @@ class TransportAirPollutionExposureModel(Model):
         if self.minute == 0:  # new hour
             print("hourly executiontime Human Steps: ", self.hourlyext)
             self.hourlyext = 0
-            TraffAssDat.write(f"hour {self.current_datetime} \n")
             # print("Current time: ", self.current_datetime)
             self.hour = self.current_datetime.hour
             st = time.time()
@@ -618,22 +678,20 @@ class TransportAirPollutionExposureModel(Model):
 
         st = time.time()        
         if self.minute == 0:
-          self.agents = list(it.chain.from_iterable(pool.starmap(Parallel_Utils.hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
           print("collecting and saving exposure")
-          AgentExposure = pool.starmap(Parallel_Utils.RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
+          AgentExposure = pool.starmap(RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
           pd.DataFrame([item for items in AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}_{modelname}.csv', index=False)
-          ModalSplitH = col.Counter(pool.starmap(Parallel_Utils.RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1))
+          ModalSplitH = col.Counter(pool.starmap(RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1))
           ModalSplitLog.write(f"{self.current_datetime}, {ModalSplitH}\n")
         else:
-          self.agents = list(it.chain.from_iterable(pool.starmap(Parallel_Utils.worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
         gc.collect(generation=0)
         gc.collect(generation=1)
         gc.collect(generation=2)
         self.hourlyext += time.time() - st
         print("Human Step Time: ", time.time() - st, "Seconds")
         
-
-
 
 
 if __name__ == "__main__":
@@ -800,7 +858,7 @@ if __name__ == "__main__":
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data, starting_date=starting_date)
    
     print("Starting Multiprocessing Pool")
-    pool =  Pool(initializer= Parallel_Utils.init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
+    pool =  Pool(initializer= init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
                                                           ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
                                                           projecy_to_crs, crs, routevariables, originvariables, 
                                                           destinvariables, airpoll_grid_raster))
