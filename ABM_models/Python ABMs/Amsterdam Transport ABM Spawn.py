@@ -770,7 +770,7 @@ class TransportAirPollutionExposureModel(Model):
           self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
           print("collecting and saving exposure")
           self.AgentExposure = pool.starmap(RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
-          pd.DataFrame([item for items in self.AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}.csv', index=False)
+          pd.DataFrame([item for items in self.AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}_{modelname}.csv', index=False)
         else:
           self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
         gc.collect(generation=0)
@@ -790,9 +790,14 @@ if __name__ == "__main__":
     # Synthetic Population
     print("Reading Population Data")
     nb_humans = 43500     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
-    pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
-    random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
-    random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
+    
+    newpop = False
+    if newpop:
+      pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
+      random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
+      random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
+    else:
+      random_subset = pd.read_csv(path_data+"Population/Amsterdam_population_subset.csv")
 
     # Activity Schedules
     print("Reading Activity Schedules")
@@ -826,8 +831,17 @@ if __name__ == "__main__":
     ShopsnServ = gpd.read_feather(path_data+"FeatherDataABM/ShopsnServ.feather")
     Nightlife = gpd.read_feather(path_data+"FeatherDataABM/Nightlife.feather")
     Profess = gpd.read_feather(path_data+"FeatherDataABM/Profess.feather")
-    EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
     carroads = gpd.read_feather(path_data+"FeatherDataABM/carroads.feather")
+
+    # Load Intervention Environment
+    # Status Quo
+    # EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
+    # modelname = "StatusQuo"
+
+    # Speed Limit Intervention
+    EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedInterv.feather")
+    modelname = "SpeedInterv"
+  
 
     # Read the Environmental Stressor Data and Model
     cellsize = 50
@@ -909,7 +923,7 @@ if __name__ == "__main__":
 
     #  AirPollGrid[["ON_ROAD", "geometry"]]
     print("Starting Simulation")
-    NrHours = 24
+    NrHours = 25
     NrDays = 1
     # profile = "computation"
     # profile = "memory"
@@ -942,6 +956,6 @@ if __name__ == "__main__":
     pool.terminate()         
             
     # pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
-    pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_NO2_pred{nb_humans}.csv", index=False)
+    pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_NO2_pred{nb_humans}_{modelname}.csv", index=False)
         
     TraffAssDat.close()

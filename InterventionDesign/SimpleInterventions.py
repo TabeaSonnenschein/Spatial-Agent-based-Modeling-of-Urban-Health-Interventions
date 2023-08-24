@@ -5,3 +5,21 @@ import geopandas as gpd
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 
 EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
+
+# max 30km speed limit: MaxSpeed
+EnvBehavDeterms.loc[EnvBehavDeterms["MaxSpeed"] > 30, "MaxSpeed"] = 30
+EnvBehavDeterms.loc[EnvBehavDeterms["MeanSpeed"] > 30, "MeanSpeed"] = 30
+EnvBehavDeterms.loc[EnvBehavDeterms["MinSpeed"] > 30, "MinSpeed"] = 30
+
+EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedInterv.feather")
+
+
+# increasing greenCovr
+
+# increase retailDiv
+
+# increase PedStrWidt
+
+# reducing NrParkSpac
+
+# increasing PrkPricPre

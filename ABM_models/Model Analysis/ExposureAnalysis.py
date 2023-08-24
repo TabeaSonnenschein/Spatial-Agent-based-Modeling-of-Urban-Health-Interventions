@@ -38,6 +38,9 @@ sns.violinplot(data = sexdf, x=time, y = NO2, hue = sex, split= True)
 
 # line timetrend with multiple lines
 
+
+# radarchart with mean exposure per hour per category (income)
+
 # age
 
 # income
