@@ -269,7 +269,7 @@ class Humans(Agent):
       dest_point = transform(project_to_WSG84, Point(tuple(self.destination_activity)))
       url = ("http://127.0.0.1" + server + "route/v1/"+ lua_profile + "/" + str(orig_point.x)+ ","+ str(orig_point.y)+ ";"+ str(dest_point.x)+ ","+ str(dest_point.y) + "?overview=full&geometries=polyline")
       res = rq.get(url).json()
-      self.track_geometry = transform(projecy_to_crs, transform(flip, LineString(polyline.decode(res['routes'][0]['geometry']))))
+      self.track_geometry = transform(projecy_to_crs, transform(Math_utils.flip, LineString(polyline.decode(res['routes'][0]['geometry']))))
       self.track_duration = (res['routes'][0]['duration'])/60  # minutes
       if self.modechoice == "transit":
         self.track_duration = self.track_duration/10
@@ -281,25 +281,25 @@ class Humans(Agent):
             self.homeTOwork_mode = self.modechoice
             self.homeTOwork_geometry = self.track_geometry 
             self.homeTOwork_duration = self.track_duration
-            self.workTOhome_geometry = reverse_geom(self.track_geometry)
+            self.workTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
 		
         elif self.current_activity == 4: 
             self.homeTOschool_mode = self.modechoice
             self.homeTOschool_geometry = self.track_geometry  
             self.homeTOschool_duration = self.track_duration
-            self.schoolTOhome_geometry = reverse_geom(self.track_geometry)
+            self.schoolTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
 			
         elif self.current_activity == "kindergarden" : 
             self.homeTOkinderga_mode = self.modechoice
             self.homeTOkinderga_geometry = self.track_geometry 
             self.homeTOkinderga_duration = self.track_duration
-            self.kindergaTOhome_geometry = reverse_geom(self.track_geometry)
+            self.kindergaTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
 
         elif self.current_activity == "groceries_shopping": 
             self.homeTOsuperm_mode = self.modechoice
             self.homeTOsuperm_geometry = self.track_geometry 
             self.homeTOsuperm_duration = self.track_duration
-            self.supermTOhome_geometry = reverse_geom(self.track_geometry)
+            self.supermTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
     
     def TripSegmentsPerHour(self):
       if self.arrival_time.hour != self.hour:
@@ -376,6 +376,7 @@ class Humans(Agent):
         self.thishourduration = []
 
     def Exposure(self):
+        global EnvStressGrid
         self.TravelExposure()
         self.AtPlaceExposure()
         self.ResetTravelTracks()
@@ -447,7 +448,7 @@ class TransportAirPollutionExposureModel(Model):
         # Create the agents
         print("Creating Agents")
         st = time.time()
-        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
+        with Pool(initializer=Parallel_Utils.init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
             self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
             pool.close()
             pool.join()
@@ -535,7 +536,7 @@ class TransportAirPollutionExposureModel(Model):
         plt.close()
 
     def TrafficAssignment(self):
-        self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
+        self.HourlyTraffic = pool.starmap(Parallel_Utils.RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
         self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
         print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
         TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
@@ -616,14 +617,14 @@ class TransportAirPollutionExposureModel(Model):
 
         st = time.time()        
         if self.minute == 0:
-          self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          self.agents = list(it.chain.from_iterable(pool.starmap(Parallel_Utils.hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
           print("collecting and saving exposure")
-          AgentExposure = pool.starmap(RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
+          AgentExposure = pool.starmap(Parallel_Utils.RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
           pd.DataFrame([item for items in AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}_{modelname}.csv', index=False)
-          ModalSplitH = col.Counter(pool.starmap(RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1))
+          ModalSplitH = col.Counter(pool.starmap(Parallel_Utils.RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1))
           ModalSplitLog.write(f"{self.current_datetime}, {ModalSplitH}\n")
         else:
-          self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          self.agents = list(it.chain.from_iterable(pool.starmap(Parallel_Utils.worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
         gc.collect(generation=0)
         gc.collect(generation=1)
         gc.collect(generation=2)
@@ -778,24 +779,24 @@ if __name__ == "__main__":
         originvariables = ["pubTraDns", "DistCBD"]
         destinvariables = ["pubTraDns", "DistCBD"]
     
-    routevariables_suff = add_suffix(routevariables, ".route")
-    originvariables_suff = add_suffix(originvariables, ".orig")
-    destinvariables_suff = add_suffix(destinvariables, ".dest")
+    routevariables_suff = Math_utils.add_suffix(routevariables, ".route")
+    originvariables_suff = Math_utils.add_suffix(originvariables, ".orig")
+    destinvariables_suff = Math_utils.add_suffix(destinvariables, ".dest")
 
     colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables
 
     if TraffStage != "PredictionNoR2":
-      TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}.txt', 'a',buffering=1)
+      TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}_{modelname}.txt', 'a',buffering=1)
       TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
 
-    ModalSplitLog = open(f'{path_data}ModalSplitLog{nb_humans}.txt', 'a',buffering=1)
+    ModalSplitLog = open(f'{path_data}ModalSplitLog{nb_humans}_{modelname}.txt', 'a',buffering=1)
     ModalSplitLog.write(f"Number of Agents: {nb_humans} \n")
 
 
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data, starting_date=starting_date)
    
     print("Starting Multiprocessing Pool")
-    pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
+    pool =  Pool(initializer= Parallel_Utils.init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
                                                           ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
                                                           projecy_to_crs, crs, routevariables, originvariables, 
                                                           destinvariables, airpoll_grid_raster))
