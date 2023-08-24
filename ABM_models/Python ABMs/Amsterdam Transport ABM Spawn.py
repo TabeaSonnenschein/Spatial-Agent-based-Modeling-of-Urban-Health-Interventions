@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 from shapely.ops import nearest_points, substring,transform,snap, split
 import shapely as shp
 from shapely.geometry import LineString, Point, Polygon, GeometryCollection
-from shapely.ops import unary_union
 from sklearn.neighbors import BallTree
 import numpy as np
 from geopandas.tools import sjoin
@@ -37,173 +36,26 @@ from multiprocessing import Pool
 from scipy.stats import pearsonr
 import gc
 from statistics import mean
-import utils
 import os
 import xarray as xr
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from xrspatial.utils import ngjit
+import collections as col
+import os
+
+# my own functions
+import CellularAut_utils
+import Parallel_Utils
+import Math_utils
+
 # import logging
 # import multiprocessing.util
 # multiprocessing.util.log_to_stderr(level=logging.DEBUG)
 
 warnings.filterwarnings("ignore", module="shapely")
-import os
 n = os.cpu_count()
-
-
-
-def worker_process( agents, current_datetime):
-    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
-    for agent in agents:
-        agent.step(current_datetime)
-    return agents
-
-def hourly_worker_process( agents, current_datetime, NO2):
-    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
-    EnvStressGrid[:] = np.array(NO2).reshape(EnvStressGrid.shape)
-    for agent in agents:
-        agent.Exposure()
-        agent.step(current_datetime)
-    return agents
-
-def get_nearest(src_points, candidates, k_neighbors=1):
-    """Find nearest neighbors for all source points from a set of candidate points"""
-
-    # Create tree from the candidate points
-    tree = BallTree(candidates, leaf_size=15, metric='haversine')
-
-    # Find closest points and distances
-    distances, indices = tree.query(src_points, k=k_neighbors)
-
-    # Transpose to get distances and indices into arrays
-    distances = distances.transpose()
-    indices = indices.transpose()
-
-    # Get closest indices and distances (i.e. array at index 0)
-    # note: for the second closest points, you would take index 1, etc.
-    closest = indices[0]
-    closest_dist = distances[0]
-
-    # Return indices and distances
-    return (closest, closest_dist)
-
-
-# careful with projection!!
-def nearest_neighbor(left_gdf, right_gdf, return_dist=False):
-    """
-    For each point in left_gdf, find closest point in right GeoDataFrame and return them.
-
-    NOTICE: Assumes that the input Points are in WGS84 projection (lat/lon).
-    """
-
-    left_geom_col = left_gdf.geometry.name
-    right_geom_col = right_gdf.geometry.name
-
-    # Ensure that index in right gdf is formed of sequential numbers
-    right = right_gdf.copy().reset_index(drop=True)
-
-    # Parse coordinates from points and insert them into a numpy array as RADIANS
-    left_radians = np.array(left_gdf[left_geom_col].apply(
-        lambda geom: (geom.x * np.pi / 180, geom.y * np.pi / 180)).to_list())
-    right_radians = np.array(right[right_geom_col].apply(
-        lambda geom: (geom.x * np.pi / 180, geom.y * np.pi / 180)).to_list())
-
-    # Find the nearest points
-    # -----------------------
-    # closest ==> index in right_gdf that corresponds to the closest point
-    # dist ==> distance between the nearest neighbors (in meters)
-
-    closest, dist = get_nearest(
-        src_points=left_radians, candidates=right_radians)
-
-    # Return points from right GeoDataFrame that are closest to points in left GeoDataFrame
-    closest_points = right.loc[closest]
-
-    # Ensure that the index corresponds the one in left_gdf
-    closest_points = closest_points.reset_index(drop=True)
-
-    # Add distance if requested
-    if return_dist:
-        # Convert to meters from radians
-        earth_radius = 6371000  # meters
-        closest_points['distance'] = dist * earth_radius
-
-    return closest_points
-
-
-def get_distance_meters(lng1, lat1, lng2, lat2, project_to_WSG84):
-    '''function to calculate distance between two points in meters based on geopandas'''
-    pt1_WSG84 =  transform(project_to_WSG84, Point(lng1, lat1))
-    pt2_WSG84 = transform(project_to_WSG84, Point(lng2, lat2))
-    return distance.distance(pt1_WSG84.coords, pt2_WSG84.coords).meters
-
-
-
-def add_suffix(lst,  suffix): 
-    return  list(map(lambda x: x + suffix, lst))
-
-
-def reverse_geom(geom):
-    def _reverse(x, y, z=None):
-        if z:
-            return x[::-1], y[::-1], z[::-1]
-        return x[::-1], y[::-1]
-    return transform(_reverse, geom)
-
-def flip(x, y):
-    """Flips the x and y coordinate values"""
-    return y, x
-
-def is_even(number):
-    return number % 2 == 0
-
-    
-def RetrieveRoutes(thishourmode, thishourtrack):
-   if "drive" in thishourmode:
-      return([thishourtrack[count] for count, value in enumerate(thishourmode) if value == "drive"])
-
-
-def RetrieveExposure(agents, dum):
-    return [[agent.unique_id, agent.hourlyNO2, agent.hourlyMET]  for agent in agents]
-
-
-def init_worker_init(schedules, Resid, univers, Scho, Prof):
-    # declare scope of a new global variable
-    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants
-    # store argument in the global variable for this process
-    schedulelist = schedules
-    Residences = Resid
-    Universities = univers
-    Schools = Scho
-    Profess = Prof
-
-# error callback function
-def custom_error_callback(error):
-	print(f'Got error: {error}')
-
-
-    # initialize worker processes
-def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid):
-    # declare scope of a new global variable
-    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
-    # store argument in the global variable for this process
-    Residences = Resid
-    Entertainment = Entertain
-    Restaurants = Restaur
-    EnvBehavDeterms = envdeters
-    ModalChoiceModel = modalchoice
-    OrderPredVars = ordprevars
-    colvars = cols
-    project_to_WSG84 = projectWSG84
-    projecy_to_crs = projcrs
-    crs = crs_string
-    routevariables = routevars
-    originvariables = originvars
-    destinvariables = destinvars
-    EnvStressGrid = Grid
-    
 
 
 class Humans(Agent):
@@ -217,6 +69,7 @@ class Humans(Agent):
     """
 
     def __init__(self,vector, model):
+        global schedulelist, Residences, Universities, Schools, Profess
         self.unique_id = vector[0]
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
@@ -417,7 +270,7 @@ class Humans(Agent):
       dest_point = transform(project_to_WSG84, Point(tuple(self.destination_activity)))
       url = ("http://127.0.0.1" + server + "route/v1/"+ lua_profile + "/" + str(orig_point.x)+ ","+ str(orig_point.y)+ ";"+ str(dest_point.x)+ ","+ str(dest_point.y) + "?overview=full&geometries=polyline")
       res = rq.get(url).json()
-      self.track_geometry = transform(projecy_to_crs, transform(flip, LineString(polyline.decode(res['routes'][0]['geometry']))))
+      self.track_geometry = transform(projecy_to_crs, transform(Math_utils.flip, LineString(polyline.decode(res['routes'][0]['geometry']))))
       self.track_duration = (res['routes'][0]['duration'])/60  # minutes
       if self.modechoice == "transit":
         self.track_duration = self.track_duration/10
@@ -429,25 +282,25 @@ class Humans(Agent):
             self.homeTOwork_mode = self.modechoice
             self.homeTOwork_geometry = self.track_geometry 
             self.homeTOwork_duration = self.track_duration
-            self.workTOhome_geometry = reverse_geom(self.track_geometry)
+            self.workTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
 		
         elif self.current_activity == 4: 
             self.homeTOschool_mode = self.modechoice
             self.homeTOschool_geometry = self.track_geometry  
             self.homeTOschool_duration = self.track_duration
-            self.schoolTOhome_geometry = reverse_geom(self.track_geometry)
+            self.schoolTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
 			
         elif self.current_activity == "kindergarden" : 
             self.homeTOkinderga_mode = self.modechoice
             self.homeTOkinderga_geometry = self.track_geometry 
             self.homeTOkinderga_duration = self.track_duration
-            self.kindergaTOhome_geometry = reverse_geom(self.track_geometry)
+            self.kindergaTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
 
         elif self.current_activity == "groceries_shopping": 
             self.homeTOsuperm_mode = self.modechoice
             self.homeTOsuperm_geometry = self.track_geometry 
             self.homeTOsuperm_duration = self.track_duration
-            self.supermTOhome_geometry = reverse_geom(self.track_geometry)
+            self.supermTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
     
     def TripSegmentsPerHour(self):
       if self.arrival_time.hour != self.hour:
@@ -524,6 +377,7 @@ class Humans(Agent):
         self.thishourduration = []
 
     def Exposure(self):
+        global EnvStressGrid
         self.TravelExposure()
         self.AtPlaceExposure()
         self.ResetTravelTracks()
@@ -559,7 +413,8 @@ class Humans(Agent):
             self.activity = "traveling"
             self.traveldecision = 0
             self.TripSegmentsPerHour()
-            
+        
+        # Activity Execution
         if self.activity == "traveling":
             self.TravelingAlongRoute(current_datetime)
         if self.activity == "perform_activity":
@@ -569,9 +424,8 @@ class Humans(Agent):
 
 
 class TransportAirPollutionExposureModel(Model):
-           
     def __init__(self, nb_humans, path_data, crs="epsg:28992",
-                 starting_date=datetime(2019, 1, 1, 6, 50, 0), steps_minute=10, modelrunname="intervention_scenario"):
+                 starting_date=datetime(2019, 1, 1, 6, 50, 0), steps_minute=10):
         # Insert the global definitions, variables, and actions here
         self.path_data = path_data
         self.starting_datetime = starting_date
@@ -582,7 +436,6 @@ class TransportAirPollutionExposureModel(Model):
         self.hour = self.current_datetime.hour
         self.activitystep = int((self.hour * 6) + (self.minute / 10))
         self.nb_humans = nb_humans
-        self.modelrunname = modelrunname
         self.crs = crs
         self.schedule = SimultaneousActivation(self)
         print("Current time: ", self.current_datetime)
@@ -596,7 +449,7 @@ class TransportAirPollutionExposureModel(Model):
         # Create the agents
         print("Creating Agents")
         st = time.time()
-        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
+        with Pool(initializer=Parallel_Utils.init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
             self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
             pool.close()
             pool.join()
@@ -616,7 +469,7 @@ class TransportAirPollutionExposureModel(Model):
         self.tempdifference = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "TempDifference"].values[0]
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
         
-        self.weightsmatrix = utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
+        self.weightsmatrix = CellularAut_utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
                                windspeed = self.windspeed , winddirection = self.winddirection, 
                                temperature =self.temperature, rain = self.rain, 
                                temp_diff = self.tempdifference)
@@ -631,7 +484,7 @@ class TransportAirPollutionExposureModel(Model):
       print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
     
     def CalculateMonthlyWeightMatrix(self):
-      self.weightsmatrix = utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
+      self.weightsmatrix = CellularAut_utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
                     windspeed = self.windspeed , winddirection = self.winddirection, 
                     temperature =self.temperature, rain = self.rain, 
                     temp_diff = self.tempdifference)
@@ -649,9 +502,7 @@ class TransportAirPollutionExposureModel(Model):
         plt.close()
         
     def TraffCountRegression(self):
-        # predictors = ["count", "MaxSpeedLimit"]
-        # self.TraffGrid["speed_TV_interact"] = self.TraffGrid["count"] * self.TraffGrid["MaxSpeedLimit"]
-        predictors = ["count"]
+        predictors = ["count"]    #also have tried MaxSpeedLimit, but it takes up too much of the traffic coefficient
         reg = LinearRegression().fit(self.TraffGrid.query('ON_ROAD == 1')[predictors], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
         TraffAssDat.write(f"Intercept: {reg.intercept_} \n") 
         TraffAssDat.write(pd.DataFrame(zip(predictors, reg.coef_)).to_string()) 
@@ -686,7 +537,7 @@ class TransportAirPollutionExposureModel(Model):
         plt.close()
 
     def TrafficAssignment(self):
-        self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
+        self.HourlyTraffic = pool.starmap(Parallel_Utils.RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
         self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
         print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
         TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
@@ -720,7 +571,7 @@ class TransportAirPollutionExposureModel(Model):
         global airpoll_grid_raster, moderator_df
         # assigning the trafficV values to the raster
         airpoll_grid_raster[:] = np.array(self.TraffGrid["TraffNO2"].values).reshape(airpoll_grid_raster.shape)
-        airpoll_grid_raster = utils.cellautom_dispersion(weightmatrix = self.weightsmatrix, 
+        airpoll_grid_raster = CellularAut_utils.cellautom_dispersion(weightmatrix = self.weightsmatrix, 
                                                          airpollraster = airpoll_grid_raster, 
                                                          monthlyweather = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month],
                                                          moderator_df = moderator_df, 
@@ -734,7 +585,7 @@ class TransportAirPollutionExposureModel(Model):
     def PlotAirPoll(self):
         self.TraffGrid.plot("NO2", antialiased=False, legend = True)
         plt.title(f"NO2 Prediction: Month {self.current_datetime.month}, Hour {self.hour -1}")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/NO2_A{nb_humans}_H{self.hour-1}_M{self.current_datetime.month}.png')
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/NO2_A{nb_humans}_H{self.hour-1}_M{self.current_datetime.month}_{modelname}.png')
         plt.close()
         time.sleep(1)
     
@@ -767,12 +618,14 @@ class TransportAirPollutionExposureModel(Model):
 
         st = time.time()        
         if self.minute == 0:
-          self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          self.agents = list(it.chain.from_iterable(pool.starmap(Parallel_Utils.hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
           print("collecting and saving exposure")
-          self.AgentExposure = pool.starmap(RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
-          pd.DataFrame([item for items in self.AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}_{modelname}.csv', index=False)
+          AgentExposure = pool.starmap(Parallel_Utils.RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
+          pd.DataFrame([item for items in AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}_{modelname}.csv', index=False)
+          ModalSplitH = col.Counter(pool.starmap(Parallel_Utils.RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1))
+          ModalSplitLog.write(f"{self.current_datetime}, {ModalSplitH}\n")
         else:
-          self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          self.agents = list(it.chain.from_iterable(pool.starmap(Parallel_Utils.worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
         gc.collect(generation=0)
         gc.collect(generation=1)
         gc.collect(generation=2)
@@ -784,14 +637,45 @@ class TransportAirPollutionExposureModel(Model):
 
 
 if __name__ == "__main__":
+    
+    #############################################################################################################
+    ### Setting simulation parameters
+    #############################################################################################################
+    # Number of Humans
+    nb_humans = 43500     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
+
+    # New Population sample or already existing one
+    newpop = False
+    
+    # Length of the simulation run
+    NrHours = 4
+    NrDays = 1
+    
+    # Starting Date and Time
+    starting_date = datetime(2019, 1, 1, 4, 50, 0)
+    
+    # Type of scenario
+    modelname = "StatusQuo" 
+    # modelname = "SpeedInterv"
+
+    # cellsize of the Airpollution and Traffic grid
+    cellsize = 50    # 50m x 50m
+    
+    # Profiling code or not
+    profile = False
+    
+    # Stage of the Traffic Model
+    TraffStage = "PredictionNoR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2"
+    
+    #############################################################################################################
+    
     # Read Main Data
     path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
     
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 43500     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
     
-    newpop = False
+
     if newpop:
       pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
       random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
@@ -835,16 +719,13 @@ if __name__ == "__main__":
 
     # Load Intervention Environment
     # Status Quo
-    # EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
-    # modelname = "StatusQuo"
-
+    if modelname == "StatusQuo":
+      EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
     # Speed Limit Intervention
-    EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedInterv.feather")
-    modelname = "SpeedInterv"
+    elif modelname == "SpeedInterv":
+      EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedInterv.feather")
   
-
     # Read the Environmental Stressor Data and Model
-    cellsize = 50
     AirPollGrid = gpd.read_feather(path_data+f"FeatherDataABM/AirPollgrid{cellsize}m.feather")
     AirPollPred = pd.read_csv(path_data+f"Air Pollution Determinants/Pred_{cellsize}m.csv")
     TraffDat = pd.read_csv(path_data+ "Air Pollution Determinants/AirPollRaster50m_TraffVdata.csv")
@@ -902,34 +783,31 @@ if __name__ == "__main__":
         originvariables = ["pubTraDns", "DistCBD"]
         destinvariables = ["pubTraDns", "DistCBD"]
     
-    routevariables_suff = add_suffix(routevariables, ".route")
-    originvariables_suff = add_suffix(originvariables, ".orig")
-    destinvariables_suff = add_suffix(destinvariables, ".dest")
+    routevariables_suff = Math_utils.add_suffix(routevariables, ".route")
+    originvariables_suff = Math_utils.add_suffix(originvariables, ".orig")
+    destinvariables_suff = Math_utils.add_suffix(destinvariables, ".dest")
 
     colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables
 
-    TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}.txt', 'a',buffering=1)
-    TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
+    if TraffStage != "PredictionNoR2":
+      TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}_{modelname}.txt', 'a',buffering=1)
+      TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
+
+    ModalSplitLog = open(f'{path_data}ModalSplitLog{nb_humans}_{modelname}.txt', 'a',buffering=1)
+    ModalSplitLog.write(f"Number of Agents: {nb_humans} \n")
 
 
-
-    m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
+    m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data, starting_date=starting_date)
    
     print("Starting Multiprocessing Pool")
-    pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
+    pool =  Pool(initializer= Parallel_Utils.init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
                                                           ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
                                                           projecy_to_crs, crs, routevariables, originvariables, 
                                                           destinvariables, airpoll_grid_raster))
 
-    #  AirPollGrid[["ON_ROAD", "geometry"]]
     print("Starting Simulation")
-    NrHours = 25
-    NrDays = 1
-    # profile = "computation"
-    # profile = "memory"
-    profile = None
 
-    if profile == "computation":
+    if profile:
       f = open(path_data+'profile_results.txt', 'w')
       for t in range(144):      
         # Profile the ABM run
@@ -942,20 +820,19 @@ if __name__ == "__main__":
 
       f.close()
     
-    elif profile == "memory":
-      pass
     else:
       for day in range(NrDays):
         for hour in range(NrHours):
           for t in range(6):
               m.step()
-      # for t in range(164):
-      #     m.step()
 
 
     pool.terminate()         
             
-    # pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
-    pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_NO2_pred{nb_humans}_{modelname}.csv", index=False)
-        
-    TraffAssDat.close()
+    if TraffStage in ["PredictionNoR2", "PredictionR2"]:
+      pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_NO2_pred{nb_humans}_{modelname}.csv", index=False)
+    elif TraffStage == "Remainder":
+      pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
+    
+    if TraffStage != "PredictionNoR2":
+      TraffAssDat.close()
