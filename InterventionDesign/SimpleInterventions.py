@@ -16,7 +16,7 @@ EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedIn
 
 # increasing greenCovr
 
-# increase retailDiv
+# increase retailDiv #amenitydiversity
 
 # increase PedStrWidt
 
