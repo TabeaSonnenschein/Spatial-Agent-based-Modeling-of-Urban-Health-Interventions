@@ -642,6 +642,9 @@ if __name__ == "__main__":
     #############################################################################################################
     # Number of Humans
     nb_humans = 43500     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
+
+    # New Population sample or already existing one
+    newpop = False
     
     # Length of the simulation run
     NrHours = 4
@@ -671,7 +674,7 @@ if __name__ == "__main__":
     # Synthetic Population
     print("Reading Population Data")
     
-    newpop = False
+
     if newpop:
       pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
       random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))

@@ -2,13 +2,14 @@ import pandas as pd
 import os
 ####################################################
 nb_agents = 43500
-# path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
-path_data ="/Users/tsonnens/Documents/Exposure Intervention"
-modelrun = "SpeedInterv"
+path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
+# path_data ="/Users/tsonnens/Documents/Exposure Intervention"
+# modelrun = "SpeedInterv"
+modelrun = "StatusQuo"
 # read exposure data
-# os.chdir(path_data + 'ModelRuns/AgentExposure/')
-os.chdir(path_data)
-listOfFiles = os.listdir(path=path_data)
+os.chdir(path_data + 'ModelRuns/AgentExposure')
+# os.chdir(path_data)
+listOfFiles = os.listdir(path=os.getcwd())
 print(listOfFiles)
 
 # read the exposure data for each hour and merge them into one
@@ -38,7 +39,7 @@ exposure_df_all.to_csv(f"AgentExposure_A{nb_agents}_M1_{modelrun}_hourAsRows.csv
 
 print("Reading the  Agent data")
 # read agent_df
-agent_df = pd.read_csv("Amsterdam_population_subset.csv")
+agent_df = pd.read_csv(path_data + "Population/Amsterdam_population_subset.csv")
 
 print("Merging the data")
 # merge exposure data with agent_df

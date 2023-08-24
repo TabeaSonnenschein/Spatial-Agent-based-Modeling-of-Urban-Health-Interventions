@@ -80,12 +80,12 @@ def LineOverTimeColContinous(outcomvar, colvar, showplots, modelrun, ylabel = No
 
 ######################################################
 nb_agents = 43500
-# path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
+path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 # path_data ="/Users/tsonnens/Documents/Exposure Results"
-path_data ="/Users/tsonnens/Documents/Exposure Intervention"
+# path_data ="/Users/tsonnens/Documents/Exposure Intervention"
 
-# os.chdir(path_data + 'ModelRuns/AgentExposure/')
-os.chdir(path_data)
+os.chdir(path_data + 'ModelRuns/AgentExposure')
+# os.chdir(path_data)
 
 # modelrun = "StatusQuo"
 modelrun = "SpeedInterv"
@@ -94,7 +94,6 @@ modelrun = "SpeedInterv"
 print("Reading the data")
 # read exposure data
 exposure_df = pd.read_csv(f"AgentExposure_A{nb_agents}_M1_{modelrun}_hourAsRowsMerged.csv")
-
 
 print("Analyzing the data")
 print(exposure_df.head())
@@ -161,12 +160,12 @@ if "migr_bcksex_lineMET" in figuresToPlot:
 #########################
 ### Comparative Plots ###
 #########################
-# path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
-path_data ="/Users/tsonnens/Documents/Exposure Results"
+path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
+# path_data ="/Users/tsonnens/Documents/Exposure Results"
 # path_data ="/Users/tsonnens/Documents/Exposure Intervention"
 
-# os.chdir(path_data + 'ModelRuns/AgentExposure/')
-os.chdir(path_data)
+# os.chdir(path_data + 'ModelRuns/AgentExposure')
+# os.chdir(path_data)
 
 modelrun = "StatusQuo"
 # modelrun = "SpeedInterv"
@@ -174,7 +173,7 @@ modelrun = "StatusQuo"
 
 print("Reading the data")
 # read exposure data
-exposure_df_statusq = pd.read_csv(f"AgentExposure_A{nb_agents}_M1_hourAsRowsMerged.csv")
+exposure_df_statusq = pd.read_csv(f"AgentExposure_A{nb_agents}_M1_{modelrun}_hourAsRowsMerged.csv")
 
 exposure_comp = pd.merge(exposure_df, exposure_df_statusq, on=["agent_ID", "hour"], how="left", suffixes=("_interv", "_statusq"))
     
