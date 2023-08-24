@@ -591,7 +591,7 @@ class TransportAirPollutionExposureModel(Model):
     def PlotTraffPred(self):
         self.TraffGrid.plot("TraffV", antialiased=False, legend = True) 
         plt.title(f"Traffic predicted at {self.hour} o'clock")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_pred_A{nb_humans}_H{self.hour-1}__{modelname}_{self.R2}.png')
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_pred_A{nb_humans}_H{self.hour-1}__{modelname}.png')
         plt.close()
 
     def TrafficAssignment(self):
@@ -682,7 +682,7 @@ class TransportAirPollutionExposureModel(Model):
           print("collecting and saving exposure")
           AgentExposure = pool.starmap(RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
           pd.DataFrame([item for items in AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}_{modelname}.csv', index=False)
-          ModalSplitH = col.Counter(pool.starmap(RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1))
+          ModalSplitH = col.Counter(list(pool.starmap(RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1).values()))
           ModalSplitLog.write(f"{self.current_datetime}, {ModalSplitH}\n")
         else:
           self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
@@ -695,7 +695,6 @@ class TransportAirPollutionExposureModel(Model):
 
 
 if __name__ == "__main__":
-    
     #############################################################################################################
     ### Setting simulation parameters
     #############################################################################################################
