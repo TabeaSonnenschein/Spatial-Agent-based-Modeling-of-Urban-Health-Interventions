@@ -3,7 +3,6 @@ from xrspatial  import focal
 from xrspatial.utils import ngjit
 import seaborn as sns
 import matplotlib.pyplot as plt
-import utils
 
 def create_meteo_weightmatrix(params, windspeed, winddirection, temperature, rain, temp_diff):         
     # order params: windsp_disp_coeff, dispar_intercept, prate ,temp_coeff, rain_coeff, localV_mod, dispar2_coeff, temp_diff_coeff, windsp_coeff

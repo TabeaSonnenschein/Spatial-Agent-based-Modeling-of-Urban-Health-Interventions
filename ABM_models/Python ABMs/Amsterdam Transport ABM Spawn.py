@@ -69,6 +69,7 @@ class Humans(Agent):
     """
 
     def __init__(self,vector, model):
+        global schedulelist, Residences, Universities, Schools, Profess
         self.unique_id = vector[0]
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
