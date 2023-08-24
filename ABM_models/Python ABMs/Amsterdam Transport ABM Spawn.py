@@ -571,7 +571,7 @@ class Humans(Agent):
 class TransportAirPollutionExposureModel(Model):
            
     def __init__(self, nb_humans, path_data, crs="epsg:28992",
-                 starting_date=datetime(2019, 1, 1, 6, 50, 0), steps_minute=10, modelrunname="intervention_scenario"):
+                 starting_date=datetime(2019, 1, 1, 6, 50, 0), steps_minute=10):
         # Insert the global definitions, variables, and actions here
         self.path_data = path_data
         self.starting_datetime = starting_date
@@ -582,7 +582,6 @@ class TransportAirPollutionExposureModel(Model):
         self.hour = self.current_datetime.hour
         self.activitystep = int((self.hour * 6) + (self.minute / 10))
         self.nb_humans = nb_humans
-        self.modelrunname = modelrunname
         self.crs = crs
         self.schedule = SimultaneousActivation(self)
         print("Current time: ", self.current_datetime)
@@ -734,7 +733,7 @@ class TransportAirPollutionExposureModel(Model):
     def PlotAirPoll(self):
         self.TraffGrid.plot("NO2", antialiased=False, legend = True)
         plt.title(f"NO2 Prediction: Month {self.current_datetime.month}, Hour {self.hour -1}")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/NO2_A{nb_humans}_H{self.hour-1}_M{self.current_datetime.month}.png')
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/NO2_A{nb_humans}_H{self.hour-1}_M{self.current_datetime.month}_{modelname}.png')
         plt.close()
         time.sleep(1)
     
@@ -784,12 +783,40 @@ class TransportAirPollutionExposureModel(Model):
 
 
 if __name__ == "__main__":
+    
+    #############################################################################################################
+    ### Setting simulation parameters
+    #############################################################################################################
+    # Number of Humans
+    nb_humans = 43500     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
+    
+    # Length of the simulation run
+    NrHours = 4
+    NrDays = 1
+    
+    # Starting Date and Time
+    starting_date = datetime(2019, 1, 1, 4, 50, 0)
+    
+    # Type of scenario
+    modelname = "StatusQuo" 
+    # modelname = "SpeedInterv"
+
+    # cellsize of the Airpollution and Traffic grid
+    cellsize = 50    # 50m x 50m
+    
+    # Profiling code or not
+    profile = False
+    
+    # Stage of the Traffic Model
+    TraffStage = "PredictionNoR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2"
+    
+    #############################################################################################################
+    
     # Read Main Data
     path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
     
     # Synthetic Population
     print("Reading Population Data")
-    nb_humans = 43500     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
     
     newpop = False
     if newpop:
@@ -835,16 +862,14 @@ if __name__ == "__main__":
 
     # Load Intervention Environment
     # Status Quo
-    # EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
-    # modelname = "StatusQuo"
-
+    if modelname == "StatusQuo":
+      EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
     # Speed Limit Intervention
-    EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedInterv.feather")
-    modelname = "SpeedInterv"
+    elif modelname == "SpeedInterv":
+      EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedInterv.feather")
   
 
     # Read the Environmental Stressor Data and Model
-    cellsize = 50
     AirPollGrid = gpd.read_feather(path_data+f"FeatherDataABM/AirPollgrid{cellsize}m.feather")
     AirPollPred = pd.read_csv(path_data+f"Air Pollution Determinants/Pred_{cellsize}m.csv")
     TraffDat = pd.read_csv(path_data+ "Air Pollution Determinants/AirPollRaster50m_TraffVdata.csv")
@@ -908,12 +933,12 @@ if __name__ == "__main__":
 
     colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables
 
-    TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}.txt', 'a',buffering=1)
-    TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
+    if TraffStage != "PredictionNoR2":
+      TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}.txt', 'a',buffering=1)
+      TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
 
 
-
-    m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data)
+    m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data, starting_date=starting_date)
    
     print("Starting Multiprocessing Pool")
     pool =  Pool(initializer=init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
@@ -921,15 +946,9 @@ if __name__ == "__main__":
                                                           projecy_to_crs, crs, routevariables, originvariables, 
                                                           destinvariables, airpoll_grid_raster))
 
-    #  AirPollGrid[["ON_ROAD", "geometry"]]
     print("Starting Simulation")
-    NrHours = 25
-    NrDays = 1
-    # profile = "computation"
-    # profile = "memory"
-    profile = None
 
-    if profile == "computation":
+    if profile:
       f = open(path_data+'profile_results.txt', 'w')
       for t in range(144):      
         # Profile the ABM run
@@ -942,20 +961,19 @@ if __name__ == "__main__":
 
       f.close()
     
-    elif profile == "memory":
-      pass
     else:
       for day in range(NrDays):
         for hour in range(NrHours):
           for t in range(6):
               m.step()
-      # for t in range(164):
-      #     m.step()
 
 
     pool.terminate()         
             
-    # pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
-    pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_NO2_pred{nb_humans}_{modelname}.csv", index=False)
-        
-    TraffAssDat.close()
+    if TraffStage in ["PredictionNoR2", "PredictionR2"]:
+      pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_NO2_pred{nb_humans}_{modelname}.csv", index=False)
+    elif TraffStage == "Remainder":
+      pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
+    
+    if TraffStage != "PredictionNoR2":
+      TraffAssDat.close()
