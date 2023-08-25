@@ -467,6 +467,13 @@ crossvalid = function(valid_df, agent_df, join_var, list_valid_var, agent_var, l
   return(output)
 }
 
+
+install.packages("devtools")
+library(devtools)
+install_github("TabeaSonnenschein/Spatial-Agent-based-Modeling-of-Urban-Health-Interventions/GenSynthPop")
+library(GenSynthPop)
+
+
 ############################################################################################
 ######################## Data Preparation and Application for Amsterdam ####################
 ############################################################################################
@@ -483,6 +490,7 @@ neigh_stats2 = popstats2[which(popstats2$SoortRegio_2 == "Buurt     "),]
 popstats3 = read.csv("Neighborhood statistics 2018.csv") ## count of people per age group per neighborhood
 neigh_stats3 = popstats3[which(popstats3$SoortRegio_2 == "Buurt     "),]
 
+print(colnames(neigh_stats))
 #Stratified datasets
 # SEX - AGE
 sexstats = read.csv("Amsterdam_tot_sex_gender2020.csv") # count of people per lifeyear and gender in all of Amsterdam
@@ -509,7 +517,8 @@ absolved_edu = merge(absolved_edu, edu_coding, by= "Onderwijssoort", all.x = T, 
 current_edu = merge(current_edu, edu_coding, by= "Onderwijssoort", all.x = T, all.y = F)
 
 
-
+setwd(allDataMetafolder)
+agents = read.csv("Agent_pop.csv")
 
 #### Interesting variables
 
@@ -1679,3 +1688,104 @@ agents_clean$bike_habit[agents_clean$bike_habit =="no_habit"] = 0
 agents_clean = agents_clean[,c("agent_ID","neighb_code",  "age" , "sex", "age_group" , "age_group_20", "migrationbackground", "hh_single", "ischild",
                                "havechild", "current_education", "absolved_education", "BMI","age_TU_groups","scheduletype","personal_income", "incomeclass", 
                                "agesexgroup","edu_int", "car_access", "bike_habit", "car_habit", "transit_habit")]
+
+
+
+################################################
+## HHsize and Number of Children ##############
+##############################################
+"GemiddeldeHuishoudensgrootte_32"
+strat_df = read.csv2("HouseholdNumberChildrenAge2.csv")
+age_coding= read.csv("agegroup coding_migration data.csv")
+strat_df = merge(strat_df, age_coding, by.x = "LeeftijdReferentiepersoon", by.y= "ï..Leeftijd", all.x = T, all.y = F)
+colnames(strat_df)[32] = "age_group_20"
+strat_df = strat_df[strat_df$Perioden == "2020JJ00",]
+
+## HHtype
+strat_df["OneparentWithchild"] = strat_df["TotaalEenouderhuishoudens_16"]
+strat_df["TwoparentWithchild"] = strat_df["TotaalNietGehuwdeParen_6"]+strat_df["TotaalGehuwdeParen_11"]-strat_df["k_0Kinderen_7"]-strat_df["k_0Kinderen_12"]
+strat_df["TotPerswithChild"] = strat_df["OneparentWithchild"]+strat_df["TwoparentWithchild"]
+
+
+agents_new = calc_propens_agents(strat_df,
+                                 "OneparentWithchild",
+                                 "TotPerswithChild",
+                                 agents,
+                                 c("age_group_20"))
+
+agents_new = calc_propens_agents(strat_df,
+                                 "TwoparentWithchild",
+                                 "TotPerswithChild",
+                                 agents_new,
+                                 c("age_group_20"))
+
+colnames(agents_new)
+?distr_attr_cond_prop
+agents_new$nochildren = 1
+agents_new[agents_new$havechild == 1, "nochildren"] = 0
+
+agents_new = distr_attr_cond_prop(agent_df = agents_new, variable = "HHtype",
+                                  list_agent_propens = c("prop_OneparentWithchild","prop_TwoparentWithchild"),
+                                  list_class_names = c("SingleParentHH","TwoParentHH"), agent_exclude = c("nochildren"))
+
+
+## Nr of Children
+strat_df$HHtype = "SingleParentHH"
+strat_df_new = strat_df[,c("age_group_20","HHtype" )]
+strat_df$HHtype = "TwoParentHH"
+strat_df_new = rbind(strat_df_new,strat_df[,c("age_group_20","HHtype" )])
+strat_df_new["1Child"] = 0
+strat_df_new["2Children"] = 0
+strat_df_new["3ChildrenPlus"] = 0
+strat_df_new[1:18,c("1Child","2Children", "3ChildrenPlus")] = strat_df[,c("k_1Kind_17","k_2Kinderen_18", "k_3OfMeerKinderen_19")]
+strat_df_new[19:36,c("1Child","2Children", "3ChildrenPlus")] = strat_df[,c("k_1Kind_8","k_2Kinderen_9", "k_3OfMeerKinderen_10")] +strat_df[,c("k_1Kind_13","k_2Kinderen_14", "k_3OfMeerKinderen_15")]
+strat_df_new["TotPerswithChild"] = strat_df_new["1Child"] +strat_df_new["2Children"] + strat_df_new["3ChildrenPlus"]
+
+
+agents_new = calc_propens_agents(strat_df_new,
+                               "1Child",
+                               "TotPerswithChild",
+                               agents_new,
+                               c("age_group_20", "HHtype"))
+
+agents_new = calc_propens_agents(strat_df_new,
+                                 "2Children",
+                                 "TotPerswithChild",
+                                 agents_new,
+                                 c("age_group_20", "HHtype"))
+
+agents_new = calc_propens_agents(strat_df_new,
+                                 "3ChildrenPlus",
+                                 "TotPerswithChild",
+                                 agents_new,
+                                 c("age_group_20", "HHtype"))
+
+
+agents_new = distr_attr_cond_prop(agent_df = agents_new, variable = "NrChildren",
+                                  list_agent_propens = c("prop_1Child","prop_2Children", "prop_3ChildrenPlus"),
+                                  list_class_names = c(1,2,3), agent_exclude = c("nochildren"))
+
+# distribute Nr CHildren larger than 3 among half of 3plus children values
+idx = which(agents_new$NrChildren == 3)
+idx_sample = sample(x =idx, size = (length(idx)/2))
+agents_new[idx_sample, "NrChildren"] = sample(x= seq(from= 3, to = 5, by= 1), size = length(idx_sample), replace = T)
+
+
+## HHsize
+agents_new["HHsize"] = 1
+agents_new["HHsize"] = agents_new["HHsize"] + agents_new["NrChildren"]
+agents_new[agents_new["HHtype"] == "TwoParentHH", "HHsize"] = agents_new[agents_new["HHtype"] == "TwoParentHH", "HHsize"]+ 1
+idx = which(agents_new["nochildren"] == 1 & agents_new["hh_single"] == 0)
+agents_new[idx, "HHsize"] = agents_new[idx, "HHsize"] + sample(x= seq(from= 1, to = 3, by= 1), size = length(idx), replace = T)
+
+summary(agents_new$HHsize)
+summary(agents_new$NrChildren)
+
+# subselect relevant variables and save data
+colnames(agents_new)
+agents_new = subset(agents_new, select = -c(prop_OneparentWithchild, prop_TwoparentWithchild,  nochildren,
+                               random_scores,excluded, prop_1Child,prop_2Children,     
+                               prop_3ChildrenPlus))
+
+write.csv(agents_new, "Agent_pop_withHHsizeNrChildren.csv", row.names = FALSE)
+?subset
