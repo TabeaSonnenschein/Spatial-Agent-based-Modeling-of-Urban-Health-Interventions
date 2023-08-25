@@ -42,7 +42,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from xrspatial.utils import ngjit
-import collections as col
+from collections import Counter
 import os
 
 # my own functions
@@ -597,6 +597,7 @@ class TransportAirPollutionExposureModel(Model):
     def TrafficAssignment(self):
         self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
         self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
+        # gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs).to_file(path_data + f'ModelRuns/TrafficTracks/TrafficTracks_A{nb_humans}_H{self.hour-1}.shp')
         print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
         if self.hour == 0:
           self.TraffVcolumn = f"TrV23_24"
@@ -678,12 +679,13 @@ class TransportAirPollutionExposureModel(Model):
 
         st = time.time()        
         if self.minute == 0:
+          ModalSplitH = pool.starmap(RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
+          ModalSplitLog.write(f"{self.current_datetime}, {Counter(list(it.chain.from_iterable(filter(None, list(it.chain.from_iterable(ModalSplitH))))))}\n")
           self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
           print("collecting and saving exposure")
           AgentExposure = pool.starmap(RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
           pd.DataFrame([item for items in AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}_{modelname}.csv', index=False)
-          ModalSplitH = col.Counter(list(pool.starmap(RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1).values()))
-          ModalSplitLog.write(f"{self.current_datetime}, {ModalSplitH}\n")
+
         else:
           self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
         gc.collect(generation=0)
@@ -694,7 +696,7 @@ class TransportAirPollutionExposureModel(Model):
         
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  
     #############################################################################################################
     ### Setting simulation parameters
     #############################################################################################################
@@ -705,11 +707,11 @@ if __name__ == "__main__":
     newpop = False
     
     # Length of the simulation run
-    NrHours = 4
+    NrHours = 14
     NrDays = 1
     
     # Starting Date and Time
-    starting_date = datetime(2019, 1, 1, 4, 50, 0)
+    starting_date = datetime(2019, 1, 1, 14, 50, 0)
     
     # Type of scenario
     modelname = "StatusQuo" 
@@ -731,8 +733,6 @@ if __name__ == "__main__":
     
     # Synthetic Population
     print("Reading Population Data")
-    
-
     if newpop:
       pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
       random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
