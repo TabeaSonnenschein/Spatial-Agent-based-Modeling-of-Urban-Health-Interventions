@@ -49,7 +49,6 @@ colvars = routevariables_suff + originvariables_suff + destinvariables_suff + pe
 
 
 
-
 random_subset = pd.read_csv(path_data+"Population/Amsterdam_population_subset.csv")
 random_subset = random_subset.iloc[:200]
 
