@@ -4,6 +4,8 @@ import geopandas as gpd
 from shapely import LineString, Point
 import numpy as np
 from collections import Counter
+import random
+from shapely.ops import nearest_points, unary_union
 
 def add_suffix(lst,  suffix): 
     return  list(map(lambda x: x + suffix, lst))
@@ -48,43 +50,55 @@ destinvariables_suff = add_suffix(destinvariables, ".dest")
 colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables
 
 
-
+# Read data
 random_subset = pd.read_csv(path_data+"Population/Amsterdam_population_subset.csv")
-random_subset = random_subset.iloc[:200]
-
-EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
-EnvBehavDetermsSpeedInterv = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedInterv.feather")
-
 Residences = gpd.read_feather(path_data+"FeatherDataABM/Residences.feather")
+Schools = gpd.read_feather(path_data+"FeatherDataABM/Schools.feather")
+EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
+EnvBehavDeterms_Intervention = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedInterv.feather")
+# EnvBehavDeterms_Intervention = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrWidth.feather")
+# InterventionName = "PedStrWidth"
+InterventionName = "SpeedInterv"
+
+# EnvBehavDeterms = EnvBehavDeterms.fillna(0)
+
+MonteCarloCount = 5
+print(f"Predicting Mode of Transport Choice with {MonteCarloCount} Monte Carlo Iterations")
+
+for x in range(MonteCarloCount):
+    print("Monte Carlo Iteration: ", x+1)
+    pop = pd.DataFrame(random_subset.sample(n=300))
+    pop = pop.reset_index(drop=True)
+    modechoice_StatQuo = []
+    modechoice_Intervention = []
+    for agent in range(len(pop)):
+        IndModalPreds = [pop.iloc[agent,i] for i in [19,2,13,20,21,22,17,11,12,5,7,15,14,16]]    # individual modal choice predictions: ["sex_male", "age", "car_access", 
+                                                                # "Western", "Non_Western", "Dutch", 'income','employed',
+                                                                #'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit',
+                                                                # 'transit_habit']
+        orig = Residences.sample(1)["geometry"].values[0]
+        if bool(random.getrandbits(1)):
+            dest = Residences.sample(1)["geometry"].values[0]
+        else:
+            dest = nearest_points(orig, Schools["geometry"].unary_union)[1]
+        route_eucl_line = LineString([orig, dest])
+        trip_distance = route_eucl_line.length
+        # Predicting modechoice for status quo
+        RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [route_eucl_line]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[routevariables].mean(axis=0).values
+        OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [orig]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[originvariables].values[0]
+        DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [dest]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
+        pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, IndModalPreds, [trip_distance]), axis=None).reshape(1, -1), 
+                                    columns=colvars).fillna(0)
+        modechoice_StatQuo.append(ModalChoiceModel.predict(pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk"))
+
+        # Predicting modechoice for intervention   
+        RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [route_eucl_line]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms_Intervention, how="left")[routevariables].mean(axis=0).values
+        OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [orig]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms_Intervention, how="left")[originvariables].values[0]
+        DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [dest]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms_Intervention, how="left")[destinvariables].values[0]
+        pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, IndModalPreds, [trip_distance]), axis=None).reshape(1, -1), 
+                                    columns=colvars).fillna(0)
+        modechoice_Intervention.append(ModalChoiceModel.predict(pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk"))
 
 
-modechoice_StatQuo = []
-modechoice_Intervention = []
-for agent in random_subset:
-    IndModalPreds = [random_subset[i] for i in [19,2,13,20,21,22,17,11,12,5,7,15,14,16]]    # individual modal choice predictions: ["sex_male", "age", "car_access", 
-                                                             # "Western", "Non_Western", "Dutch", 'income','employed',
-                                                             #'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit',
-                                                             # 'transit_habit']
-    orig = Residences.sample(1)
-    dest = Residences.sample(1)
-    route_eucl_line = LineString([Point(tuple(orig)), Point(tuple(dest))])
-    trip_distance = route_eucl_line.length
-    # Predicting modechoice for status quo
-    RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [route_eucl_line]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[routevariables].mean(axis=0).values
-    OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(orig))]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[originvariables].values[0]
-    DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(dest))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
-    pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, IndModalPreds, [trip_distance]), axis=None).reshape(1, -1), 
-                                  columns=colvars).fillna(0)
-    modechoice_StatQuo.append(ModalChoiceModel.predict(pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk"))
-
-    # Predicting modechoice for intervention   
-    RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [route_eucl_line]}, geometry="geometry", crs=crs).sjoin(EnvBehavDetermsSpeedInterv, how="left")[routevariables].mean(axis=0).values
-    OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(orig))]}, geometry="geometry", crs=crs).sjoin(EnvBehavDetermsSpeedInterv, how="left")[originvariables].values[0]
-    DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(dest))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDetermsSpeedInterv, how="left")[destinvariables].values[0]
-    pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, IndModalPreds, [trip_distance]), axis=None).reshape(1, -1), 
-                                  columns=colvars).fillna(0)
-    modechoice_Intervention.append(ModalChoiceModel.predict(pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk"))
-
-
-print("StatusQuo Modal Split: ", Counter(modechoice_StatQuo))
-print("Intervention Modal Split", Counter(modechoice_Intervention))
+    print("StatusQuo Modal Split: ", Counter(modechoice_StatQuo))
+    print(f"{InterventionName} Intervention Modal Split:", Counter(modechoice_Intervention))

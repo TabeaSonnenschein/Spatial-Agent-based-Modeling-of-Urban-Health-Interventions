@@ -288,18 +288,19 @@ class Humans(Agent):
           self.activity = "perform_activity"
           self.traveldecision = 0
 
-    def PerceiveEnvironment(self):
-      global EnvBehavDeterms
-      # variables to be joined to route
-      self.RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[routevariables].mean(axis=0).values
-      #variables to be joined to current location
-      self.OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[originvariables].values[0]
-      #variables to be joined to destination
-      self.DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
-
     def ModeChoice(self):
-      pred_df = pd.DataFrame(np.concatenate((self.RouteVars, self.OrigVars, self.DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
+      global EnvBehavDeterms
+      # PerceiveEnvironment
+      # variables to be joined to route
+      RouteVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [self.route_eucl_line]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[routevariables].mean(axis=0).values
+      #variables to be joined to current location
+      OrigVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.pos))]}, geometry="geometry", crs=crs).sjoin(EnvBehavDeterms, how="left")[originvariables].values[0]
+      #variables to be joined to destination
+      DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
+      # preparing dataframes for prediction
+      pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
                                   columns=colvars).fillna(0)
+      # predicting modechoice
       self.modechoice = ModalChoiceModel.predict(pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk")
 
     # OSRM Routing Machine
@@ -456,7 +457,6 @@ class Humans(Agent):
 
         # Travel Decision
         if self.traveldecision == 1:
-            self.PerceiveEnvironment()
             self.ModeChoice()
             self.Routing()
             self.SavingRoute()
