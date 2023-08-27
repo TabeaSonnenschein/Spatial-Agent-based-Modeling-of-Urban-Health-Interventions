@@ -56,17 +56,18 @@ import Math_utils
 warnings.filterwarnings("ignore", module="shapely")
 n = os.cpu_count()
 
-def init_worker_init(schedules, Resid, univers, Scho, Prof):
-    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants
+def init_worker_init(schedules, Resid, univers, Scho, Prof, modvars):
+    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, modelvars
     schedulelist = schedules
     Residences = Resid
     Universities = univers
     Schools = Scho
     Profess = Prof
+    modelvars = modvars
 
     # initialize worker processes
-def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid):
-    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
+def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid, modvars, PCst, FacLoad):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid, modelvars, PCstat, FactorLoadings
     Residences = Resid
     Entertainment = Entertain
     Restaurants = Restaur
@@ -81,14 +82,37 @@ def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprev
     originvariables = originvars
     destinvariables = destinvars
     EnvStressGrid = Grid
+    modelvars = modvars
+    PCstat = PCst
+    FactorLoadings = FacLoad
     
-def worker_process( agents, current_datetime):
+    
+def worker_process( agents, current_datetime, WeaVars):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
+    global WeatherVars
+    WeatherVars = WeaVars
+    for agent in agents:
+        agent.step(current_datetime)
+    return agents
+
+def hourly_worker_process( agents, current_datetime, NO2, WeaVars):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
+    EnvStressGrid[:] = np.array(NO2).reshape(EnvStressGrid.shape)
+    global WeatherVars
+    WeatherVars = WeaVars
+    for agent in agents:
+        agent.Exposure()
+        agent.step(current_datetime)
+    return agents
+
+
+def worker_process_strict( agents, current_datetime):
     global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
     for agent in agents:
         agent.step(current_datetime)
     return agents
 
-def hourly_worker_process( agents, current_datetime, NO2):
+def hourly_worker_process_strict( agents, current_datetime, NO2):
     global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid
     EnvStressGrid[:] = np.array(NO2).reshape(EnvStressGrid.shape)
     for agent in agents:
@@ -120,16 +144,21 @@ class Humans(Agent):
     """
 
     def __init__(self,vector, model):
-        global schedulelist, Residences, Universities, Schools, Profess
+        global schedulelist, Residences, Universities, Schools, Profess, modelvars
         self.unique_id = vector[0]
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
         self.Neighborhood = vector[1]
         self.current_edu = vector[8]          # "high", "middle", "low", "no_current_edu"
-        self.IndModalPreds = [vector[i] for i in [19,2,13,20,21,22,17,11,12,5,7,15,14,16]]    # individual modal choice predictions: ["sex_male", "age", "car_access", 
-                                                             # "Western", "Non_Western", "Dutch", 'income','employed',
-                                                             #'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit',
-                                                             # 'transit_habit']
+        if modelvars == "allvars_strict":
+            self.IndModalPreds = [vector[i] for i in [19,2,13,20,21,22,17,11,12,23,24,15,14,16]]    # individual modal choice predictions: ["sex_male", "age", "car_access", "Western", 
+                                                                # "Non_Western", "Dutch", 'income','employed',
+                                                                # 'edu_3_levels','HH_size', 'Nrchildren', 'driving_habit','biking_habit','transit_habit']
+        else:
+            self.IndModalPreds = [vector[i] for i in [19,2,13,20,21,22,17,11,12,23,24,25,15,14,16]] # "sex_male", "age", "car_access", 
+                                                                # "Western", "Non_Western", "Dutch", 'income','employed',
+                                                                #'edu_3_levels','HH_size', 'Nrchildren', 'student', 'driving_habit','biking_habit',
+                                                                # 'transit_habit']
         # need to add hhsize and nrchildren
 
         # Activity Schedules
@@ -175,9 +204,10 @@ class Humans(Agent):
       self.current_activity = self.WeekSchedules[self.weekday][self.activitystep]
       # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
       if self.current_activity != self.former_activity:
+        commute,leisure,groceries,edu_trip = 0,0,0,0
         # print("Current Activity: ", self.current_activity," Former Activity: ", self.former_activity)
         if self.current_activity == 3:  # 3 = work
-          self.commute = 1
+          commute = 1
           self.destination_activity = self.Workplace
           if "self.homeTOwork" in locals() and (self.former_activity == 5 or self.former_activity == 1):  # 1 = sleep/rest, 5 = at home
             self.track_path = self.homeTOwork
@@ -188,7 +218,7 @@ class Humans(Agent):
             print("saved pathway")
 
         elif self.current_activity == 4:  # 4 = school/university
-          self.edu_trip = 1
+          edu_trip = 1
           if self.current_edu == "high":
             self.destination_activity = self.University
           else:
@@ -203,7 +233,7 @@ class Humans(Agent):
 
         elif self.current_activity == "groceries_shopping":
           self.destination_activity = self.Supermarket
-          self.groceries = 1
+          groceries = 1
           # 1 = sleep/rest, 5 = at home, 6 = cooking
           if "self.homeTOsuperm_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]):
             self.track_geometry = self.homeTOsuperm_geometry
@@ -254,7 +284,7 @@ class Humans(Agent):
               print("saved pathway_ return")
 
         elif self.current_activity == 11:
-          self.leisure = 1
+          leisure = 1
           self.destination_activity = Entertainment["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity == 2:  # 2 = eating
@@ -266,6 +296,7 @@ class Humans(Agent):
               self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.pos)), Restaurants["geometry"].unary_union)][1]
 
         elif self.current_activity == 10:  # 10 = social life
+          leisure = 1
           self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity in [12, 9, 8]:  # 12 = traveling
@@ -278,6 +309,7 @@ class Humans(Agent):
               self.traveldecision = 1
               self.route_eucl_line = LineString([Point(tuple(self.pos)), Point(tuple(self.destination_activity))])
               self.trip_distance = self.route_eucl_line.length
+              self.TripVars = [commute,leisure,groceries,edu_trip,0] #"purpose_commute", 'purpose_leisure','purpose_groceries_shopping','purpose_education', 'purpose_bring_person'
           else:
               self.TripSegmentsPerHour()
               self.activity = "traveling"
@@ -298,8 +330,14 @@ class Humans(Agent):
       #variables to be joined to destination
       DestVars = gpd.GeoDataFrame(data = {'id': ['1'], 'geometry': [Point(tuple(self.destination_activity))]}, geometry="geometry",crs=crs).sjoin(EnvBehavDeterms, how="left")[destinvariables].values[0]
       # preparing dataframes for prediction
-      pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
-                                  columns=colvars).fillna(0)
+      if modelvars == "allvars_strict":
+        pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, self.IndModalPreds, [self.trip_distance]), axis=None).reshape(1, -1), 
+                                columns=colvars).fillna(0)
+      else:
+        pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, self.IndModalPreds, [self.trip_distance],self.TripVars, WeatherVars), axis=None).reshape(1, -1), 
+                                columns=colvars).fillna(0)
+      if PCstat == "PCA":
+        pred_df[FactorLoadings.columns[1:]] = [mean(np.asarray(pred_df.loc[0,FactorLoadings["Vars"]]) * np.asarray(FactorLoadings.iloc[:,i])) for i in range(1, FactorLoadings.shape[1])]
       # predicting modechoice
       self.modechoice = ModalChoiceModel.predict(pred_df[OrderPredVars].values)[0].replace("1", "bike").replace("2", "drive").replace("3", "transit").replace("4", "walk")
 
@@ -450,6 +488,8 @@ class Humans(Agent):
     
     def step(self, current_datetime):
         global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
+        if modelvars == "allvars":
+           global WeatherVars
         self.ManageTime(current_datetime)
         # Schedule Manager
         if self.minute % 10 == 0 or self.minute == 0:
@@ -500,7 +540,7 @@ class TransportAirPollutionExposureModel(Model):
         # Create the agents
         print("Creating Agents")
         st = time.time()
-        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
+        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess, modelvars)) as pool:
             self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
             pool.close()
             pool.join()
@@ -518,6 +558,7 @@ class TransportAirPollutionExposureModel(Model):
         self.windspeed = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "Windspeed"].values[0]
         self.rain = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "Rain"].values[0]
         self.tempdifference = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month, "TempDifference"].values[0]
+        self.WeatherVars = [self.rain, self.temperature, self.winddirection, self.windspeed]
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
         
         self.weightsmatrix = CellularAut_utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
@@ -681,13 +722,20 @@ class TransportAirPollutionExposureModel(Model):
         if self.minute == 0:
           ModalSplitH = pool.starmap(RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
           ModalSplitLog.write(f"{self.current_datetime}, {Counter(list(it.chain.from_iterable(filter(None, list(it.chain.from_iterable(ModalSplitH))))))}\n")
-          self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          if modelvars == "allvars_strict":
+            self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process_strict, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]))  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          else:
+            self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]), self.WeatherVars)  for agents in np.array_split(self.agents, n)], chunksize=1)))
           print("collecting and saving exposure")
           AgentExposure = pool.starmap(RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
           pd.DataFrame([item for items in AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/AgentExposure/AgentExposure_A{nb_humans}_M{self.current_datetime.month}_H{self.hour-1}_{modelname}.csv', index=False)
 
         else:
-          self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          if modelvars == "allvars_strict":
+            self.agents = list(it.chain.from_iterable(pool.starmap(worker_process_strict, [(agents, self.current_datetime)  for agents in np.array_split(self.agents, n)], chunksize=1)))
+          else:
+            self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime, self.WeatherVars)  for agents in np.array_split(self.agents, n)], chunksize=1)))
+            
         gc.collect(generation=0)
         gc.collect(generation=1)
         gc.collect(generation=2)
@@ -707,15 +755,17 @@ if __name__ == "__main__":
     newpop = False
     
     # Length of the simulation run
-    NrHours = 14
+    NrHours = 25
     NrDays = 1
     
     # Starting Date and Time
-    starting_date = datetime(2019, 1, 1, 14, 50, 0)
+    starting_date = datetime(2019, 1, 1, 0, 50, 0)
     
     # Type of scenario
-    modelname = "StatusQuo" 
+    # modelname = "StatusQuo" 
     # modelname = "SpeedInterv"
+    # modelname = "RetaiDnsDiv"
+    modelname = "PedStrWidth"
 
     # cellsize of the Airpollution and Traffic grid
     cellsize = 50    # 50m x 50m
@@ -725,6 +775,15 @@ if __name__ == "__main__":
     
     # Stage of the Traffic Model
     TraffStage = "PredictionNoR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2"
+    
+    
+    # modal choice model
+    # modelvars = "allvars_strict"
+    modelvars = "allvars"
+    
+    PCstat = "PCA"
+    # PCstat = "NOPCA"
+
     
     #############################################################################################################
     
@@ -736,9 +795,12 @@ if __name__ == "__main__":
     if newpop:
       pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
       random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
-      random_subset.to_csv(path_data+"Population/Amsterdam_population_subset.csv", index=False)
+      random_subset.to_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}.csv", index=False)
     else:
-      random_subset = pd.read_csv(path_data+"Population/Amsterdam_population_subset.csv")
+      random_subset = pd.read_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}.csv")
+
+    random_subset["student"] = 0
+    random_subset.loc[random_subset["current_education"] == "high", "student"] = 1
 
     # Activity Schedules
     print("Reading Activity Schedules")
@@ -779,8 +841,10 @@ if __name__ == "__main__":
     if modelname == "StatusQuo":
       EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
     # Speed Limit Intervention
-    elif modelname == "SpeedInterv":
-      EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsSpeedInterv.feather")
+    else:
+      EnvBehavDeterms = gpd.read_feather(path_data+f"FeatherDataABM/EnvBehavDeterminants{modelname}.feather")
+  
+
   
     # Read the Environmental Stressor Data and Model
     AirPollGrid = gpd.read_feather(path_data+f"FeatherDataABM/AirPollgrid{cellsize}m.feather")
@@ -811,17 +875,11 @@ if __name__ == "__main__":
 
     # Read the Mode of Transport Choice Model
     print("Reading Mode of Transport Choice Model")
-    ModalChoiceModel = PMMLTreeClassifier(pmml=path_data+"ModalChoiceModel/modalChoice.pmml")
-    ModalChoiceModel.splitter = "random"
-    OrderPredVars = [x for x in ModalChoiceModel.fields][1:]
 
-
-    # modelvars = "allvars"
-    modelvars = "allvars_strict"
     if modelvars == "allvars":
         routevariables = ["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
                         "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "NrStrLight", "CrimeIncid",
-                        "MaxNoisDay", "OpenSpace", "PNonWester", "PWelfarDep"]
+                        "MaxNoisDay", "OpenSpace", "PNonWester", "PWelfarDep", "SumTraffVo", "pubTraDns", "MxNoisNigh", "MinSpeed", "PrkPricPre", "PrkPricPos" ]
         personalvariables = ["sex_male", "age", "car_access", "Western", "Non_Western", "Dutch", 'income','employed',
                                 'edu_3_levels','HH_size', 'Nrchildren', 'student', 'driving_habit','biking_habit','transit_habit']
         tripvariables = ["trip_distance", "purpose_commute", 'purpose_leisure','purpose_groceries_shopping',
@@ -839,12 +897,29 @@ if __name__ == "__main__":
         tripvariables = ["trip_distance"]
         originvariables = ["pubTraDns", "DistCBD"]
         destinvariables = ["pubTraDns", "DistCBD"]
-    
+
     routevariables_suff = Math_utils.add_suffix(routevariables, ".route")
     originvariables_suff = Math_utils.add_suffix(originvariables, ".orig")
     destinvariables_suff = Math_utils.add_suffix(destinvariables, ".dest")
 
-    colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables
+    if modelvars == "allvars_strict":  
+        colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables
+    elif modelvars == "allvars":
+        colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables + weathervariables
+
+    print("Reading Mode of Transport Choice Model")
+    ModalChoiceModel = PMMLTreeClassifier(pmml=path_data+f"ModalChoiceModel/modalChoice_{modelvars}{PCstat}.pmml")
+    ModalChoiceModel.splitter = "random"
+    OrderPredVars = [x for x in ModalChoiceModel.fields][1:]
+    print(OrderPredVars)
+
+    if PCstat == "PCA":
+        FactorLoadings = pd.read_csv(path_data+f"ModalChoiceModel/{modelvars}_PCLoadings.csv")
+        print(FactorLoadings)
+    else:
+        FactorLoadings = None
+  
+    # Preparing Log Documents
 
     if TraffStage != "PredictionNoR2":
       TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}_{modelname}.txt', 'a',buffering=1)
@@ -854,13 +929,15 @@ if __name__ == "__main__":
     ModalSplitLog.write(f"Number of Agents: {nb_humans} \n")
 
 
+    # Initializing Simulation
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data, starting_date=starting_date)
    
     print("Starting Multiprocessing Pool")
     pool =  Pool(initializer= init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
                                                           ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
                                                           projecy_to_crs, crs, routevariables, originvariables, 
-                                                          destinvariables, airpoll_grid_raster))
+                                                          destinvariables, airpoll_grid_raster, modelvars, PCstat, 
+                                                          FactorLoadings))
 
     print("Starting Simulation")
 
