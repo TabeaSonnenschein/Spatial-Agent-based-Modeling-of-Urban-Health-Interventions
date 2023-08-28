@@ -5,9 +5,13 @@ nb_agents = 43500
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 # path_data ="/Users/tsonnens/Documents/Exposure Intervention"
 # modelrun = "SpeedInterv"
-modelrun = "StatusQuo"
+# modelrun = "StatusQuo"
+# modelrun = "PedStrWidth"
+modelrun = "RetaiDnsDiv"
+
+
 # read exposure data
-os.chdir(path_data + 'ModelRuns/AgentExposure')
+os.chdir(path_data + 'ModelRuns/AgentExposure/' + modelrun)
 # os.chdir(path_data)
 listOfFiles = os.listdir(path=os.getcwd())
 print(listOfFiles)
@@ -39,7 +43,7 @@ exposure_df_all.to_csv(f"AgentExposure_A{nb_agents}_M1_{modelrun}_hourAsRows.csv
 
 print("Reading the  Agent data")
 # read agent_df
-agent_df = pd.read_csv(path_data + "Population/Amsterdam_population_subset.csv")
+agent_df = pd.read_csv(path_data + f"Population/Amsterdam_population_subset{nb_agents}.csv")
 
 print("Merging the data")
 # merge exposure data with agent_df

@@ -159,6 +159,14 @@ def RunForModelVarsPCstatInterventions(modelvariables, PCstats, Interventions):
                                                                                         FactorLoadings= FactorLoadings, ModalChoiceModel= ModalChoiceModel)
 
 
-RunForModelVarsPCstatInterventions(modelvariables= ["allvars_strict", "allvars"], 
-                                   PCstats = ["PCA", "NOPCA"], 
-                                   Interventions = ["SpeedInterv", "PedStrWidth", "SpeedInterv", "RetaiDns", "RetaiDnsDiv", "GreenCovr", "ParkSpace", "ParkPrice", "NrTrees"])
+# RunForModelVarsPCstatInterventions(modelvariables= ["allvars_strict", "allvars"], 
+#                                    PCstats = ["PCA", "NOPCA"], 
+#                                    Interventions = ["SpeedInterv", "PedStrWidth", "SpeedInterv", "RetaiDns", "RetaiDnsDiv", "GreenCovr", "ParkSpace", "ParkPrice", "NrTrees"])
+
+# RunForModelVarsPCstatInterventions(modelvariables= ["allvars_strict", "allvars"], 
+#                                    PCstats = ["PCA", "NOPCA"], 
+#                                    Interventions = ["LenBikRout", "HighwLen", "PedStrLen"])
+
+RunForModelVarsPCstatInterventions(modelvariables= ["allvars_strict", "allvars"],
+                                      PCstats = ["PCA", "NOPCA"], 
+                                      Interventions = ["RdIntrsDnsIncr", "RdIntrsDnsDcr"])

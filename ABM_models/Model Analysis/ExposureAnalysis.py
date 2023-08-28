@@ -84,12 +84,12 @@ path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 # path_data ="/Users/tsonnens/Documents/Exposure Results"
 # path_data ="/Users/tsonnens/Documents/Exposure Intervention"
 
-os.chdir(path_data + 'ModelRuns/AgentExposure')
-# os.chdir(path_data)
-
+# modelrun = "SpeedInterv"
 # modelrun = "StatusQuo"
-modelrun = "SpeedInterv"
+modelrun = "PedStrWidth"
+# modelrun = "RetaiDnsDiv"
 
+os.chdir(path_data + 'ModelRuns/AgentExposure/' + modelrun)
 
 print("Reading the data")
 # read exposure data
@@ -108,9 +108,9 @@ for column in exposure_df.select_dtypes(include=['object']):
 exposure_df = exposure_df.rename(columns={"incomeclass_int": "income", "migrationbackground": "migr_bck"})
 
 print("Plotting the data")
-# figuresToPlot = ["sex_scatterNO2","sex_scatterMET", "income_scatterNO2", "income_scatterMET", "migr_bck_scatterNO2", "migr_bcksex_scatterMET",
-                #  "sex_lineNO2", "sex_lineMET", "income_lineNO2", "income_lineMET", "migr_bck_lineNO2", "migr_bcksex_lineMET"]
-figuresToPlot = []
+figuresToPlot = ["sex_scatterNO2","sex_scatterMET", "income_scatterNO2", "income_scatterMET", "migr_bck_scatterNO2", "migr_bcksex_scatterMET",
+                 "sex_lineNO2", "sex_lineMET", "income_lineNO2", "income_lineMET", "migr_bck_lineNO2", "migr_bcksex_lineMET"]
+# figuresToPlot = []
 showplots = False
 
 
@@ -160,20 +160,11 @@ if "migr_bcksex_lineMET" in figuresToPlot:
 #########################
 ### Comparative Plots ###
 #########################
-path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
-# path_data ="/Users/tsonnens/Documents/Exposure Results"
-# path_data ="/Users/tsonnens/Documents/Exposure Intervention"
-
-# os.chdir(path_data + 'ModelRuns/AgentExposure')
-# os.chdir(path_data)
-
-modelrun = "StatusQuo"
-# modelrun = "SpeedInterv"
-
+modelrun_stat = "StatusQuo"
 
 print("Reading the data")
 # read exposure data
-exposure_df_statusq = pd.read_csv(f"AgentExposure_A{nb_agents}_M1_{modelrun}_hourAsRowsMerged.csv")
+exposure_df_statusq = pd.read_csv(path_data + 'ModelRuns/AgentExposure/' + modelrun_stat + "2/"+ f"AgentExposure_A{nb_agents}_M1_{modelrun_stat}_hourAsRowsMerged.csv")
 
 exposure_comp = pd.merge(exposure_df, exposure_df_statusq, on=["agent_ID", "hour"], how="left", suffixes=("_interv", "_statusq"))
     

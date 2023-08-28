@@ -20,8 +20,8 @@ EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminant
 # EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsGreenCovr.feather")
 
 #### increasing NrTrees
-EnvBehavDeterms.loc[EnvBehavDeterms["NrTrees"]< 400, "NrTrees"] = 400
-EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsNrTrees.feather")
+# EnvBehavDeterms.loc[EnvBehavDeterms["NrTrees"]< 400, "NrTrees"] = 400
+# EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsNrTrees.feather")
 
 #### increase retailDiv #amenitydiversity
 
@@ -45,3 +45,23 @@ EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsNrTrees
 #### increasing PrkPricPre
 # EnvBehavDeterms["PrkPricPre"] = EnvBehavDeterms["PrkPricPos"]
 # EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsParkPrice.feather")
+
+#### increasing LenBikRout
+# EnvBehavDeterms.loc[EnvBehavDeterms["LenBikRout"]< 350, "LenBikRout"] = 350
+# EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsLenBikRout.feather")
+
+#### decrease HighwLen
+# EnvBehavDeterms.loc[EnvBehavDeterms["HighwLen"]> 0, "HighwLen"] = 0
+# EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsHighwLen.feather")
+
+#### increase PedStrLen
+# EnvBehavDeterms.loc[EnvBehavDeterms["PedStrLen"]< 2000, "PedStrLen"] = 2000
+# EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrLen.feather")
+
+#### Increase RdIntrsDns
+EnvBehavDeterms.loc[EnvBehavDeterms["RdIntrsDns"]< 28, "RdIntrsDns"] = 28
+EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsRdIntrsDnsIncr.feather")
+
+#### Decrease RdIntrsDns
+EnvBehavDeterms.loc[EnvBehavDeterms["RdIntrsDns"]> 28, "RdIntrsDns"] = 28
+EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsRdIntrsDnsDcr.feather")
