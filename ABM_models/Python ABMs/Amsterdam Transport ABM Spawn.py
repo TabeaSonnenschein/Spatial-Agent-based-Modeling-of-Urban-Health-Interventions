@@ -765,7 +765,8 @@ if __name__ == "__main__":
     # modelname = "StatusQuo" 
     # modelname = "SpeedInterv"
     # modelname = "RetaiDnsDiv"
-    modelname = "PedStrWidth"
+    # modelname = "PedStrWidth"
+    modelname = "LenBikRout"
 
     # cellsize of the Airpollution and Traffic grid
     cellsize = 50    # 50m x 50m
