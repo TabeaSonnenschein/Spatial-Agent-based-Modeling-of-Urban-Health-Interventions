@@ -11,8 +11,8 @@ path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
 # modelrun = "SpeedInterv"
 # modelrun = "StatusQuo"
 # modelrun = "PedStrWidth"
-modelrun = "RetaiDnsDiv"
-# modelrun = "LenBikRout"
+# modelrun = "RetaiDnsDiv"
+modelrun = "LenBikRout"
 cellsize = 50
 
 os.chdir(path_data)
@@ -29,6 +29,8 @@ NO2diff_cols = [var + "_diff" for var in NO2vars]
 NO2diff.columns = NO2diff_cols
 
 NO2diff["mean_NO2_diff"] = NO2diff.mean(axis=1)
+meansperhour = list(NO2diff.mean(axis=0))
+print("means per hour", meansperhour)
 NO2diff["int_id"] = NO2dat_interv["int_id"]
 NO2diff.to_csv(f"ModelRuns/NO2/AirPollGrid_NO2_diff{nb_agents}_{modelrun}.csv", index=False)
 print(NO2diff.describe())
@@ -37,6 +39,13 @@ AirPollGrid = gpd.read_feather(f"FeatherDataABM/AirPollgrid{cellsize}m.feather")
 AirPollGrid = AirPollGrid.merge(NO2diff, on="int_id", how="left")
 
 AirPollGrid.plot("mean_NO2_diff", antialiased=False, legend = True)
-plt.title(f"NO2 Difference between {modelrun} and Status Quo")
+plt.title(f"Mean NO2 Difference between {modelrun} and Status Quo")
 plt.savefig(f'ModelRuns/NO2/AirPollGrid_NO2_MeanDiff{nb_agents}_{modelrun}.png')
 plt.close()
+
+AirPollGrid.plot(NO2diff_cols[meansperhour.index(min(meansperhour))], antialiased=False, legend = True)
+plt.title(f"Max NO2 Difference between {modelrun} and Status Quo: Hour {meansperhour.index(min(meansperhour))}")
+plt.savefig(f'ModelRuns/NO2/AirPollGrid_NO2_MaxDiff{nb_agents}_{modelrun}.png')
+plt.close()
+
+
