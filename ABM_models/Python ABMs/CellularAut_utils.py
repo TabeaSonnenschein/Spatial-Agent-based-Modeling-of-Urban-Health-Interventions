@@ -139,7 +139,8 @@ def cellautom_dispersion_dummy(weightmatrix, airpollraster, nr_repeats, multipli
         # return round(np.nanmean(np.multiply(kernel_data, weightmatrix)),10)
     for i in range(int(nr_repeats)):
             airpollraster[:] =  focal.apply(raster = airpollraster, kernel= np.full((5, 5), 1), func= weightedaverage)
-    airpollraster[:] = np.asarray(airpollraster[:]).flatten() * multiplier
     if include_baseline_in_dispersion == False:
-        airpollraster[:] = np.array(np.asarray(airpollraster[:]).flatten() + (baseline_NO2)).reshape(airpollraster.shape)
+        airpollraster[:] = np.array((np.asarray(airpollraster[:]).flatten() * multiplier) + (baseline_NO2)).reshape(airpollraster.shape)
+    else:
+        airpollraster[:] = np.array(np.asarray(airpollraster[:]).flatten() * multiplier).reshape(airpollraster.shape)
     return(airpollraster)

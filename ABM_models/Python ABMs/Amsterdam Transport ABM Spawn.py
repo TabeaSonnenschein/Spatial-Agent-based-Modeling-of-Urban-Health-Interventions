@@ -44,6 +44,7 @@ import matplotlib.pyplot as plt
 from xrspatial.utils import ngjit
 from collections import Counter
 import os
+import random
 
 # my own functions
 import CellularAut_utils
@@ -194,8 +195,8 @@ class Humans(Agent):
         self.nexthoursmodes, self.nexthourstracks, self.nexthourduration = [], [], []
 
         # exposure variables
-        self.newplace = 0
-        self.visitedPlaces, self.durationPlaces =  [Point(tuple(self.Residence))], [0]
+        self.newplace, self.newactivity = 0, 0
+        self.visitedPlaces, self.durationPlaces, self.activities, self.durationActivties =  [Point(tuple(self.Residence))], [0], [self.WeekSchedules[self.weekday][self.activitystep]], [0]
         self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
         self.hourlytravelMET, self.hourlyplaceMET, self.hourlyMET = 0,0,0
         
@@ -288,12 +289,14 @@ class Humans(Agent):
           self.destination_activity = Entertainment["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity == 2:  # 2 = eating
-          if any(Restaurants["geometry"].within( Point(tuple(self.pos)).buffer(500))):
-              nearRestaurants = Restaurants["geometry"].intersection(Point(tuple(self.pos)).buffer(500))
-              self.destination_activity = nearRestaurants[~nearRestaurants.is_empty].sample(1).values[0].coords[0]
-
+          if bool(random.getrandbits(1)) or self.hour < 7:
+            self.destination_activity = self.pos
           else:
-              self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.pos)), Restaurants["geometry"].unary_union)][1]
+            if any(Restaurants["geometry"].within( Point(tuple(self.pos)).buffer(500))):
+                nearRestaurants = Restaurants["geometry"].intersection(Point(tuple(self.pos)).buffer(500))
+                self.destination_activity = nearRestaurants[~nearRestaurants.is_empty].sample(1).values[0].coords[0]
+            else:
+                self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.pos)), Restaurants["geometry"].unary_union)][1]
 
         elif self.current_activity == 10:  # 10 = social life
           leisure = 1
@@ -318,6 +321,7 @@ class Humans(Agent):
           self.newplace = 1
         else:
           self.activity = "perform_activity"
+          self.newactivity = 1
           self.traveldecision = 0
 
     def ModeChoice(self):
@@ -424,24 +428,36 @@ class Humans(Agent):
       if self.newplace == 1:
         self.visitedPlaces.append(Point(tuple(self.pos)))
         self.durationPlaces.append(1)
+        self.durationActivties.append(1)
+        self.activities.append(self.current_activity)
         self.newplace = 0
+      elif self.newactivity == 1:
+        self.activities.append(self.current_activity)
+        self.durationActivties.append(1)
+        self.newactivity = 0
       else:
         self.durationPlaces[-1] += 1
+        self.durationActivties[-1] += 1
+        
 
     def AtPlaceExposure(self):
       if len(self.visitedPlaces) > 0:
         # NO2
         self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [x*10 for x in self.durationPlaces]))
         # Metabolic Equivalent of Task
-        self.hourlyplaceMET = sum([1.5 * 10 * i for i in self.durationPlaces])  # 1.5 MET for 10 minutes times duration measured in 10minute steps
+        self.hourlyplaceMET = sum([1.5 * 10 * value if (self.activities[count] != 1) else 0 for count, value in enumerate(self.durationActivties)])  # 1.5 MET for 10 minutes times duration measured in 10minute steps
         
     def ResetPlaceTracks(self):
       if self.activity== "perform_activity":
         self.visitedPlaces = [self.visitedPlaces[-1]]
         self.durationPlaces = [0]
+        self.activities = [self.activities[-1]]
+        self.durationActivties = [0]
       else:
         self.visitedPlaces = []
         self.durationPlaces = []
+        self.activities = []
+        self.durationActivties = []
     
     def TravelExposure(self):
       if len(self.thishourtrack) > 0:       # transform overlay function to point in polygon, get points along line (10m), joining points with grid cellsize/2
@@ -682,8 +698,8 @@ class TransportAirPollutionExposureModel(Model):
         #                                                  include_baseline_in_dispersion = False,
         #                                                  baseline_NO2 = self.TraffGrid["baseline_NO2"],
         #                                                  params = list(paramvalues["values"]))
-        airpoll_grid_raster = CellularAut_utils.cellautom_dispersion_dummy(weightmatrix = self.weightsmatrix, airpollraster = airpoll_grid_raster, nr_repeats=3,
-                         baseline_NO2 = self.TraffGrid["baseline_NO2"], include_baseline_in_dispersion = False)
+        airpoll_grid_raster = CellularAut_utils.cellautom_dispersion_dummy(weightmatrix = self.weightsmatrix, airpollraster = airpoll_grid_raster, nr_repeats=3, multiplier=1.074067,
+                                                                            baseline_NO2 = self.TraffGrid["baseline_NO2"], include_baseline_in_dispersion = False)
         self.TraffGrid["NO2"] = np.asarray(airpoll_grid_raster[:]).flatten() 
         self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"NO2"] = self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffNO2"] + self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"baseline_NO2"]
         AirPollGrid[f"prNO2_m{self.current_datetime.month}_h{self.hour}"] = self.TraffGrid["NO2"]
@@ -765,11 +781,11 @@ if __name__ == "__main__":
     starting_date = datetime(2019, 1, 1, 0, 50, 0)
     
     # Type of scenario
-    # modelname = "StatusQuo" 
+    modelname = "StatusQuo" 
     # modelname = "SpeedInterv"
     # modelname = "RetaiDnsDiv"
     # modelname = "PedStrWidth"
-    modelname = "LenBikRout"
+    # modelname = "LenBikRout"
 
     # cellsize of the Airpollution and Traffic grid
     cellsize = 50    # 50m x 50m
@@ -785,8 +801,8 @@ if __name__ == "__main__":
     # modelvars = "allvars_strict"
     modelvars = "allvars"
     
-    PCstat = "PCA"
-    # PCstat = "NOPCA"
+    # PCstat = "PCA"
+    PCstat = "NOPCA"
 
     
     #############################################################################################################
@@ -919,7 +935,6 @@ if __name__ == "__main__":
 
     if PCstat == "PCA":
         FactorLoadings = pd.read_csv(path_data+f"ModalChoiceModel/{modelvars}_PCLoadings.csv")
-        print(FactorLoadings)
     else:
         FactorLoadings = None
   
