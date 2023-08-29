@@ -67,8 +67,8 @@ def init_worker_init(schedules, Resid, univers, Scho, Prof, modvars):
     modelvars = modvars
 
     # initialize worker processes
-def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid, modvars, PCst, FacLoad):
-    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid, modelvars, PCstat, FactorLoadings
+def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid, airpolgr, modvars, PCst, FacLoad):
+    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid, AirPollGrid, modelvars, PCstat, FactorLoadings
     Residences = Resid
     Entertainment = Entertain
     Restaurants = Restaur
@@ -83,6 +83,7 @@ def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprev
     originvariables = originvars
     destinvariables = destinvars
     EnvStressGrid = Grid
+    AirPollGrid = airpolgr
     modelvars = modvars
     PCstat = PCst
     FactorLoadings = FacLoad
@@ -120,6 +121,12 @@ def hourly_worker_process_strict( agents, current_datetime, NO2):
         agent.Exposure()
         agent.step(current_datetime)
     return agents
+
+def TraffSpatialJoint(tracks, dum):
+    global AirPollGrid
+    drivengrids = gpd.sjoin(AirPollGrid[["int_id", "geometry"]], gpd.GeoDataFrame(data = {'count': [1]*len(tracks), 'geometry':tracks}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
+    TraffGrid = AirPollGrid[["int_id", "geometry"]].merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
+    return list(TraffGrid['count'].fillna(0))
 
 def RetrieveRoutes(thishourmode, thishourtrack):
    if "drive" in thishourmode:
@@ -640,6 +647,7 @@ class TransportAirPollutionExposureModel(Model):
         self.TraffGrid["TraffV"] = 0
         self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff) \
                                                                           + (AirPollGrid.query('ON_ROAD == 1')[f"TraffVrest{self.hour}"])
+        self.TraffGrid.loc[self.TraffGrid["TraffV"] < 0,"TraffV"] = 0
         if TraffStage == "PredictionR2":
             TraffAssDat.write(f"hour {self.current_datetime} \n")
             TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
@@ -662,10 +670,15 @@ class TransportAirPollutionExposureModel(Model):
         else:
           self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
         if len(self.HourlyTraffic) > 0: 
-          drivengrids = gpd.sjoin(AirPollGrid.drop("count", axis= 1), gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
-          self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
-          self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
-          # drivenroads = gpd.sjoin(carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="overlaps")[["fid", "count"]]
+          if len(self.HourlyTraffic) > 15:
+            counts = pool.starmap(TraffSpatialJoint, [(tracks, 0) for tracks in np.array_split(self.HourlyTraffic, n)], chunksize=1)
+            print("Max recorded traffic", max(np.array(counts).sum(axis=0)))
+            self.TraffGrid = AirPollGrid
+            self.TraffGrid['count'] = np.array(counts).sum(axis=0)
+          else:
+            drivengrids = gpd.sjoin(AirPollGrid[["int_id", "geometry"]], gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
+            self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
+            self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
           # # drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner", max_distance = 50)[["fid", "count"]] # map matching, improve with leuvenmapmatching
           # drivenroads = carroads.merge(drivenroads.groupby(['fid'], as_index=False).sum(), on="fid")
           # self.TraffGrid = gpd.sjoin(drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
@@ -775,7 +788,7 @@ if __name__ == "__main__":
     newpop = False
     
     # Length of the simulation run
-    NrHours = 25
+    NrHours = 26
     NrDays = 1
     
     # Starting Date and Time
@@ -871,7 +884,7 @@ if __name__ == "__main__":
     AirPollGrid = gpd.read_feather(path_data+f"FeatherDataABM/AirPollgrid{cellsize}m.feather")
     AirPollPred = pd.read_csv(path_data+f"Air Pollution Determinants/Pred_{cellsize}m.csv")
     TraffDat = pd.read_csv(path_data+ "Air Pollution Determinants/AirPollRaster50m_TraffVdata.csv")
-    TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
+    TraffVrest = pd.read_csv(path_data+f"ModelRuns/TrafficMaps/Remainder/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
     airpoll_grid_raster = xr.open_dataarray(path_data+ f"Air Pollution Determinants/AirPollDeterm_grid_{cellsize}m.tif", engine="rasterio")[0] # Read raster data using rasterio
     moderator_df = pd.read_csv(path_data+ f"Air Pollution Determinants/moderator_{cellsize}m.csv")     # Read moderator DataFrame
     paramvalues = pd.read_csv(path_data+ f"Air Pollution Determinants/GAparam_results_python_5_{cellsize}m.csv") # Read calibrated parameters
@@ -896,7 +909,6 @@ if __name__ == "__main__":
 
     # Read the Mode of Transport Choice Model
     print("Reading Mode of Transport Choice Model")
-
     if modelvars == "allvars":
         routevariables = ["popDns", "retaiDns","greenCovr", "RdIntrsDns", "TrafAccid", "NrTrees", "MeanTraffV", "HighwLen", "AccidPedes",
                         "PedStrWidt", "PedStrLen", "LenBikRout", "DistCBD", "retailDiv", "MeanSpeed", "MaxSpeed", "NrStrLight", "CrimeIncid",
@@ -928,7 +940,6 @@ if __name__ == "__main__":
     elif modelvars == "allvars":
         colvars = routevariables_suff + originvariables_suff + destinvariables_suff + personalvariables + tripvariables + weathervariables
 
-    print("Reading Mode of Transport Choice Model")
     ModalChoiceModel = PMMLTreeClassifier(pmml=path_data+f"ModalChoiceModel/modalChoice_{modelvars}{PCstat}.pmml")
     ModalChoiceModel.splitter = "random"
     OrderPredVars = [x for x in ModalChoiceModel.fields][1:]
@@ -939,8 +950,9 @@ if __name__ == "__main__":
     else:
         FactorLoadings = None
   
+  
     # Preparing Log Documents
-
+    print("Preparing Log Documents")
     if TraffStage != "PredictionNoR2":
       TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}_{modelname}.txt', 'a',buffering=1)
       TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
@@ -956,11 +968,10 @@ if __name__ == "__main__":
     pool =  Pool(initializer= init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
                                                           ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
                                                           projecy_to_crs, crs, routevariables, originvariables, 
-                                                          destinvariables, airpoll_grid_raster, modelvars, PCstat, 
+                                                          destinvariables, airpoll_grid_raster, AirPollGrid[["int_id", "ON_ROAD", "geometry"]], modelvars, PCstat, 
                                                           FactorLoadings))
 
     print("Starting Simulation")
-
     if profile:
       f = open(path_data+'profile_results.txt', 'w')
       for t in range(144):      
@@ -990,3 +1001,5 @@ if __name__ == "__main__":
     
     if TraffStage != "PredictionNoR2":
       TraffAssDat.close()
+
+    ModalSplitLog.close()
