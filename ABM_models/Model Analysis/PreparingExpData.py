@@ -7,7 +7,9 @@ path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 # modelrun = "SpeedInterv"
 # modelrun = "StatusQuo"
 # modelrun = "PedStrWidth"
-modelrun = "RetaiDnsDiv"
+# modelrun = "RetaiDnsDiv"
+modelrun = "LenBikRout"
+
 
 
 # read exposure data

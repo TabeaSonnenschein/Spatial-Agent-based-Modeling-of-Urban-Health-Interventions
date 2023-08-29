@@ -81,13 +81,13 @@ def LineOverTimeColContinous(outcomvar, colvar, showplots, modelrun, ylabel = No
 ######################################################
 nb_agents = 43500
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
-# path_data ="/Users/tsonnens/Documents/Exposure Results"
-# path_data ="/Users/tsonnens/Documents/Exposure Intervention"
 
-# modelrun = "SpeedInterv"
 # modelrun = "StatusQuo"
-modelrun = "PedStrWidth"
+# modelrun = "SpeedInterv"
+# modelrun = "PedStrWidth"
 # modelrun = "RetaiDnsDiv"
+modelrun = "LenBikRout"
+
 
 os.chdir(path_data + 'ModelRuns/AgentExposure/' + modelrun)
 

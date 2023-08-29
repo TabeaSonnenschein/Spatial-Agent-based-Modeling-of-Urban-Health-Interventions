@@ -9,9 +9,10 @@ nb_agents = 43500
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 
 # modelrun = "SpeedInterv"
-modelrun = "StatusQuo"
+# modelrun = "StatusQuo"
 # modelrun = "PedStrWidth"
 # modelrun = "RetaiDnsDiv"
+modelrun = "LenBikRout"
 
 os.chdir(path_data)
 
