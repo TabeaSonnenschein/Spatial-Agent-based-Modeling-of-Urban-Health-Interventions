@@ -795,10 +795,10 @@ if __name__ == "__main__":
     starting_date = datetime(2019, 1, 1, 0, 50, 0)
     
     # Type of scenario
-    modelname = "StatusQuo" 
+    # modelname = "StatusQuo" 
     # modelname = "SpeedInterv"
     # modelname = "RetaiDnsDiv"
-    # modelname = "PedStrWidth"
+    modelname = "PedStrWidth"
     # modelname = "LenBikRout"
 
     # cellsize of the Airpollution and Traffic grid
@@ -815,8 +815,8 @@ if __name__ == "__main__":
     # modelvars = "allvars_strict"
     modelvars = "allvars"
     
-    # PCstat = "PCA"
-    PCstat = "NOPCA"
+    PCstat = "PCA"
+    # PCstat = "NOPCA"
 
     
     #############################################################################################################
