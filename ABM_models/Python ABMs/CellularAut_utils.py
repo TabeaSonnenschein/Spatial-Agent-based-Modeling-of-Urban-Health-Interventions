@@ -59,7 +59,8 @@ def monthly_mean_matrix(month, params, dailyWeather):
         monthly_matrices.append(matrix)
     return(np.asarray(np.mean(monthly_matrices, axis=0)))
 
-
+def create_weight_matrix(prop_rate):
+    return np.full((5, 5), prop_rate)
 
 def adjust_diff_moderators(rasterset, params, moderator_df):
     values = np.asarray(rasterset[:]).flatten()
@@ -129,3 +130,16 @@ def cellautom_dispersion_noadjuster(weightmatrix, airpollraster, monthlyweather,
         airpollraster[:] = np.array(np.asarray(airpollraster[:]).flatten() + (params[12] * baseline_NO2)).reshape(airpollraster.shape)
     return(airpollraster)
 
+
+def cellautom_dispersion_dummy(weightmatrix, airpollraster, nr_repeats, multiplier, baseline_NO2, include_baseline_in_dispersion):
+    @ngjit    
+    def weightedaverage(kernel_data):
+        # print(np.multiply(kernel_data, weightmatrix), round((np.nansum(np.multiply(kernel_data, weightmatrix))/np.nansum(weightmatrix)),10), round(np.nanmean(np.multiply(kernel_data, weightmatrix)),10))
+        return round((np.nansum(np.multiply(kernel_data, weightmatrix))/np.nansum(weightmatrix)),10)
+        # return round(np.nanmean(np.multiply(kernel_data, weightmatrix)),10)
+    for i in range(int(nr_repeats)):
+            airpollraster[:] =  focal.apply(raster = airpollraster, kernel= np.full((5, 5), 1), func= weightedaverage)
+    airpollraster[:] = np.asarray(airpollraster[:]).flatten() * multiplier
+    if include_baseline_in_dispersion == False:
+        airpollraster[:] = np.array(np.asarray(airpollraster[:]).flatten() + (baseline_NO2)).reshape(airpollraster.shape)
+    return(airpollraster)

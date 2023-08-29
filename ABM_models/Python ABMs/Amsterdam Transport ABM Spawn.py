@@ -561,10 +561,11 @@ class TransportAirPollutionExposureModel(Model):
         self.WeatherVars = [self.rain, self.temperature, self.winddirection, self.windspeed]
         print("temperature: " , self.temperature , "rain: " , self.rain , " wind: ", self.windspeed, " wind direction: ", self.winddirection, "tempdifference: ", self.tempdifference)
         
-        self.weightsmatrix = CellularAut_utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
-                               windspeed = self.windspeed , winddirection = self.winddirection, 
-                               temperature =self.temperature, rain = self.rain, 
-                               temp_diff = self.tempdifference)
+        # self.weightsmatrix = CellularAut_utils.create_meteo_weightmatrix( params= list(paramvalues["values"].iloc[0:6]) +  list(paramvalues["values"].iloc[15:18]),
+        #                        windspeed = self.windspeed , winddirection = self.winddirection, 
+        #                        temperature =self.temperature, rain = self.rain, 
+        #                        temp_diff = self.tempdifference)
+        self.weightsmatrix = CellularAut_utils.create_weight_matrix(prop_rate = 0.7)
         print(self.weightsmatrix)
         
     def DetermineWeather(self):
@@ -674,13 +675,15 @@ class TransportAirPollutionExposureModel(Model):
         global airpoll_grid_raster, moderator_df
         # assigning the trafficV values to the raster
         airpoll_grid_raster[:] = np.array(self.TraffGrid["TraffNO2"].values).reshape(airpoll_grid_raster.shape)
-        airpoll_grid_raster = CellularAut_utils.cellautom_dispersion(weightmatrix = self.weightsmatrix, 
-                                                         airpollraster = airpoll_grid_raster, 
-                                                         monthlyweather = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month],
-                                                         moderator_df = moderator_df, 
-                                                         include_baseline_in_dispersion = False,
-                                                         baseline_NO2 = self.TraffGrid["baseline_NO2"],
-                                                         params = list(paramvalues["values"]))
+        # airpoll_grid_raster = CellularAut_utils.cellautom_dispersion(weightmatrix = self.weightsmatrix, 
+        #                                                  airpollraster = airpoll_grid_raster, 
+        #                                                  monthlyweather = self.monthly_weather_df.loc[self.monthly_weather_df["month"] == self.current_datetime.month],
+        #                                                  moderator_df = moderator_df, 
+        #                                                  include_baseline_in_dispersion = False,
+        #                                                  baseline_NO2 = self.TraffGrid["baseline_NO2"],
+        #                                                  params = list(paramvalues["values"]))
+        airpoll_grid_raster = CellularAut_utils.cellautom_dispersion_dummy(weightmatrix = self.weightsmatrix, airpollraster = airpoll_grid_raster, nr_repeats=3,
+                         baseline_NO2 = self.TraffGrid["baseline_NO2"], include_baseline_in_dispersion = False)
         self.TraffGrid["NO2"] = np.asarray(airpoll_grid_raster[:]).flatten() 
         self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"NO2"] = self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffNO2"] + self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"baseline_NO2"]
         AirPollGrid[f"prNO2_m{self.current_datetime.month}_h{self.hour}"] = self.TraffGrid["NO2"]
@@ -699,7 +702,7 @@ class TransportAirPollutionExposureModel(Model):
         self.minute = self.current_datetime.minute
         if self.current_datetime.day == 1 and self.current_datetime.hour == 0 and self.current_datetime.minute == 0: # new month
             self.DetermineWeather() 
-            self.CalculateMonthlyWeightMatrix()   
+            # self.CalculateMonthlyWeightMatrix()   
         if self.minute == 0:  # new hour
             print("hourly executiontime Human Steps: ", self.hourlyext)
             self.hourlyext = 0
