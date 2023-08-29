@@ -662,14 +662,15 @@ class TransportAirPollutionExposureModel(Model):
         else:
           self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
         if len(self.HourlyTraffic) > 0: 
-          # drivengrids = gpd.sjoin(AirPollGrid.drop("count", axis= 1), gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
-          # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
-          # self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
-          drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner", max_distance = 50)[["fid", "count"]] # map matching, improve with leuvenmapmatching
-          drivenroads = carroads.merge(drivenroads.groupby(['fid'], as_index=False).sum(), on="fid")
-          self.TraffGrid = gpd.sjoin(drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
+          drivengrids = gpd.sjoin(AirPollGrid.drop("count", axis= 1), gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
+          self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
           self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
-          self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id'], as_index=False).mean(), on="int_id")
+          # drivenroads = gpd.sjoin(carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="overlaps")[["fid", "count"]]
+          # # drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner", max_distance = 50)[["fid", "count"]] # map matching, improve with leuvenmapmatching
+          # drivenroads = carroads.merge(drivenroads.groupby(['fid'], as_index=False).sum(), on="fid")
+          # self.TraffGrid = gpd.sjoin(drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
+          # self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
+          # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id'], as_index=False).mean(), on="int_id")
           print("joined traffic tracks to grid")
           if TraffStage == "Regression":
               self.PlotTrafficCount()
@@ -707,7 +708,7 @@ class TransportAirPollutionExposureModel(Model):
     def PlotAirPoll(self):
         self.TraffGrid.plot("NO2", antialiased=False, legend = True)
         plt.title(f"NO2 Prediction: Month {self.current_datetime.month}, Hour {self.hour -1}")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/NO2_A{nb_humans}_H{self.hour-1}_M{self.current_datetime.month}_{modelname}.png')
+        plt.savefig(path_data + f'ModelRuns/NO2/NO2_A{nb_humans}_H{self.hour-1}_M{self.current_datetime.month}_{modelname}.png')
         plt.close()
         time.sleep(1)
     
@@ -944,7 +945,7 @@ if __name__ == "__main__":
       TraffAssDat = open(f'{path_data}TraffAssignModelPerf{nb_humans}_{modelname}.txt', 'a',buffering=1)
       TraffAssDat.write(f"Number of Agents: {nb_humans} \n")
 
-    ModalSplitLog = open(f'{path_data}ModalSplitLog{nb_humans}_{modelname}.txt', 'a',buffering=1)
+    ModalSplitLog = open(f'{path_data}ModelRuns/ModalSplit/ModalSplitLog{nb_humans}_{modelname}.txt', 'a',buffering=1)
     ModalSplitLog.write(f"Number of Agents: {nb_humans} \n")
 
 
@@ -983,7 +984,7 @@ if __name__ == "__main__":
     pool.terminate()         
             
     if TraffStage in ["PredictionNoR2", "PredictionR2"]:
-      pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_NO2_pred{nb_humans}_{modelname}.csv", index=False)
+      pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/NO2/AirPollGrid_NO2_pred{nb_humans}_{modelname}.csv", index=False)
     elif TraffStage == "Remainder":
       pd.DataFrame(AirPollGrid).to_csv(path_data+f"ModelRuns/TrafficMaps/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv", index=False)
     
