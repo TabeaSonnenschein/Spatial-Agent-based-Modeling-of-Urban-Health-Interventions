@@ -645,14 +645,14 @@ class TransportAirPollutionExposureModel(Model):
         else:
           self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
         if len(self.HourlyTraffic) > 0: 
-          drivengrids = gpd.sjoin(AirPollGrid.drop("count", axis= 1), gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
-          self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
-          self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
-          # drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner", max_distance = 50)[["fid", "count"]] # map matching, improve with leuvenmapmatching
-          # drivenroads = carroads.merge(drivenroads.groupby(['fid'], as_index=False).sum(), on="fid")
-          # self.TraffGrid = gpd.sjoin(drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
+          # drivengrids = gpd.sjoin(AirPollGrid.drop("count", axis= 1), gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
+          # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
           # self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
-          # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id'], as_index=False).mean(), on="int_id")
+          drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner", max_distance = 50)[["fid", "count"]] # map matching, improve with leuvenmapmatching
+          drivenroads = carroads.merge(drivenroads.groupby(['fid'], as_index=False).sum(), on="fid")
+          self.TraffGrid = gpd.sjoin(drivenroads, AirPollGrid.drop("count", axis= 1) , how="right", predicate="intersects")
+          self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
+          self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id'], as_index=False).mean(), on="int_id")
           print("joined traffic tracks to grid")
           if TraffStage == "Regression":
               self.PlotTrafficCount()
