@@ -125,7 +125,7 @@ def hourly_worker_process_strict( agents, current_datetime, NO2):
 def TraffSpatialJoint(tracks, dum):
     global AirPollGrid
     drivengrids = gpd.sjoin(AirPollGrid[["int_id", "geometry"]], gpd.GeoDataFrame(data = {'count': [1]*len(tracks), 'geometry':tracks}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
-    TraffGrid = AirPollGrid[["int_id", "geometry"]].merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
+    TraffGrid = AirPollGrid[["int_id", "geometry"]].merge(drivengrids.groupby(['int_id'], as_index=False).sum(), on="int_id")
     return list(TraffGrid['count'].fillna(0))
 
 def RetrieveRoutes(thishourmode, thishourtrack):
@@ -645,9 +645,10 @@ class TransportAirPollutionExposureModel(Model):
 
     def TotalTraffCalc(self):
         self.TraffGrid["TraffV"] = 0
-        self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff) \
-                                                                          + (AirPollGrid.query('ON_ROAD == 1')[f"TraffVrest{self.hour}"])
-        self.TraffGrid.loc[self.TraffGrid["TraffV"] < 0,"TraffV"] = 0
+        # self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff) \
+        #                                                                   + (AirPollGrid.query('ON_ROAD == 1')[f"TraffVrest{self.hour}"])
+        self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff)
+        # self.TraffGrid.loc[self.TraffGrid["TraffV"] < 0,"TraffV"] = 0
         if TraffStage == "PredictionR2":
             TraffAssDat.write(f"hour {self.current_datetime} \n")
             TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
@@ -678,7 +679,7 @@ class TransportAirPollutionExposureModel(Model):
             self.PlotTrafficCount()
           else:
             drivengrids = gpd.sjoin(AirPollGrid[["int_id", "geometry"]], gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
-            self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
+            self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).sum(), on="int_id")
             self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
           # # drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner", max_distance = 50)[["fid", "count"]] # map matching, improve with leuvenmapmatching
           # drivenroads = carroads.merge(drivenroads.groupby(['fid'], as_index=False).sum(), on="fid")
@@ -890,7 +891,7 @@ if __name__ == "__main__":
     airpoll_grid_raster = xr.open_dataarray(path_data+ f"Air Pollution Determinants/AirPollDeterm_grid_{cellsize}m.tif", engine="rasterio")[0] # Read raster data using rasterio
     moderator_df = pd.read_csv(path_data+ f"Air Pollution Determinants/moderator_{cellsize}m.csv")     # Read moderator DataFrame
     paramvalues = pd.read_csv(path_data+ f"Air Pollution Determinants/GAparam_results_python_5_{cellsize}m.csv") # Read calibrated parameters
-    TraffVCoeff = 29.90463443      # 1.793033 for 8700
+    TraffVCoeff = 1      # 1.793033 for 8700 #29.90463443
     TraffNO2Coeff = 0.03096377438925   # for 50m cellsize
 
     # Preparing Data    
