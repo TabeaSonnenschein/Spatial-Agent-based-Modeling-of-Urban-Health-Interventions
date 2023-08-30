@@ -608,7 +608,7 @@ class TransportAirPollutionExposureModel(Model):
     def PlotTrafficCount(self):
         self.TraffGrid.plot("count", antialiased=False, legend = True) 
         plt.title(f"Traffic of {nb_humans} assigned at {self.hour-1} to {self.hour} o'clock")
-        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_assign_A{nb_humans}_H{self.hour-1}.png')
+        plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid_assign_A{nb_humans}_H{self.hour-1}_{modelname}.png')
         plt.close()
     
     def PlotObservedTraffic(self):
@@ -672,9 +672,10 @@ class TransportAirPollutionExposureModel(Model):
         if len(self.HourlyTraffic) > 0: 
           if len(self.HourlyTraffic) > 15:
             counts = pool.starmap(TraffSpatialJoint, [(tracks, 0) for tracks in np.array_split(self.HourlyTraffic, n)], chunksize=1)
-            print("Max recorded traffic", max(np.array(counts).sum(axis=0)))
+            print("Max", np.max(np.array(counts).sum(axis=0)), "Mean", np.mean(np.array(counts).sum(axis=0)), "Median", np.median(np.array(counts).sum(axis=0)))
             self.TraffGrid = AirPollGrid
             self.TraffGrid['count'] = np.array(counts).sum(axis=0)
+            self.PlotTrafficCount()
           else:
             drivengrids = gpd.sjoin(AirPollGrid[["int_id", "geometry"]], gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
             self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).mean(), on="int_id")
@@ -778,6 +779,7 @@ class TransportAirPollutionExposureModel(Model):
 
 
 if __name__ == "__main__":  
+    
     #############################################################################################################
     ### Setting simulation parameters
     #############################################################################################################
