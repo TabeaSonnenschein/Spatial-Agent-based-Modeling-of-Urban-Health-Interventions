@@ -77,16 +77,71 @@ def LineOverTimeColContinous(outcomvar, colvar, showplots, modelrun, ylabel = No
     if showplots:
         plt.show()
     plt.close()
+    
 
+def ViolinOverTimeColCategory(outcomvar, colcategory, showplots, modelrun, ylabel = None, collabel = None):
+    if ylabel is None:
+        ylabel = outcomvar
+    if collabel is None:
+        collabel = colcategory
+    sns.set(style="whitegrid")
+    plt.figure(figsize=(10, 6))
+    sns.violinplot(x="hour", y=outcomvar, hue=colcategory, data=exposure_df)
+    plt.xlabel("Hour")
+    plt.ylabel(ylabel)
+    plt.title(f"Distribution of {outcomvar} Over Time by {collabel}")
+    plt.legend(title=collabel)
+    plt.savefig(f'{modelrun}_violinplot_{outcomvar}_by_{colcategory}.pdf', dpi = 300)
+    if showplots:
+        plt.show()
+    plt.close()
+
+def ViolinOverTimeColContinous(outcomvar, colcategory, showplots, modelrun, ylabel = None, collabel = None):
+    if ylabel is None:
+        ylabel = outcomvar
+    if collabel is None:
+        collabel = colcategory
+    sns.set(style="whitegrid")
+    color_map = sns.color_palette("RdYlGn_r", as_cmap=True)
+    plt.figure(figsize=(10, 6))
+    sns.violinplot(x="hour", y=outcomvar, hue=colcategory, data=exposure_df, palette=color_map)
+    plt.xlabel("Hour")
+    plt.ylabel(ylabel)
+    plt.title(f"Distribution of {outcomvar} Over Time by {collabel}")
+    plt.legend(title=collabel)
+    plt.savefig(f'{modelrun}_violinplot_{outcomvar}_by_{colcategory}.pdf', dpi = 300)
+    if showplots:
+        plt.show()
+    plt.close()
+
+def PlotVarsInLists(plottypes, outcomevars, continuousstratvars, categoricalstratvars, showplots, modelrun, fullnamedict):
+    for plottype in plottypes:
+        for outvar in outcomevars:
+            if plottype == "scatter":
+                for stratvar in continuousstratvars:
+                    ScatterOverTimeColContinous(outcomvar=outvar, colvar=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+                for stratvar in categoricalstratvars:
+                    ScatterOverTimeColCategory(outcomvar=outvar, colcategory=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+            elif plottype == "line":
+                for stratvar in continuousstratvars:
+                    LineOverTimeColContinous(outcomvar=outvar, colvar=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+                for stratvar in categoricalstratvars:
+                    LineOverTimeColCategory(outcomvar=outvar, colcategory=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+            elif plottype == "violin":
+                for stratvar in continuousstratvars:
+                    ViolinOverTimeColContinous(outcomvar=outvar, colvar=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+                for stratvar in categoricalstratvars:
+                    ViolinOverTimeColCategory(outcomvar=outvar, colcategory=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+    
 ######################################################
 nb_agents = 43500
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 
-# modelrun = "StatusQuo"
+modelrun = "StatusQuo"
 # modelrun = "SpeedInterv"
 # modelrun = "PedStrWidth"
 # modelrun = "RetaiDnsDiv"
-modelrun = "LenBikRout"
+# modelrun = "LenBikRout"
 
 
 os.chdir(path_data + 'ModelRuns/AgentExposure/' + modelrun)
@@ -108,51 +163,87 @@ for column in exposure_df.select_dtypes(include=['object']):
 exposure_df = exposure_df.rename(columns={"incomeclass_int": "income", "migrationbackground": "migr_bck"})
 
 print("Plotting the data")
-figuresToPlot = ["sex_scatterNO2","sex_scatterMET", "income_scatterNO2", "income_scatterMET", "migr_bck_scatterNO2", "migr_bcksex_scatterMET",
-                 "sex_lineNO2", "sex_lineMET", "income_lineNO2", "income_lineMET", "migr_bck_lineNO2", "migr_bcksex_lineMET"]
+# scatterplots =  ["sex_scatterNO2","sex_scatterMET", "income_scatterNO2", "income_scatterMET", "migr_bck_scatterNO2", "migr_bcksex_scatterMET"]
+# lineplots = ["sex_lineNO2", "sex_lineMET", "income_lineNO2", "income_lineMET", "migr_bck_lineNO2", "migr_bcksex_lineMET"]
+# figuresToPlot = lineplots
+                 
+continuousstratvars = ["income"]
+categoricalstratvars = ["sex", "migr_bck"]
+plottypes = [ "line", "violin"] # "scatter"
+outcomevars = ["NO2", "MET"]
+
+fullnamedict = {
+    "income": "Income Percentile",
+    "sex": "sex",
+    "migr_bck": "Migration Background",
+    "NO2": "NO2 (µg/m3)",
+    "MET": "Metabolic Equivalent of Task (MET)",
+    "NO2_diff": "NO2 Difference (µg/m3)",
+    "MET_diff": "Metabolic Equivalent of Task (MET) Difference" }
+
+                
 # figuresToPlot = []
 showplots = False
 
+PlotVarsInLists(plottypes, outcomevars, continuousstratvars, categoricalstratvars, showplots, modelrun, fullnamedict)
 
-print("Plotting Scatterplots")
+# for plottype in plottypes:
+#     for outvar in outcomevars:
+#         if plottype == "scatter":
+#             for stratvar in continuousstratvars:
+#                 ScatterOverTimeColContinous(outcomvar=outvar, colvar=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+#             for stratvar in categoricalstratvars:
+#                 ScatterOverTimeColCategory(outcomvar=outvar, colcategory=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+#         elif plottype == "line":
+#             for stratvar in continuousstratvars:
+#                 LineOverTimeColContinous(outcomvar=outvar, colvar=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+#             for stratvar in categoricalstratvars:
+#                 LineOverTimeColCategory(outcomvar=outvar, colcategory=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+#         elif plottype == "violin":
+#             for stratvar in continuousstratvars:
+#                 ViolinOverTimeColContinous(outcomvar=outvar, colvar=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
+#             for stratvar in categoricalstratvars:
+#                 ViolinOverTimeColCategory(outcomvar=outvar, colcategory=stratvar, showplots=showplots, modelrun=modelrun, ylabel=fullnamedict[outvar], collabel=fullnamedict[stratvar])
 
-if "sex_scatterNO2" in figuresToPlot:
-    ScatterOverTimeColCategory(outcomvar="NO2", colcategory="sex", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)")
+# print("Plotting Scatterplots")
 
-if "sex_scatterMET" in figuresToPlot:
-    ScatterOverTimeColCategory(outcomvar="MET", colcategory="sex", showplots=showplots, modelrun=modelrun, ylabel="Metabolic Equivalent of Task (MET)")
+# if "sex_scatterNO2" in figuresToPlot:
+#     ScatterOverTimeColCategory(outcomvar="NO2", colcategory="sex", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)")
 
-if "income_scatterNO2" in figuresToPlot:
-    ScatterOverTimeColContinous(outcomvar="NO2", colvar="income", showplots=showplots, modelrun=modelrun, collabel="Income Percentile", ylabel="NO2 (µg/m3)")
+# if "sex_scatterMET" in figuresToPlot:
+#     ScatterOverTimeColCategory(outcomvar="MET", colcategory="sex", showplots=showplots, modelrun=modelrun, ylabel="Metabolic Equivalent of Task (MET)")
 
-if "income_scatterMET" in figuresToPlot:
-    ScatterOverTimeColContinous(outcomvar="MET", colvar="income", showplots=showplots, modelrun=modelrun, collabel="Income Percentile", ylabel="Metabolic Equivalent of Task (MET)")
+# if "income_scatterNO2" in figuresToPlot:
+#     ScatterOverTimeColContinous(outcomvar="NO2", colvar="income", showplots=showplots, modelrun=modelrun, collabel="Income Percentile", ylabel="NO2 (µg/m3)")
 
-if "migr_bck_scatterNO2" in figuresToPlot:
-    ScatterOverTimeColCategory(outcomvar="NO2", colcategory="migr_bck", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)", collabel="Migration Background")
+# if "income_scatterMET" in figuresToPlot:
+#     ScatterOverTimeColContinous(outcomvar="MET", colvar="income", showplots=showplots, modelrun=modelrun, collabel="Income Percentile", ylabel="Metabolic Equivalent of Task (MET)")
 
-if "migr_bcksex_scatterMET" in figuresToPlot:
-    ScatterOverTimeColCategory(outcomvar="MET", colcategory="migr_bck", showplots=showplots, modelrun=modelrun, ylabel="Metabolic Equivalent of Task (MET)", collabel="Migration Background")
+# if "migr_bck_scatterNO2" in figuresToPlot:
+#     ScatterOverTimeColCategory(outcomvar="NO2", colcategory="migr_bck", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)", collabel="Migration Background")
 
-print("Plotting Lineplots")
+# if "migr_bcksex_scatterMET" in figuresToPlot:
+#     ScatterOverTimeColCategory(outcomvar="MET", colcategory="migr_bck", showplots=showplots, modelrun=modelrun, ylabel="Metabolic Equivalent of Task (MET)", collabel="Migration Background")
+
+# print("Plotting Lineplots")
     
-if "sex_lineNO2" in figuresToPlot:
-    LineOverTimeColCategory(outcomvar="NO2", colcategory="sex", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)")
+# if "sex_lineNO2" in figuresToPlot:
+#     LineOverTimeColCategory(outcomvar="NO2", colcategory="sex", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)")
 
-if "sex_lineMET" in figuresToPlot:
-    LineOverTimeColCategory(outcomvar="MET", colcategory="sex", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)")
+# if "sex_lineMET" in figuresToPlot:
+#     LineOverTimeColCategory(outcomvar="MET", colcategory="sex", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)")
     
-if "income_lineNO2" in figuresToPlot:
-    LineOverTimeColContinous(outcomvar="NO2", colvar="income", showplots=showplots, modelrun=modelrun, collabel="Income Percentile", ylabel="NO2 (µg/m3)")
+# if "income_lineNO2" in figuresToPlot:
+#     LineOverTimeColContinous(outcomvar="NO2", colvar="income", showplots=showplots, modelrun=modelrun, collabel="Income Percentile", ylabel="NO2 (µg/m3)")
 
-if "income_lineMET" in figuresToPlot:
-    LineOverTimeColContinous(outcomvar="MET", colvar="income", showplots=showplots, modelrun=modelrun, collabel="Income Percentile", ylabel="Metabolic Equivalent of Task (MET)")
+# if "income_lineMET" in figuresToPlot:
+#     LineOverTimeColContinous(outcomvar="MET", colvar="income", showplots=showplots, modelrun=modelrun, collabel="Income Percentile", ylabel="Metabolic Equivalent of Task (MET)")
 
-if "migr_bck_lineNO2" in figuresToPlot:
-    LineOverTimeColCategory(outcomvar="NO2", colcategory="migr_bck", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)", collabel="Migration Background")
+# if "migr_bck_lineNO2" in figuresToPlot:
+#     LineOverTimeColCategory(outcomvar="NO2", colcategory="migr_bck", showplots=showplots, modelrun=modelrun, ylabel="NO2 (µg/m3)", collabel="Migration Background")
 
-if "migr_bcksex_lineMET" in figuresToPlot:
-    LineOverTimeColCategory(outcomvar="MET", colcategory="migr_bck", showplots=showplots, modelrun=modelrun, ylabel="Metabolic Equivalent of Task (MET)", collabel="Migration Background")
+# if "migr_bcksex_lineMET" in figuresToPlot:
+#     LineOverTimeColCategory(outcomvar="MET", colcategory="migr_bck", showplots=showplots, modelrun=modelrun, ylabel="Metabolic Equivalent of Task (MET)", collabel="Migration Background")
 
 
 
@@ -164,7 +255,7 @@ modelrun_stat = "StatusQuo"
 
 print("Reading the data")
 # read exposure data
-exposure_df_statusq = pd.read_csv(path_data + 'ModelRuns/AgentExposure/' + modelrun_stat + "2/"+ f"AgentExposure_A{nb_agents}_M1_{modelrun_stat}_hourAsRowsMerged.csv")
+exposure_df_statusq = pd.read_csv(path_data + 'ModelRuns/AgentExposure/' + modelrun_stat + f"/AgentExposure_A{nb_agents}_M1_{modelrun_stat}_hourAsRowsMerged.csv")
 
 exposure_comp = pd.merge(exposure_df, exposure_df_statusq, on=["agent_ID", "hour"], how="left", suffixes=("_interv", "_statusq"))
     
@@ -187,11 +278,8 @@ plt.legend()
 plt.savefig(f'{modelrun}_lineplot_NO2_comparedToStatusQuo.pdf', dpi = 300)
 
 # Display the plot
-plt.show()
+# plt.show()
 
-
-
-    
 # Set up Seaborn style
 sns.set(style="whitegrid")
 
@@ -211,7 +299,15 @@ plt.legend()
 plt.savefig(f'{modelrun}_lineplot_MET_comparedToStatusQuo.pdf', dpi = 300)
 
 # Display the plot
-plt.show()
+# plt.show()
+
+
+# plot the difference between intervention and status quo scenario
+exposure_comp["NO2_diff"] = exposure_comp["NO2_statusq"]- exposure_comp["NO2_interv"] 
+exposure_comp["MET_diff"] = exposure_comp["MET_statusq"]- exposure_comp["MET_interv"]
+
+
+PlotVarsInLists(plottypes, ["NO2_diff", "MET_diff"], continuousstratvars, categoricalstratvars, showplots, modelrun, fullnamedict)
 
 
 

@@ -5,10 +5,10 @@ nb_agents = 43500
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 # path_data ="/Users/tsonnens/Documents/Exposure Intervention"
 # modelrun = "SpeedInterv"
-# modelrun = "StatusQuo"
+modelrun = "StatusQuo"
 # modelrun = "PedStrWidth"
 # modelrun = "RetaiDnsDiv"
-modelrun = "LenBikRout"
+# modelrun = "LenBikRout"
 
 
 

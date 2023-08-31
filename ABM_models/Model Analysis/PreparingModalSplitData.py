@@ -6,13 +6,13 @@ import ast
 ####################################################
 
 nb_agents = 43500
-path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
+path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/ModalSplit"
 
 # modelrun = "SpeedInterv"
-# modelrun = "StatusQuo"
+modelrun = "StatusQuo"
 # modelrun = "PedStrWidth"
 # modelrun = "RetaiDnsDiv"
-modelrun = "LenBikRout"
+# modelrun = "LenBikRout"
 
 os.chdir(path_data)
 
@@ -26,7 +26,7 @@ content = content[2:]
 hours = [x[0] for x in content]
 dict = [", ".join(x[1:]).replace("Counter(", "").replace(")", "") for x in content]
 print(dict)
-dict = [ast.literal_eval(x) for x in dict]
+dict = [ast.literal_eval(x) if x != "" else ast.literal_eval("{'bike': 0, 'walk': 0, 'transit': 0, 'drive': 0}") for x in dict ]
 
 # transform the list of dictionaries to a dataframe
 modalsplit_df = pd.DataFrame.from_dict(dict)

@@ -10,9 +10,9 @@ path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/Modal
 
 # modelrun = "SpeedInterv"
 # modelrun = "StatusQuo"
-# modelrun = "PedStrWidth"
+modelrun = "PedStrWidth"
 # modelrun = "RetaiDnsDiv"
-modelrun = "LenBikRout"
+# modelrun = "LenBikRout"
 
 
 

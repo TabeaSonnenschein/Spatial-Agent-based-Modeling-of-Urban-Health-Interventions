@@ -55,7 +55,7 @@ import Math_utils
 # multiprocessing.util.log_to_stderr(level=logging.DEBUG)
 
 warnings.filterwarnings("ignore", module="shapely")
-n = os.cpu_count()
+
 
 def init_worker_init(schedules, Resid, univers, Scho, Prof, modvars):
     global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, modelvars
@@ -780,6 +780,9 @@ class TransportAirPollutionExposureModel(Model):
 
 
 if __name__ == "__main__":  
+    print("Nr of available logical CPUs", os.cpu_count())
+    n = os.cpu_count() - 4
+    print("Nr of assigned processes", n)
     
     #############################################################################################################
     ### Setting simulation parameters
@@ -798,9 +801,9 @@ if __name__ == "__main__":
     starting_date = datetime(2019, 1, 1, 0, 50, 0)
     
     # Type of scenario
-    modelname = "StatusQuo" 
+    # modelname = "StatusQuo" 
     # modelname = "SpeedInterv"
-    # modelname = "RetaiDnsDiv"
+    modelname = "RetaiDnsDiv"
     # modelname = "PedStrWidth"
     # modelname = "LenBikRout"
 
@@ -968,7 +971,7 @@ if __name__ == "__main__":
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data, starting_date=starting_date)
    
     print("Starting Multiprocessing Pool")
-    pool =  Pool(initializer= init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
+    pool =  Pool(processes=n, initializer= init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
                                                           ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
                                                           projecy_to_crs, crs, routevariables, originvariables, 
                                                           destinvariables, airpoll_grid_raster, AirPollGrid[["int_id", "ON_ROAD", "geometry"]], modelvars, PCstat, 
