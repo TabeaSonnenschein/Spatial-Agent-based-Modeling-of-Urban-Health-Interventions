@@ -662,23 +662,23 @@ class TransportAirPollutionExposureModel(Model):
         plt.close()
 
     def TrafficAssignment(self):
-        self.HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
-        self.HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, self.HourlyTraffic))))
+        HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
+        HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, HourlyTraffic))))
         # gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs).to_file(path_data + f'ModelRuns/TrafficTracks/TrafficTracks_A{nb_humans}_H{self.hour-1}.shp')
-        print("Nr of hourly traffic tracks: ", len(self.HourlyTraffic))
+        print("Nr of hourly traffic tracks: ", len(HourlyTraffic))
         if self.hour == 0:
           self.TraffVcolumn = f"TrV23_24"
         else:
           self.TraffVcolumn = f"TrV{self.hour-1}_{self.hour}"
-        if len(self.HourlyTraffic) > 0: 
-          if len(self.HourlyTraffic) > 15:
-            counts = pool.starmap(TraffSpatialJoint, [(tracks, 0) for tracks in np.array_split(self.HourlyTraffic, n)], chunksize=1)
+        if len(HourlyTraffic) > 0: 
+          if len(HourlyTraffic) > 15:
+            counts = pool.starmap(TraffSpatialJoint, [(tracks, 0) for tracks in np.array_split(HourlyTraffic, n)], chunksize=1)
             print("Max", np.max(np.array(counts).sum(axis=0)), "Mean", np.mean(np.array(counts).sum(axis=0)), "Median", np.median(np.array(counts).sum(axis=0)))
             self.TraffGrid = AirPollGrid
             self.TraffGrid['count'] = np.array(counts).sum(axis=0)
             self.PlotTrafficCount()
           else:
-            drivengrids = gpd.sjoin(AirPollGrid[["int_id", "geometry"]], gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
+            drivengrids = gpd.sjoin(AirPollGrid[["int_id", "geometry"]], gpd.GeoDataFrame(data = {'count': [1]*len(HourlyTraffic), 'geometry':HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
             self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).sum(), on="int_id")
             self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
           # # drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner", max_distance = 50)[["fid", "count"]] # map matching, improve with leuvenmapmatching
