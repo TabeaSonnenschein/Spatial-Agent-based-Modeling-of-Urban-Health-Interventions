@@ -172,8 +172,10 @@ class Humans(Agent):
         # Activity Schedules
         self.ScheduleID = vector[18]          # Schedule IDs
         self.WeekSchedules = []
+        self.WeekLocations = []
         for x in range(7):
-          self.WeekSchedules.append(list(schedulelist[x].loc[schedulelist[x]["ScheduleID"]== self.ScheduleID, ].values[0][1:]))
+          self.WeekSchedules.append(list(schedulelist[x].loc[schedulelist[x]["SchedID"] == self.ScheduleID, ].values[0][1:146]))
+          self.WeekLocations.append(list(schedulelist[x].loc[schedulelist[x]["SchedID"] == self.ScheduleID, ].values[0][146:]))
         self.former_activity = self.WeekSchedules[self.model.weekday][self.model.activitystep]
         self.activity = "perform_activity"
         self.weekday = self.model.weekday
@@ -217,7 +219,7 @@ class Humans(Agent):
         if self.current_activity == 3:  # 3 = work
           commute = 1
           self.destination_activity = self.Workplace
-          if "self.homeTOwork" in locals() and (self.former_activity == 5 or self.former_activity == 1):  # 1 = sleep/rest, 5 = at home
+          if "self.homeTOwork" in locals() and  (self.former_activity in [5, 1, 6, 7]):  # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
             self.track_path = self.homeTOwork
             self.track_geometry = self.homeTOwork_geometry
             self.modalchoice = self.homeTOwork_mode
@@ -231,7 +233,7 @@ class Humans(Agent):
             self.destination_activity = self.University
           else:
             self.destination_activity = self.School
-          # 1 = sleep/rest, 5 = at home, 6 = cooking
+          # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
           if "self.homeTOschool_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]): 
             self.track_geometry = self.homeTOschool_geometry
             self.modalchoice = self.homeTOschool_mode
@@ -242,7 +244,7 @@ class Humans(Agent):
         elif self.current_activity == "groceries_shopping":
           self.destination_activity = self.Supermarket
           groceries = 1
-          # 1 = sleep/rest, 5 = at home, 6 = cooking
+          # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
           if "self.homeTOsuperm_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]):
             self.track_geometry = self.homeTOsuperm_geometry
             self.track_duration = self.homeTOsuperm_duration
@@ -252,7 +254,7 @@ class Humans(Agent):
 
         elif self.current_activity == "kindergarden":
           self.destination_activity = self.Kindergarden
-          # 1 = sleep/rest, 5 = at home, 6 = cooking
+          # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
           if "self.homeTOkinderga_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]):
             self.track_geometry = self.homeTOkinderga_geometry
             self.track_duration = self.homeTOkinderga_duration
@@ -260,7 +262,7 @@ class Humans(Agent):
             self.path_memory = 1
             print("saved pathway")
 
-            # 1 = sleep/rest, 5 = at home, 6 = cooking
+        # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
         elif self.current_activity in [5, 1, 6, 7]:
           self.destination_activity = self.Residence
           if "self.workTOhome_geometry" in locals() and self.former_activity == 3:  # 3 = work
@@ -291,12 +293,12 @@ class Humans(Agent):
               self.path_memory = 1
               print("saved pathway_ return")
 
-        elif self.current_activity == 11:
+        elif self.current_activity == 11: # entertainment / culture
           leisure = 1
           self.destination_activity = Entertainment["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity == 2:  # 2 = eating
-          if bool(random.getrandbits(1)) or self.hour < 7:
+          if self.WeekLocations[self.weekday][self.activitystep] == 0:
             self.destination_activity = self.pos
           else:
             if any(Restaurants["geometry"].within( Point(tuple(self.pos)).buffer(500))):
@@ -307,9 +309,12 @@ class Humans(Agent):
 
         elif self.current_activity == 10:  # 10 = social life
           leisure = 1
-          self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
+          if self.WeekLocations[self.weekday][self.activitystep] == 0:
+            self.destination_activity = self.pos
+          else:
+            self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
-        elif self.current_activity in [12, 9, 8]:  # 12 = traveling
+        elif self.current_activity in [9, 8]:  # 9 = shopping/services, 8 = walking the dog
           self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
 
@@ -617,11 +622,11 @@ class TransportAirPollutionExposureModel(Model):
         plt.savefig(path_data + f'ModelRuns/TrafficMaps/TrafficGrid{self.hour-1}_observed.png')
         plt.close()
         
-    def TraffCountRegression(self):
+    def TraffCountRegression(self, HourlyTraffic):
         predictors = ["count"]    #also have tried MaxSpeedLimit, but it takes up too much of the traffic coefficient
         reg = LinearRegression().fit(self.TraffGrid.query('ON_ROAD == 1')[predictors], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
         TraffAssDat.write(f"hour {self.current_datetime} \n")
-        TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
+        TraffAssDat.write(f"hourly Traff tracks: {len(HourlyTraffic)} \n")
         TraffAssDat.write(f"Intercept: {reg.intercept_} \n") 
         TraffAssDat.write(pd.DataFrame(zip(predictors, reg.coef_)).to_string()) 
         self.R2 =  reg.score(self.TraffGrid.query('ON_ROAD == 1')[predictors], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
@@ -630,12 +635,12 @@ class TransportAirPollutionExposureModel(Model):
         self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = reg.predict(self.TraffGrid.query('ON_ROAD == 1')[predictors])
 
 
-    def TrafficRemainderCalc(self):
+    def TrafficRemainderCalc(self, HourlyTraffic):
         # Calculating Remainder
         self.TraffGrid["TraffV"] = 0
         self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff)
         TraffAssDat.write(f"hour {self.current_datetime} \n")
-        TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
+        TraffAssDat.write(f"hourly Traff tracks: {len(HourlyTraffic)} \n")
         self.R2, _ = pearsonr(self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"],
                       self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
         TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
@@ -643,7 +648,7 @@ class TransportAirPollutionExposureModel(Model):
         Remainders =  (self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])- (self.TraffGrid.query('ON_ROAD == 1')["TraffV"])
         AirPollGrid.loc[AirPollGrid["ON_ROAD"] == 1, f"TraffVrest{self.hour}"] = list(Remainders)
 
-    def TotalTraffCalc(self):
+    def TotalTraffCalc(self, HourlyTraffic):
         self.TraffGrid["TraffV"] = 0
         # self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"] = (self.TraffGrid.query('ON_ROAD == 1')["count"]*  TraffVCoeff) \
         #                                                                   + (AirPollGrid.query('ON_ROAD == 1')[f"TraffVrest{self.hour}"])
@@ -651,7 +656,7 @@ class TransportAirPollutionExposureModel(Model):
         # self.TraffGrid.loc[self.TraffGrid["TraffV"] < 0,"TraffV"] = 0
         if TraffStage == "PredictionR2":
             TraffAssDat.write(f"hour {self.current_datetime} \n")
-            TraffAssDat.write(f"hourly Traff tracks: {len(self.HourlyTraffic)} \n")
+            TraffAssDat.write(f"hourly Traff tracks: {len(HourlyTraffic)} \n")
             self.R2, _ = pearsonr(self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffV"], self.TraffGrid.query('ON_ROAD == 1')[self.TraffVcolumn])
             TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
 
@@ -674,12 +679,11 @@ class TransportAirPollutionExposureModel(Model):
           if len(HourlyTraffic) > 15:
             counts = pool.starmap(TraffSpatialJoint, [(tracks, 0) for tracks in np.array_split(HourlyTraffic, n)], chunksize=1)
             print("Max", np.max(np.array(counts).sum(axis=0)), "Mean", np.mean(np.array(counts).sum(axis=0)), "Median", np.median(np.array(counts).sum(axis=0)))
-            self.TraffGrid = AirPollGrid
+            self.TraffGrid = AirPollGrid[["int_id", "geometry", "ON_ROAD", "baseline_NO2"]]
             self.TraffGrid['count'] = np.array(counts).sum(axis=0)
-            self.PlotTrafficCount()
           else:
             drivengrids = gpd.sjoin(AirPollGrid[["int_id", "geometry"]], gpd.GeoDataFrame(data = {'count': [1]*len(HourlyTraffic), 'geometry':HourlyTraffic}, geometry="geometry", crs=crs) , how="left", predicate="intersects")[["int_id", "count"]]
-            self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(drivengrids.groupby(['int_id'], as_index=False).sum(), on="int_id")
+            self.TraffGrid = AirPollGrid[["int_id", "geometry", "ON_ROAD", "baseline_NO2"]].merge(drivengrids.groupby(['int_id'], as_index=False).sum(), on="int_id")
             self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
           # # drivenroads = gpd.sjoin_nearest( carroads, gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs), how="inner", max_distance = 50)[["fid", "count"]] # map matching, improve with leuvenmapmatching
           # drivenroads = carroads.merge(drivenroads.groupby(['fid'], as_index=False).sum(), on="fid")
@@ -688,16 +692,15 @@ class TransportAirPollutionExposureModel(Model):
           # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id'], as_index=False).mean(), on="int_id")
           print("joined traffic tracks to grid")
           if TraffStage == "Regression":
-              self.PlotTrafficCount()
-              self.TraffCountRegression()
+              self.TraffCountRegression(HourlyTraffic)
         else:
-          self.TraffGrid = AirPollGrid
+          self.TraffGrid = AirPollGrid[["int_id", "geometry", "ON_ROAD", "baseline_NO2"]]
           self.TraffGrid['count'] = 0
           
         if TraffStage in ["PredictionNoR2","PredictionR2"]:
-          self.TotalTraffCalc()
+          self.TotalTraffCalc(HourlyTraffic)
         elif TraffStage == "Remainder":
-          self.TrafficRemainderCalc()
+          self.TrafficRemainderCalc(HourlyTraffic)
         self.PlotTraffPred()
 
     def OnRoadEmission(self):
@@ -715,7 +718,7 @@ class TransportAirPollutionExposureModel(Model):
         #                                                  baseline_NO2 = self.TraffGrid["baseline_NO2"],
         #                                                  params = list(paramvalues["values"]))
         airpoll_grid_raster = CellularAut_utils.cellautom_dispersion_dummy(weightmatrix = self.weightsmatrix, airpollraster = airpoll_grid_raster, nr_repeats=3, multiplier=1.074067,
-                                                                            baseline_NO2 = self.TraffGrid["baseline_NO2"], include_baseline_in_dispersion = False)
+                                                                            baseline_NO2 = AirPollGrid["baseline_NO2"], include_baseline_in_dispersion = False)
         self.TraffGrid["NO2"] = np.asarray(airpoll_grid_raster[:]).flatten() 
         self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"NO2"] = self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"TraffNO2"] + self.TraffGrid.loc[self.TraffGrid["ON_ROAD"] == 1,"baseline_NO2"]
         AirPollGrid[f"prNO2_m{self.current_datetime.month}_h{self.hour}"] = self.TraffGrid["NO2"]
@@ -801,9 +804,9 @@ if __name__ == "__main__":
     starting_date = datetime(2019, 1, 1, 0, 50, 0)
     
     # Type of scenario
-    # modelname = "StatusQuo" 
+    modelname = "StatusQuo" 
     # modelname = "SpeedInterv"
-    modelname = "RetaiDnsDiv"
+    # modelname = "RetaiDnsDiv"
     # modelname = "PedStrWidth"
     # modelname = "LenBikRout"
 
@@ -818,8 +821,8 @@ if __name__ == "__main__":
     
     
     # modal choice model
-    # modelvars = "allvars_strict"
-    modelvars = "allvars"
+    modelvars = "allvars_strict"
+    # modelvars = "allvars"
     
     # PCstat = "PCA"
     PCstat = "NOPCA"
@@ -844,13 +847,20 @@ if __name__ == "__main__":
 
     # Activity Schedules
     print("Reading Activity Schedules")
-    scheduledf_monday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day1.csv")
-    scheduledf_tuesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day2.csv")
-    scheduledf_wednesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day3.csv")
-    scheduledf_thursday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day4.csv")
-    scheduledf_friday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day5.csv")
-    scheduledf_saturday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day6.csv")
-    scheduledf_sunday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day7.csv")
+    # scheduledf_monday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day1.csv")
+    # scheduledf_tuesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day2.csv")
+    # scheduledf_wednesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day3.csv")
+    # scheduledf_thursday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day4.csv")
+    # scheduledf_friday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day5.csv")
+    # scheduledf_saturday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day6.csv")
+    # scheduledf_sunday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedules_day7.csv")
+    scheduledf_monday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_day1.csv")
+    scheduledf_tuesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_day2.csv")
+    scheduledf_wednesday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_day3.csv")
+    scheduledf_thursday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_day4.csv")
+    scheduledf_friday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_day5.csv")
+    scheduledf_saturday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_day6.csv")
+    scheduledf_sunday = pd.read_csv(path_data+"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_day7.csv")
     schedulelist = [scheduledf_monday, scheduledf_tuesday, scheduledf_wednesday, scheduledf_thursday, scheduledf_friday, scheduledf_saturday, scheduledf_sunday]
     del scheduledf_monday, scheduledf_tuesday, scheduledf_wednesday, scheduledf_thursday, scheduledf_friday, scheduledf_saturday, scheduledf_sunday
 

@@ -5,8 +5,8 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 ####################################################
 nb_agents = 43500
-# path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/"
-path_data = "/Users/tsonnens/Documents/dasefwg/"
+path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/"
+# path_data = "/Users/tsonnens/Documents/dasefwg/"
 
 
 # modelrun = "SpeedInterv"
@@ -19,7 +19,7 @@ cellsize = 50
 os.chdir(path_data)
 
 NO2dat_interv = pd.read_csv(f"NO2/{modelrun}/AirPollGrid_NO2_pred{nb_agents}_{modelrun}.csv")
-NO2dat_statquo = pd.read_csv(f"NO2/meteocellular/AirPollGrid_NO2_pred{nb_agents}_StatusQuo.csv")
+NO2dat_statquo = pd.read_csv(f"NO2/StatusQuo/AirPollGrid_NO2_pred{nb_agents}_StatusQuo.csv")
 
 month = 1
 # calculate hourly difference
@@ -36,7 +36,7 @@ NO2diff["int_id"] = NO2dat_interv["int_id"]
 NO2diff.to_csv(f"NO2/AirPollGrid_NO2_diff{nb_agents}_{modelrun}.csv", index=False)
 print(NO2diff.describe())
 
-AirPollGrid = gpd.read_feather(f"FeatherDataABM/AirPollgrid{cellsize}m.feather")
+AirPollGrid = gpd.read_feather(f"C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/FeatherDataABM/AirPollgrid{cellsize}m.feather")
 AirPollGrid = AirPollGrid.merge(NO2diff, on="int_id", how="left")
 
 AirPollGrid.plot("mean_NO2_diff", antialiased=False, legend = True)

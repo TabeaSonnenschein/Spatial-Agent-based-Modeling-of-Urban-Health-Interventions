@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import seaborn as sns
+import geopandas as gpd
 ####################################################
 
 
@@ -49,7 +50,7 @@ def LineOverTimeColCategory(outcomvar, colcategory, showplots, modelrun, df, yla
         collabel = colcategory
     sns.set(style="whitegrid")
     plt.figure(figsize=(10, 6))
-    sns.lineplot(x="hour", y=outcomvar, hue=colcategory, data=df, alpha=0.4)
+    sns.lineplot(x="hour", y=outcomvar, hue=colcategory, data=df, alpha=0.4,  errorbar = "sd")
     plt.xlabel("Hour")
     plt.ylabel(ylabel)
     plt.title(f"Distribution of {outcomvar} Over Time by {collabel}")
@@ -68,7 +69,7 @@ def LineOverTimeColContinous(outcomvar, colvar, showplots, modelrun,df,  ylabel 
     sns.set(style="whitegrid")
     color_map = sns.color_palette("RdYlGn_r", as_cmap=True)
     plt.figure(figsize=(10, 6))
-    sns.lineplot(x="hour", y=outcomvar, hue=colvar, data=df, alpha=0.4, palette=color_map)
+    sns.lineplot(x="hour", y=outcomvar, hue=colvar, data=df, alpha=0.4, palette=color_map,  errorbar = "sd")
     plt.xlabel("Hour")
     plt.ylabel(ylabel)
     plt.title(f"Distribution of {outcomvar} Over Time by {collabel}")
@@ -151,14 +152,28 @@ def CompareAverageExposure2Scenarios(outcomvar, scenariosuffixes, showplots, mod
     plt.close()
 
 
+def MeanComparisonWithoutTime(outcomvar, stratifier , showplots, modelrun, df, ylabel = None, xlabel = None):
+    sns.set(style="whitegrid")
+    plt.figure(figsize=(8, 6))
+    sns.violinplot(x=stratifier, y=outcomvar, data=df, palette="Set3")
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend()
+    plt.title(f'{outcomvar} Distributions per {stratifier}')
+    plt.savefig(f'{modelrun}_violinplot_{outcomvar}_by_{stratifier}_withoutTime.pdf', dpi = 300)
+    if showplots:
+        plt.show()
+
+
+######################################################
 ######################################################
 nb_agents = 43500
-# path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/"
-path_data = "/Users/tsonnens/Documents/dasefwg/"
+path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/"
+# path_data = "/Users/tsonnens/Documents/dasefwg/"
 # modelrun = "StatusQuo"
 # modelrun = "SpeedInterv"
-modelrun = "PedStrWidth"
-# modelrun = "RetaiDnsDiv"
+# modelrun = "PedStrWidth"
+modelrun = "RetaiDnsDiv"
 # modelrun = "LenBikRout"
 
 
@@ -205,9 +220,9 @@ fullnamedict = {
     "MET_diff": "Metabolic Equivalent of Task (MET) Difference" }
            
 showplots = False
-PlotVarsInLists(plottypes=plottypes, outcomevars=outcomevars, continuousstratvars=continuousstratvars,
-                categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
-                df=exposure_df, fullnamedict=fullnamedict)
+# PlotVarsInLists(plottypes=plottypes, outcomevars=outcomevars, continuousstratvars=continuousstratvars,
+#                 categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
+#                 df=exposure_df, fullnamedict=fullnamedict)
 
 #########################
 ### Comparative Plots ###
@@ -215,7 +230,7 @@ PlotVarsInLists(plottypes=plottypes, outcomevars=outcomevars, continuousstratvar
 print("Plotting Comparison to Status Quo over Time")
 # read exposure data
 modelrun_stat = "StatusQuo"
-exposure_df_statusq = pd.read_csv(path_data + 'AgentExposure/meteocellular/' + modelrun_stat + f"2/AgentExposure_A{nb_agents}_M1_{modelrun_stat}_hourAsRowsMerged.csv")
+exposure_df_statusq = pd.read_csv(path_data + 'AgentExposure/' + modelrun_stat + f"/AgentExposure_A{nb_agents}_M1_{modelrun_stat}_hourAsRowsMerged.csv")
 suffixes = ("_interv", "_statusq")
 exposure_comp = pd.merge(exposure_df, exposure_df_statusq, on=["agent_ID", "hour"], how="left", suffixes=suffixes)
 
@@ -223,13 +238,58 @@ for outcomvar in outcomevars:
     CompareAverageExposure2Scenarios(outcomvar, ["_interv", "_statusq"], showplots, modelrun, scenariolabels=[ "After Intervention", "Before Intervention"],ylabel =  fullnamedict[outcomvar])
 
 print("Plotting the difference between intervention and status quo scenario")
+
 # plot the difference between intervention and status quo scenario
 exposure_comp["NO2_diff"] = exposure_comp["NO2_interv"] -exposure_comp["NO2_statusq"]
 exposure_comp["MET_diff"] = exposure_comp["MET_interv"] - exposure_comp["MET_statusq"]
-exposure_comp = exposure_comp.rename(columns={"sex"+suffixes[1]: "sex", "migr_bck"+suffixes[1]: "migr_bck"})
-
+exposure_comp = exposure_comp.rename(columns={"sex"+suffixes[1]: "sex", "migr_bck"+suffixes[1]: "migr_bck", "neighb_code"+suffixes[1]: "neighb_code"})
 
 print(exposure_comp[["NO2_diff", "MET_diff"]].describe())
 PlotVarsInLists(plottypes=plottypes, outcomevars=["NO2_diff", "MET_diff"], continuousstratvars=continuousstratvars,
                 categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
                 df=exposure_comp, fullnamedict=fullnamedict)
+
+#ploting the difference between intervention and status quo scenario on average over the day
+print("Plotting the difference between intervention and status quo scenario on average over the day")
+
+print(exposure_comp.columns)
+# restructuring the data to have the hour as a column
+exposure_day = exposure_comp[["agent_ID", "sex", "migr_bck", "income_class", "income", "NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]].groupby(["agent_ID", "sex", "migr_bck", "income_class", "income"],  as_index=False).mean()
+print(exposure_day.describe())
+
+
+outcomevars = ["NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]
+
+fullnamedict2 = {"NO2_diff": "NO2 Difference (µg/m3)",
+                 "NO2_interv": "NO2 Intervention (µg/m3)",
+                 "NO2_statusq": "NO2 Status Quo (µg/m3)",
+                 "MET_diff": "MET Difference",
+                 "MET_interv": "MET Intervention",
+                 "MET_statusq": "MET Status Quo"}
+
+
+for outcomvar in outcomevars:
+    for stratifiers in categoricalstratvars:
+        MeanComparisonWithoutTime(outcomvar=outcomvar, stratifier=stratifiers, showplots=showplots, modelrun=modelrun, df=exposure_day, ylabel=fullnamedict2[outcomvar], xlabel=fullnamedict[stratifiers])
+        
+### map the change in exposure per neighborhood
+print("Plotting the difference between intervention and status quo scenario per neighborhood")
+neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
+print(neighborhoods.columns)
+exposure_neigh = exposure_comp[["neighb_code", "NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]].groupby(["neighb_code"],  as_index=False).mean()
+exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
+print(exposure_neigh.head())
+neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
+
+def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, outcomelabel = None):
+    if outcomelabel is None:
+        outcomelabel = outcomvar
+    spatialdata.plot(outcomvar, antialiased=False, legend = True)
+    plt.title(f"{outcomelabel} Per Neighborhood")
+    plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.pdf', dpi = 300)
+    if showplots:
+        plt.show()
+    plt.close()
+
+for outcomvar in outcomevars:
+    PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun=modelrun, spatialdata=neighborhoods, outcomelabel=fullnamedict2[outcomvar])

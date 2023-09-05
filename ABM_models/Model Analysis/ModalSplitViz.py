@@ -17,8 +17,8 @@ modelrun = "PedStrWidth"
 
 
 os.chdir(path_data)
-modalsplit_df =  pd.read_csv(f"ModalSplitLog{nb_agents}_{modelrun}.csv")
-statQuo_df = pd.read_csv(f"ModalSplitLog{nb_agents}_StatusQuo.csv")
+modalsplit_df =  pd.read_csv(f"{modelrun}/ModalSplitLog{nb_agents}_{modelrun}.csv")
+statQuo_df = pd.read_csv(f"StatusQuo/ModalSplitLog{nb_agents}_StatusQuo.csv")
 
 melted_interv = pd.melt(modalsplit_df, id_vars='hour', var_name='mode_of_transport', value_name='counts')
 melted_statquo = pd.melt(statQuo_df, id_vars='hour', var_name='mode_of_transport', value_name='counts')
