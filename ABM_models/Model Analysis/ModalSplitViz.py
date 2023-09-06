@@ -5,7 +5,7 @@ import seaborn as sns
 import ast
 ####################################################
 
-nb_agents = 43500
+nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/ModalSplit"
 
 # modelrun = "SpeedInterv"

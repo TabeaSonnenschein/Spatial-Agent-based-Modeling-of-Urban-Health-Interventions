@@ -1,13 +1,13 @@
 import pandas as pd
 import os
 ####################################################
-nb_agents = 43500
+nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 # path_data ="/Users/tsonnens/Documents/Exposure Intervention"
 # modelrun = "SpeedInterv"
-modelrun = "StatusQuo"
+# modelrun = "StatusQuo"
 # modelrun = "PedStrWidth"
-# modelrun = "RetaiDnsDiv"
+modelrun = "RetaiDnsDiv"
 # modelrun = "LenBikRout"
 
 

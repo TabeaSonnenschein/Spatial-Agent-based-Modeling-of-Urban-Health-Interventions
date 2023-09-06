@@ -167,7 +167,7 @@ def MeanComparisonWithoutTime(outcomvar, stratifier , showplots, modelrun, df, y
 
 ######################################################
 ######################################################
-nb_agents = 43500
+nb_agents =  21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/"
 # path_data = "/Users/tsonnens/Documents/dasefwg/"
 # modelrun = "StatusQuo"
@@ -220,9 +220,9 @@ fullnamedict = {
     "MET_diff": "Metabolic Equivalent of Task (MET) Difference" }
            
 showplots = False
-# PlotVarsInLists(plottypes=plottypes, outcomevars=outcomevars, continuousstratvars=continuousstratvars,
-#                 categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
-#                 df=exposure_df, fullnamedict=fullnamedict)
+PlotVarsInLists(plottypes=plottypes, outcomevars=outcomevars, continuousstratvars=continuousstratvars,
+                categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
+                df=exposure_df, fullnamedict=fullnamedict)
 
 #########################
 ### Comparative Plots ###
