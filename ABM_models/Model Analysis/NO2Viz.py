@@ -4,16 +4,26 @@ import numpy as np
 import geopandas as gpd
 import matplotlib.pyplot as plt
 ####################################################
-nb_agents = 43500
+nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/"
 # path_data = "/Users/tsonnens/Documents/dasefwg/"
 
-
 # modelrun = "SpeedInterv"
 # modelrun = "StatusQuo"
-modelrun = "PedStrWidth"
+# modelrun = "PedStrWidth"
 # modelrun = "RetaiDnsDiv"
 # modelrun = "LenBikRout"
+# modelrun = "PedStrWidthOutskirt"
+# modelrun = "PedStrWidthCenter"
+# modelrun = "AmenityDnsExistingAmenityPlaces"
+# modelrun  = "AmenityDnsDivExistingAmenityPlaces"
+# modelrun = "StatusQuoAllVars"
+# modelrun = "PedStrLen"
+# modelrun ="PedStrWidthOutskirt"
+# modelrun ="PedStrWidthCenter"
+modelrun = "PedStrLenCenter"
+# modelrun = "PedStrLenOutskirt"
+
 cellsize = 50
 
 os.chdir(path_data)

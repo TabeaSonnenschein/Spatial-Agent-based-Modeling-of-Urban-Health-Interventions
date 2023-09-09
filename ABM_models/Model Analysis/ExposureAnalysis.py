@@ -50,7 +50,7 @@ def LineOverTimeColCategory(outcomvar, colcategory, showplots, modelrun, df, yla
         collabel = colcategory
     sns.set(style="whitegrid")
     plt.figure(figsize=(10, 6))
-    sns.lineplot(x="hour", y=outcomvar, hue=colcategory, data=df, alpha=0.4,  errorbar = "sd")
+    sns.lineplot(x="hour", y=outcomvar, hue=colcategory, data=df, alpha=0.4)
     plt.xlabel("Hour")
     plt.ylabel(ylabel)
     plt.title(f"Distribution of {outcomvar} Over Time by {collabel}")
@@ -59,7 +59,17 @@ def LineOverTimeColCategory(outcomvar, colcategory, showplots, modelrun, df, yla
     if showplots:
         plt.show()
     plt.close()
-    
+    sns.set(style="whitegrid")
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(x="hour", y=outcomvar, hue=colcategory, data=df, alpha=0.4, errorbar=None)
+    plt.xlabel("Hour")
+    plt.ylabel(ylabel)
+    plt.title(f"Distribution of {outcomvar} Over Time by {collabel}")
+    plt.legend(title=collabel)
+    plt.savefig(f'{modelrun}_lineplot_{outcomvar}_by_{colcategory}_noerrorbar.pdf', dpi = 300)
+    if showplots:
+        plt.show()
+    plt.close()
 
 def LineOverTimeColContinous(outcomvar, colvar, showplots, modelrun,df,  ylabel = None, collabel = None):
     if ylabel is None:
@@ -69,12 +79,24 @@ def LineOverTimeColContinous(outcomvar, colvar, showplots, modelrun,df,  ylabel 
     sns.set(style="whitegrid")
     color_map = sns.color_palette("RdYlGn_r", as_cmap=True)
     plt.figure(figsize=(10, 6))
-    sns.lineplot(x="hour", y=outcomvar, hue=colvar, data=df, alpha=0.4, palette=color_map,  errorbar = "sd")
+    sns.lineplot(x="hour", y=outcomvar, hue=colvar, data=df, alpha=0.4, palette=color_map)
     plt.xlabel("Hour")
     plt.ylabel(ylabel)
     plt.title(f"Distribution of {outcomvar} Over Time by {collabel}")
     plt.legend(title=collabel)
     plt.savefig(f'{modelrun}_lineplot_{outcomvar}_by_{colvar}.pdf', dpi = 300)
+    if showplots:
+        plt.show()
+    plt.close()
+    sns.set(style="whitegrid")
+    color_map = sns.color_palette("RdYlGn_r", as_cmap=True)
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(x="hour", y=outcomvar, hue=colvar, data=df, alpha=0.4, palette=color_map, errorbar=None)
+    plt.xlabel("Hour")
+    plt.ylabel(ylabel)
+    plt.title(f"Distribution of {outcomvar} Over Time by {collabel}")
+    plt.legend(title=collabel)
+    plt.savefig(f'{modelrun}_lineplot_{outcomvar}_by_{colvar}_noerrorbar.pdf', dpi = 300)
     if showplots:
         plt.show()
     plt.close()
@@ -87,7 +109,7 @@ def ViolinOverTimeColCategory(outcomvar, colcategory, showplots, modelrun,df, yl
         collabel = colcategory
     sns.set(style="whitegrid")
     plt.figure(figsize=(10, 6))
-    sns.violinplot(x="hour", y=outcomvar, hue=colcategory, data=df, linewidth=0)
+    sns.violinplot(x="hour", y=outcomvar, hue=colcategory, data=df, linewidth=0, palette="Dark2")
     plt.xlabel("Hour")
     plt.ylabel(ylabel)
     plt.title(f"Distribution of {outcomvar} Over Time by {collabel}")
@@ -103,7 +125,7 @@ def ViolinOverTimeColContinous(outcomvar, colvar, showplots, modelrun, df, ylabe
     if collabel is None:
         collabel = colvar
     sns.set(style="whitegrid")
-    color_map = sns.color_palette("RdYlGn_r")
+    color_map = sns.color_palette("RdYlGn_r", as_cmap=False)
     plt.figure(figsize=(10, 6))
     sns.violinplot(x="hour", y=outcomvar, hue=colvar, data=df, linewidth=0, palette=color_map)
     plt.xlabel("Hour")
@@ -155,7 +177,7 @@ def CompareAverageExposure2Scenarios(outcomvar, scenariosuffixes, showplots, mod
 def MeanComparisonWithoutTime(outcomvar, stratifier , showplots, modelrun, df, ylabel = None, xlabel = None):
     sns.set(style="whitegrid")
     plt.figure(figsize=(8, 6))
-    sns.violinplot(x=stratifier, y=outcomvar, data=df, palette="Set3")
+    sns.violinplot(x=stratifier, y=outcomvar, data=df, palette="Dark2")
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend()
@@ -170,12 +192,20 @@ def MeanComparisonWithoutTime(outcomvar, stratifier , showplots, modelrun, df, y
 nb_agents =  21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/"
 # path_data = "/Users/tsonnens/Documents/dasefwg/"
-# modelrun = "StatusQuo"
 # modelrun = "SpeedInterv"
+# modelrun = "StatusQuo"
 # modelrun = "PedStrWidth"
-modelrun = "RetaiDnsDiv"
+# modelrun = "RetaiDnsDiv"
 # modelrun = "LenBikRout"
-
+# modelrun = "PedStrWidthOutskirt"
+# modelrun = "PedStrWidthCenter"
+# modelrun = "AmenityDnsExistingAmenityPlaces"
+# modelrun  = "AmenityDnsDivExistingAmenityPlaces"
+# modelrun = "PedStrLen"
+# modelrun ="PedStrWidthOutskirt"
+# modelrun ="PedStrWidthCenter"
+modelrun = "PedStrLenCenter"
+# modelrun = "PedStrLenOutskirt"
 
 os.chdir(path_data + 'AgentExposure/' + modelrun)
 
@@ -184,7 +214,7 @@ print("Reading the data")
 exposure_df = pd.read_csv(f"AgentExposure_A{nb_agents}_M1_{modelrun}_hourAsRowsMerged.csv")
 # Renaming some columns for elegance
 exposure_df = exposure_df.rename(columns={"incomeclass_int": "income", "migrationbackground": "migr_bck"})
-
+exposure_df["income"] = exposure_df["income"].astype(int)
 # restructuring data
 exposure_df["income_class"]=exposure_df["income"].apply(lambda x: "Low" if x in range(1,5) else ("Medium" if x in range(5,9) else "High"))
 # 1 low # 10 high

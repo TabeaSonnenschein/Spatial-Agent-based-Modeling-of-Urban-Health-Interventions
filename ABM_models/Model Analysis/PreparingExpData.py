@@ -7,10 +7,17 @@ path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 # modelrun = "SpeedInterv"
 # modelrun = "StatusQuo"
 # modelrun = "PedStrWidth"
-modelrun = "RetaiDnsDiv"
+# modelrun = "RetaiDnsDiv"
 # modelrun = "LenBikRout"
-
-
+# modelrun = "PedStrWidthOutskirt"
+# modelrun = "PedStrWidthCenter"
+# modelrun = "AmenityDnsExistingAmenityPlaces"
+# modelrun  = "AmenityDnsDivExistingAmenityPlaces"
+# modelrun = "PedStrLen"
+# modelrun ="PedStrWidthOutskirt"
+# modelrun ="PedStrWidthCenter"
+modelrun = "PedStrLenCenter"
+# modelrun = "PedStrLenOutskirt"
 
 # read exposure data
 os.chdir(path_data + 'ModelRuns/AgentExposure/' + modelrun)

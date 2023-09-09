@@ -34,13 +34,13 @@ EnvBehavDeterms = gpd.read_feather(path_data+"FeatherDataABM/EnvBehavDeterminant
 #### increase PedStrWidt
 # EnvBehavDeterms.loc[EnvBehavDeterms["PedStrWidt"].between(0.5, 5), "PedStrWidt"] = 5
 # EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrWidth.feather")
-print(EnvBehavDeterms["DistCBD"])
-print(((EnvBehavDeterms["PedStrWidt"].between(0.5, 5)) & (EnvBehavDeterms["DistCBD"] >= 3000)).value_counts())
+# print(EnvBehavDeterms["DistCBD"])
+# print(((EnvBehavDeterms["PedStrWidt"].between(0.5, 5)) & (EnvBehavDeterms["DistCBD"] >= 3000)).value_counts())
 # EnvBehavDeterms.loc[((EnvBehavDeterms["PedStrWidt"].between(0.5, 5)) & (EnvBehavDeterms["DistCBD"] < 3000)), "PedStrWidt"] = 5
 # EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrWidthCenter.feather")
 
-EnvBehavDeterms.loc[((EnvBehavDeterms["PedStrWidt"].between(0.5, 5)) & (EnvBehavDeterms["DistCBD"] >= 3000)), "PedStrWidt"] = 5
-EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrWidthOutskirt.feather")
+# EnvBehavDeterms.loc[((EnvBehavDeterms["PedStrWidt"].between(0.5, 5)) & (EnvBehavDeterms["DistCBD"] >= 3000)), "PedStrWidt"] = 5
+# EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrWidthOutskirt.feather")
 
 #### reducing NrParkSpac
 # EnvBehavDeterms.loc[EnvBehavDeterms["NrParkSpac"]>100, "NrParkSpac"] = 100
@@ -62,6 +62,12 @@ EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrW
 #### increase PedStrLen
 # EnvBehavDeterms.loc[EnvBehavDeterms["PedStrLen"].between(1,2000), "PedStrLen"] = 2000
 # EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrLen.feather")
+
+# EnvBehavDeterms.loc[((EnvBehavDeterms["PedStrLen"].between(1,2000))& (EnvBehavDeterms["DistCBD"] >= 4000)), "PedStrLen"] = 2000
+# EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrLenOutskirt.feather")
+
+EnvBehavDeterms.loc[((EnvBehavDeterms["PedStrLen"].between(1,2000))& (EnvBehavDeterms["DistCBD"] < 4000)), "PedStrLen"] = 2000
+EnvBehavDeterms.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminantsPedStrLenCenter.feather")
 
 #### Increase RdIntrsDns
 # EnvBehavDeterms.loc[EnvBehavDeterms["RdIntrsDns"].between(1, 28), "RdIntrsDns"] = 28

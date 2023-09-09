@@ -798,7 +798,7 @@ if __name__ == "__main__":
     #############################################################################################################
     ## Nr of Processors
     print("Nr of available logical CPUs", os.cpu_count())
-    n = os.cpu_count()-4
+    n = os.cpu_count() -4
     print("Nr of assigned processes", n)
     
     
@@ -824,8 +824,12 @@ if __name__ == "__main__":
     # modelname = "PedStrWidthOutskirt"
     # modelname = "PedStrWidthCenter"
     # modelname = "AmenityDnsExistingAmenityPlaces"
-    modelname  = "AmenityDnsDivExistingAmenityPlaces"
-    
+    # modelname  = "AmenityDnsDivExistingAmenityPlaces"
+    # modelname = "PedStrLen"
+    # modelname ="PedStrWidthOutskirt"
+    # modelname ="PedStrWidthCenter"
+    modelname = "PedStrLenCenter"
+    # modelname = "PedStrLenOutskirt"
     
     # cellsize of the Airpollution and Traffic grid
     cellsize = 50    # 50m x 50m
@@ -837,11 +841,11 @@ if __name__ == "__main__":
     TraffStage = "PredictionR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
     
     # modal choice model
-    # modelvars = "allvars_strict"
-    modelvars = "allvars"
+    modelvars = "allvars_strict"
+    # modelvars = "allvars"
     
-    # PCstat = "PCA"
-    PCstat = "NOPCA"
+    PCstat = "PCA"
+    # PCstat = "NOPCA"
     
     # Traffic Model
     if nb_humans == 21750:
@@ -852,6 +856,8 @@ if __name__ == "__main__":
       TraffVCoeff =  7.214888208      # 43500 = 1.93116625	21750 = 3.171920208	8700 = 7.214888208
     TraffNO2Coeff = 0.03096377438925   # for 50m cellsize
 
+
+    print(modelname,modelvars, PCstat)
     
     #############################################################################################################
     

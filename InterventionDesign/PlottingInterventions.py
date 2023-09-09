@@ -14,6 +14,10 @@ Interventions = ["SpeedInterv", "PedStrWidth", "AmenityDnsExistingAmenityPlaces"
 Variables = ["MeanSpeed", "PedStrWidt", "retaiDns","retailDiv", "LenBikRout", "PedStrWidt", "PedStrWidt", 
              "NrParkSpac", "PrkPricPre", "HighwLen", "PedStrLen", "RdIntrsDns", "RdIntrsDns", "greenCovr", "NrTrees"]
 
+Interventions = ["PedStrLenCenter", "PedStrLenOutskirt"]
+Variables = ["PedStrLen", "PedStrLen"]
+
+
 for count,interv in enumerate(Interventions):
     EnvBehavDetermsInterv = gpd.read_feather(path_data+f"FeatherDataABM/EnvBehavDeterminants{interv}.feather")
     EnvBehavDeterms[Variables[count]] = EnvBehavDeterms[Variables[count]].fillna(0)

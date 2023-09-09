@@ -10,9 +10,18 @@ path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/Modal
 
 # modelrun = "SpeedInterv"
 # modelrun = "StatusQuo"
-modelrun = "PedStrWidth"
+# modelrun = "PedStrWidth"
 # modelrun = "RetaiDnsDiv"
 # modelrun = "LenBikRout"
+# modelrun = "PedStrWidthOutskirt"
+# modelrun = "PedStrWidthCenter"
+# modelrun = "AmenityDnsExistingAmenityPlaces"
+# modelrun  = "AmenityDnsDivExistingAmenityPlaces"
+# modelrun = "PedStrLen"
+# modelrun ="PedStrWidthOutskirt"
+# modelrun ="PedStrWidthCenter"
+modelrun = "PedStrLenCenter"
+# modelrun = "PedStrLenOutskirt"
 
 os.chdir(path_data)
 

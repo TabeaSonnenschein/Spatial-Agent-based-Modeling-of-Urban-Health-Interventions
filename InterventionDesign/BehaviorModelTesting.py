@@ -15,7 +15,7 @@ crs = "epsg:28992"
 path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/"
 
 # Read static data
-nb_humans = 43500     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
+nb_humans = 21750     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 random_subset = pd.read_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}.csv")
 random_subset["student"] = 0
 random_subset.loc[random_subset["current_education"] == "high", "student"] = 1
@@ -167,6 +167,10 @@ def RunForModelVarsPCstatInterventions(modelvariables, PCstats, Interventions):
 #                                    PCstats = ["PCA", "NOPCA"], 
 #                                    Interventions = ["LenBikRout", "HighwLen", "PedStrLen"])
 
-RunForModelVarsPCstatInterventions(modelvariables= ["allvars_strict", "allvars"],
-                                      PCstats = ["PCA", "NOPCA"], 
-                                      Interventions = ["RdIntrsDnsIncr", "RdIntrsDnsDcr"])
+# RunForModelVarsPCstatInterventions(modelvariables= ["allvars_strict", "allvars"],
+#                                       PCstats = ["PCA", "NOPCA"], 
+#                                       Interventions = ["PedStrWidthOutskirt", "PedStrWidthCenter", "RdIntrsDnsIncr", "RdIntrsDnsDcr", "LenBikRout", "HighwLen", "PedStrLen"])
+
+RunForModelVarsPCstatInterventions(modelvariables= ["allvars_strict", "allvars"], 
+                                   PCstats = ["PCA", "NOPCA"], 
+                                   Interventions = [ "PedStrLen"])
