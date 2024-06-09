@@ -47,7 +47,7 @@ def retrieveElsevierXMLPDF(CrossrefOutputArray):
        With the same link but a different url ending one can also fetch the pdfs."""
     xmlLink = [x for s in CrossrefOutputArray for x in s if ("http" in x and "xml" in x)][0]
     if "elsevier" in xmlLink:
-        xmlLink = (xmlLink + "&apiKey="+ElsAPIkey+ "&insttoken="+ InstitutToken+ "6ec21df6f452c6f1e466640cd0b51bfd")
+        xmlLink = (xmlLink + "&apiKey="+ElsAPIkey+ "&insttoken="+ InstitutToken)
         pdfLink = xmlLink.replace("text/xml", "application/pdf")
         pdf = requests.get(pdfLink)
         paper_file = (paper.replace("/", "_") + '.pdf')
@@ -78,8 +78,8 @@ print(paper_DOIs.iloc[:,0])
 docfolder = "D:/PhD EXPANSE/Literature/WOS_ModalChoice_Ref/newCrossRef"
 
 # Set Elsevier API and Institution keys
-ElsAPIkey = ""
-InstitutToken = ""
+ElsAPIkey = "b4392aff9fe5150839817eb72bc2b70b"
+InstitutToken = "6ec21df6f452c6f1e466640cd0b51bfd"
 
 paperLinks = []
 for paper in paper_DOIs.iloc[:,0]:

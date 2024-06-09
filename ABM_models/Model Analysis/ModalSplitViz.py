@@ -6,7 +6,7 @@ import ast
 ####################################################
 
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
-path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/ModalSplit"
+path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 
 # modelrun = "SpeedInterv"
 # modelrun = "StatusQuo"
@@ -21,8 +21,9 @@ path_data = "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/ModelRuns/Modal
 # modelrun = "PedStrLen"
 # modelrun ="PedStrWidthOutskirt"
 # modelrun ="PedStrWidthCenter"
-modelrun = "PedStrLenCenter"
+# modelrun = "PedStrLenCenter"
 # modelrun = "PedStrLenOutskirt"
+modelrun = "PrkPriceInterv"
 
 os.chdir(path_data)
 modalsplit_df =  pd.read_csv(f"{modelrun}/ModalSplitLog{nb_agents}_{modelrun}.csv")

@@ -21,7 +21,7 @@ options(digits = 15)
 ### read data and project in correct CRS ###########
 ####################################################
 # extent
-dataFolder= "C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam"
+dataFolder= "D:/PhD EXPANSE/Data/Amsterdam"
 extent = readOGR(dsn=paste(dataFolder, "/SpatialExtent", sep = "" ),layer="Amsterdam Diemen Oude Amstel Extent")
 extent = spTransform(extent, CRSobj = crs)
 
@@ -425,7 +425,7 @@ ggplot(data = st_as_sf(complete_data)) +
   scale_colour_viridis_c(option = "D")
 dev.off()
 
-setwd("C:/Users/Tabea/Documents/PhD EXPANSE/Data/Amsterdam/Built Environment/Traffic/car traffic/may19-march2020workday/TrafficVolumeRawValuesANDinterpolation")
+setwd("D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Traffic/car traffic/may19-march2020workday/TrafficVolumeRawValuesANDinterpolation")
 writeOGR(complete_data, dsn=getwd() ,layer= "TrafficVolume_interpolated_allstreets_clean",driver="ESRI Shapefile")
 complete_data = readOGR(getwd(), layer = "TrafficVolume_interpolated_allstreets_clean")
 data = as.data.frame(complete_data)
@@ -449,17 +449,19 @@ newcolumns = c("TrV0_1", "TrV1_2", "TrV2_3", "TrV3_4" , "TrV4_5",
                "TrV16_17","TrV17_18","TrV18_19" ,"TrV19_20","TrV20_21",
                "TrV21_22","TrV22_23","TrV23_24")
 
+
 complete_data@data[which(complete_data$fid %in% overestimations),newcolumns] = complete_data@data[which(complete_data$fid %in% overestimations),newcolumns] * 0.5
 
 data = as.data.frame(complete_data)
 
 ##############################################
-#### Aggregating in Air poll raster 
+#### Aggregating in Air poll raster  TraffV
 #####################################
 memory.limit(2000000)
-AirPollRaster = readOGR(dsn=paste(dataFolder, "/Air Pollution Determinants", sep = ""), layer = "AirPollDeterm_grid10m")
-cellsize = "10m"
+cellsize = "50m"
+AirPollRaster = readOGR(dsn=paste(dataFolder, "/Air Pollution Determinants", sep = ""), layer = paste0("AirPollDeterm_grid", cellsize))
 
+# TraffVolume
 AirPollRaster_inters = st_intersection(st_as_sf(AirPollRaster["int_id"]), st_as_sf(complete_data))
 AirPollRaster@data[,newcolumns] = NA
 AirPollRaster_inters = as.data.frame(AirPollRaster_inters)
@@ -480,26 +482,49 @@ remove(TraffAggr)
 TraffAggr = foreach(intid = unique(AirPollRaster_inters$int_id), .combine = 'rbind') %dopar% {
   colMeans(AirPollRaster_inters[which(AirPollRaster_inters$int_id == intid), newcolumns])
 }
-parallel::stopCluster(cl = my.cluster)
-remove(my.cluster)
-TraffAggr_df = as.data.frame(TraffAggr)
-TraffAggr_df$int_id = unique(AirPollRaster_inters$int_id)
-TraffAggr_df = TraffAggr_df[order(TraffAggr_df$int_id), c("int_id", newcolumns)]
-write.csv(TraffAggr_df, paste0("AirPollRaster",cellsize, "_TraffVdata.csv"))
+
+writeOGR(AirPollRaster, dsn=paste0(dataFolder, "/Air Pollution Determinants"), layer =paste0("AirPollDeterm_grid", cellsize,"_TraffVol"),driver="ESRI Shapefile")
+AirPollRaster_data = as.data.frame(AirPollRaster)
+write.csv(AirPollRaster_data, paste0("AirPollRaster",cellsize, "_TraffVdata.csv"), row.names = F)
+
+#TraffIntensity
+TrIcols = c("TrI0_1", "TrI1_2", "TrI2_3", "TrI3_4" , "TrI4_5", 
+               "TrI5_6","TrI6_7","TrI7_8","TrI8_9"  ,"TrI9_10","TrI10_11",
+               "TrI11_12","TrI12_13","TrI13_14" ,"TrI14_15","TrI15_16",
+               "TrI16_17","TrI17_18","TrI18_19" ,"TrI19_20","TrI20_21",
+               "TrI21_22","TrI22_23","TrI23_24")
+newcolumns = c("TrV0_1", "TrV1_2", "TrV2_3", "TrV3_4" , "TrV4_5", 
+               "TrV5_6","TrV6_7","TrV7_8","TrV8_9"  ,"TrV9_10","TrV10_11",
+               "TrV11_12","TrV12_13","TrV13_14" ,"TrV14_15","TrV15_16",
+               "TrV16_17","TrV17_18","TrV18_19" ,"TrV19_20","TrV20_21",
+               "TrV21_22","TrV22_23","TrV23_24")
+AirPollRaster_inters = st_intersection(st_as_sf(AirPollRaster["int_id"]), st_as_sf(complete_data))
+length_per_segment <- st_length(AirPollRaster_inters)
+AirPollRaster_inters$length_per_segment <- length_per_segment
+AirPollRaster@data[,TrIcols] = NA
+AirPollRaster_inters = as.data.frame(AirPollRaster_inters)
+AirPollRaster_inters[,newcolumns] <- sapply(AirPollRaster_inters[,newcolumns],as.numeric)
+for(i in 1:length(TrIcols)){
+  AirPollRaster_inters[,TrIcols[i]] <- AirPollRaster_inters[,newcolumns[i]]*AirPollRaster_inters$length_per_segment
+}
 
 for(cell in unique(AirPollRaster_inters$int_id)){
   print(cell)
-  AirPollRaster@data[which(AirPollRaster$int_id == cell), newcolumns]  = colMeans(AirPollRaster_inters[which(AirPollRaster_inters$int_id == cell), newcolumns])
+  AirPollRaster@data[which(AirPollRaster$int_id == cell), TrIcols]  = colSums(AirPollRaster_inters[which(AirPollRaster_inters$int_id == cell), TrIcols])
 }
 
-summary(AirPollRaster)
-AirPollRaster@data$int_id[TraffAggr_df$int_id]
+# calculate total street length per cell
+AirPollRaster@data[, "StreetLength"] = 0
+for(cell in unique(AirPollRaster_inters$int_id)){
+  AirPollRaster@data[which(AirPollRaster$int_id == cell), "StreetLength"]  = sum(AirPollRaster_inters$length_per_segment[which(AirPollRaster_inters$int_id == cell)])
+}
 
-AirPollRaster@data[,newcolumns] = NA
-AirPollRaster@data[TraffAggr_df$int_id,newcolumns]= TraffAggr_df[,newcolumns]
+StreetLength = as.data.frame(AirPollRaster[,c("int_id", "StreetLength")])
+write.csv(StreetLength, paste0("StreetLength_",cellsize, ".csv"), row.names = F)
+
 
 writeOGR(AirPollRaster, dsn=getwd(), layer = paste0("AirPollDeterm_grid", cellsize,"_TraffVol"),driver="ESRI Shapefile")
-writeOGR(AirPollRaster, dsn=paste0(dataFolder, "/Air Pollution Determinants"), layer =paste0("AirPollDeterm_grid", cellsize,"_TraffVol"),driver="ESRI Shapefile")
+writeOGR(AirPollRaster, dsn=paste0(dataFolder, "/Air Pollution Determinants"), layer =paste0("AirPollDeterm_grid", cellsize,"_TraffIntensity"),driver="ESRI Shapefile")
 
 ggplot(data = st_as_sf(AirPollRaster)) +
   geom_sf(aes(color = as.numeric(AirPollRaster$TrV15_16)), size= 0.01)+
@@ -509,7 +534,7 @@ ggplot(data = st_as_sf(AirPollRaster)) +
 setwd(paste(dataFolder, "/Air Pollution Determinants", sep = ""))
 
 AirPollRaster_data = as.data.frame(AirPollRaster)
-write.csv(AirPollRaster_data, paste0("AirPollRaster",cellsize, "_TraffVdata.csv"), row.names = F)
+write.csv(AirPollRaster_data, paste0("AirPollRaster",cellsize, "_TraffIntensdata.csv"), row.names = F)
 
 AirPollDeterm_grid= read.csv("AirPollDeterm_grid50_baselineNO2.csv")
 AirPollDeterm_grid = merge(AirPollDeterm_grid, AirPollRaster_data, by = "int_id", all.x = T, all.y = F)
