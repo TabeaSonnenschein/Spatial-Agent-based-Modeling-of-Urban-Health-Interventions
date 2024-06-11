@@ -81,7 +81,8 @@ print(Synthpop_schedules.shape)
 pd.DataFrame.to_csv(Synthpop_schedules, "D:\PhD EXPANSE\Data\EU microdata access\HETUS2010_Synthpop_schedules.csv", index=False)
 
 # create the activity schedules framework
-Weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+# 1 = Sunday; 2 = Monday; 3 = Tuesday; 4 = Wednesday; 5 = Thursday; 6 = Friday; 7 = Saturday
+Weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ]
 Weekdays_int = [1,2,3,4,5,6,7]
 
 print(HETUS2010.columns.values.tolist())
@@ -122,6 +123,7 @@ for timestamp in ActivityVars:
 
 Synthpop_schedules[["NrPeople", "NrVars"] + ActivityVars + LocationVars] = None
 
+
 def SchedulePopulater(Synthpop_schedules, Weekdays_int):
     for day in Weekdays_int:
         #print("Day", day)
@@ -146,7 +148,7 @@ def SchedulePopulater(Synthpop_schedules, Weekdays_int):
                     #meanschedule = popsubset[timestamp].value_counts().index[0]
 
                 
-        Synthpop_schedules_day.to_csv("D:\PhD EXPANSE\Data\EU microdata access\HETUS2010_Synthpop_schedules_day" + str(day) + ".csv", index=False)
+        Synthpop_schedules_day.to_csv("D:\PhD EXPANSE\Data\EU microdata access\HETUS2010_Synthpop_schedules_" + str(Weekdays[day-1]) + ".csv", index=False)
     return(Synthpop_schedules)
 
 Synthpop_schedules = SchedulePopulater(Synthpop_schedules, Weekdays_int)
