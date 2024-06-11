@@ -797,7 +797,7 @@ if __name__ == "__main__":
     nb_humans = 21750     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 
     # New Population sample or already existing one
-    newpop = True
+    newpop = False
     
     # Length of the simulation run
     NrHours = 24

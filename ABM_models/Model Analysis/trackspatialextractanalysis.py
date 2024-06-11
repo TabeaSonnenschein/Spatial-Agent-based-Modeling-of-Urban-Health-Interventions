@@ -36,6 +36,7 @@ experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/AB
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 modelruns = [381609]
 
+spatialjointype = "trackintersect"
 
 if not os.path.exists(path_data+f"/{scenario}/{nb_agents}Agents/Tracks/TrackViz"):
       # Create the directory
@@ -46,12 +47,12 @@ destination = path_data+f"/{scenario}/{nb_agents}Agents/Tracks/TrackViz"
 extractname = "parkingprice_interventionextent"
 
 for modelrun in modelruns:
-    tracksubset = pd.read_csv(f"{destination}/AllTracks_{scenario}_{modelrun}_{extractname}.csv")
+    tracksubset = pd.read_csv(f"{destination}/AllTracks_{scenario}_{modelrun}_{extractname}_{spatialjointype}.csv")
     modal_split = tracksubset.groupby(["Month", "Day", "Hour"]).count()["id"]
     modal_split = pd.DataFrame(modal_split)
     modal_split = modal_split.rename(columns={"id": "nr_travelers"})
-    modal_split.to_csv(f"{destination}/ModalSplit_{scenario}_{modelrun}_{extractname}.csv")
-    modal_split = pd.read_csv(f"{destination}/ModalSplit_{scenario}_{modelrun}_{extractname}.csv")
+    modal_split.to_csv(f"{destination}/ModalSplit_{scenario}_{modelrun}_{extractname}_{spatialjointype}.csv")
+    modal_split = pd.read_csv(f"{destination}/ModalSplit_{scenario}_{modelrun}_{extractname}_{spatialjointype}.csv")
     for month in [1, 4,7,10]:
         for day in range(1,8):
             for hour in range(24):
@@ -72,4 +73,4 @@ for modelrun in modelruns:
                 else:
                     modal_split.loc[index, "mean_duration"] = sum(durations)/len(durations)
     
-    modal_split.to_csv(f"{destination}/ModalSplit_{scenario}_{modelrun}_{extractname}.csv", index=False)
+    modal_split.to_csv(f"{destination}/ModalSplit_{scenario}_{modelrun}_{extractname}_{spatialjointype}.csv", index=False)
