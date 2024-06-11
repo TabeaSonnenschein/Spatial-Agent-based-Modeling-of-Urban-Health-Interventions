@@ -809,7 +809,7 @@ if __name__ == "__main__":
     starting_date = datetime(2019, 1, 1, 0, 0, 0)
     
     # Type of scenario
-    modelname = "StatusQuo" 
+    # modelname = "StatusQuo" 
     # modelname = "SpeedInterv"
     # modelname = "RetaiDnsDiv"
     # modelname = "PedStrWidth"
@@ -823,7 +823,7 @@ if __name__ == "__main__":
     # modelname ="PedStrWidthCenter"
     # modelname = "PedStrLenCenter"
     # modelname = "PedStrLenOutskirt"
-    # modelname = "PrkPriceInterv"
+    modelname = "PrkPriceInterv"
     
     # cellsize of the Airpollution and Traffic grid
     cellsize = 50    # 50m x 50m

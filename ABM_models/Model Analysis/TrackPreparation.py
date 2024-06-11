@@ -87,11 +87,13 @@ for modelrun in modelruns:
     final_gdf.crs = crs
     final_gdf["id"] = final_gdf.index
     spatial_extract = spatial_extract.to_crs(crs)
+    #  make spatial_extract to single polygon
+    spatial_extract = spatial_extract.dissolve()
+    
     if spatialjointype == "trackintersect":
         final_subset = gpd.sjoin(final_gdf, spatial_extract, how="inner", predicate="intersects")
         pd.DataFrame(final_subset).to_csv(f"{destination}/AllTracks_{scenario}_{modelrun}_{extractname}_{spatialjointype}.csv", index=False)
     
-    spatialjointype = "origdest"
     
     if spatialjointype == "origdest":
         final_gdf["origin"] = final_gdf["origin"].apply(lambda x: ast.literal_eval(x))
