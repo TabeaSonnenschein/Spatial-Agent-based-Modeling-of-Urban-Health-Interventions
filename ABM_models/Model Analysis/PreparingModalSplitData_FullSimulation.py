@@ -4,6 +4,7 @@ import os
 import seaborn as sns
 import ast
 import datetime
+import numpy as np
 ####################################################
 
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
@@ -61,15 +62,20 @@ for modelrun in modelruns:
         print("Error converting dates:", e)
         
     modalsplit_df["hour"]-= 1
-    modalsplit_df["hour"].loc[modalsplit_df["hour"] == -1] = 23
-    modalsplit_df["day"].loc[modalsplit_df["hour"] == 23] -= 1
-    modalsplit_df["month"].loc[modalsplit_df["day"] == 0] -= 3
-    modalsplit_df["day"].loc[modalsplit_df["day"] == 0] = 8
-    modalsplit_df["date"].loc[modalsplit_df["hour"] == 23] = modalsplit_df["date"] - pd.to_timedelta(1, unit='d')
-    
+    modalsplit_df.loc[modalsplit_df["hour"] == -1, "hour"] = 23
+    modalsplit_df.loc[modalsplit_df["hour"] == 23, "day"] -= 1
+    modalsplit_df.loc[modalsplit_df["day"] == 0, "month"] -= 3
+    modalsplit_df.loc[modalsplit_df["hour"] == 23, "date"] = modalsplit_df["date"].loc[modalsplit_df["hour"] == 23] - pd.to_timedelta(1, unit='d')
+    indices = np.where(modalsplit_df["day"] == 0)[0]
+    print(indices)
+    if len(indices) > 0:
+        modalsplit_df.loc[indices,"date"] = [modalsplit_df.loc[ind -1,"date"] for ind in indices]
+    modalsplit_df.loc[modalsplit_df["day"] == 0, "day"] = 7
+
+
     
     modalsplit_df["weekday"] = modalsplit_df['date'].dt.day_name()
-
+    modalsplit_df["weekday"] = modalsplit_df["weekday"].replace({"Monday": "Sunday", "Tuesday": "Monday", "Wednesday": "Tuesday", "Thursday": "Wednesday", "Friday": "Thursday", "Saturday": "Friday", "Sunday": "Saturday"})
 
 
 
