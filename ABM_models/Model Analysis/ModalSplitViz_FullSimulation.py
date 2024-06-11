@@ -62,8 +62,8 @@ scenario = "StatusQuo"
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-bestStatusQuo = 481658
-modelruns = [481658]
+# bestStatusQuo = 481658
+modelruns = [708658, 481658]
 # modelruns = [381609]
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -73,7 +73,7 @@ viztype = [
         # "statusquocomparison", 
         # "multipleRunComparison",
         # "extentvisualization",
-        "extentcomparison"
+        # "extentcomparison"
         ]
 
 extentname = "parkingprice_interventionextent"

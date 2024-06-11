@@ -42,6 +42,8 @@ ExperimentOverview_df = pd.DataFrame({"Experiment": exp,
               "End Day": maxday,
               "End Hour": maxhour
               })
+
+ExperimentOverview_df["fullrun"] = ((ExperimentOverview_df["Start Day"]==1) & (ExperimentOverview_df["Start Hour"]==0) & (ExperimentOverview_df["End Day"]==7) & (ExperimentOverview_df["End Hour"]==23) & (ExperimentOverview_df["End Month"] >= 10))
 print(ExperimentOverview_df)
 
 ExperimentOverview_df.to_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv", index=False)

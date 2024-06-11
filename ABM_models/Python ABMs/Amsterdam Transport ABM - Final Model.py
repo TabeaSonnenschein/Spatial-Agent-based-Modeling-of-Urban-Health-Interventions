@@ -547,6 +547,7 @@ class TransportAirPollutionExposureModel(Model):
         self.crs = crs
         self.schedule = SimultaneousActivation(self)
         print("Current time: ", self.current_datetime)
+        print("Weekday: ", self.weekday)
         print("Nr of Humans: ", self.nb_humans)
         self.extentbox = spatial_extent.total_bounds
         self.continoussp = ContinuousSpace(x_max=self.extentbox[2], y_max=self.extentbox[3],
@@ -759,7 +760,7 @@ class TransportAirPollutionExposureModel(Model):
         st = time.time()        
         if self.minute == 0:
           ModalSplitH = pool.starmap(RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
-          ModalSplitLog.write(f"{self.current_datetime}, {Counter(list(it.chain.from_iterable(filter(None, list(it.chain.from_iterable(ModalSplitH))))))}\n")
+          ModalSplitLog.write(f"{self.datesuffix}, {Counter(list(it.chain.from_iterable(filter(None, list(it.chain.from_iterable(ModalSplitH))))))}\n")
           Alltracks = pool.starmap(RetrieveAllTracksHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
           Alltracks = pd.DataFrame(list(filter(lambda x: len(x[1])>0, [item for sublist in Alltracks for item in sublist])), 
                        columns=['agent', 'geometry', 'mode', 'duration'])

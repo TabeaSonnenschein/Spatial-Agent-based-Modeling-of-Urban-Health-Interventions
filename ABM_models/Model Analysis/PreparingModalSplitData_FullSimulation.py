@@ -29,7 +29,6 @@ scenario = "StatusQuo"
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 
-
 os.chdir(os.path.join(path_data,scenario, f"{nb_agents}Agents/ModalSplit"))
 
 for modelrun in modelruns:
@@ -38,7 +37,7 @@ for modelrun in modelruns:
         content = f.readlines()
     content = [x.strip() for x in content]
     content = [x.split(", ") for x in content]
-    content = content[2:]
+    content = content[1:]
 
     hours = [x[0] for x in content]
     dict = [", ".join(x[1:]).replace("Counter(", "").replace(")", "") for x in content]
@@ -52,10 +51,23 @@ for modelrun in modelruns:
     modalsplit_df["hour"] = modalsplit_df["hour"].str.split(":").str[0]
     modalsplit_df["month"] = modalsplit_df["date"].str.split("-").str[1]
     modalsplit_df["day"] = modalsplit_df["date"].str.split("-").str[2]
+
+    modalsplit_df["hour"] = modalsplit_df["hour"].astype(int)
+    modalsplit_df["day"] = modalsplit_df["day"].astype(int)
+    modalsplit_df["month"] = modalsplit_df["month"].astype(int)
     try:
         modalsplit_df['date'] = pd.to_datetime(modalsplit_df['date'], format='%Y-%m-%d', errors='coerce')
     except Exception as e:
         print("Error converting dates:", e)
+        
+    modalsplit_df["hour"]-= 1
+    modalsplit_df["hour"].loc[modalsplit_df["hour"] == -1] = 23
+    modalsplit_df["day"].loc[modalsplit_df["hour"] == 23] -= 1
+    modalsplit_df["month"].loc[modalsplit_df["day"] == 0] -= 3
+    modalsplit_df["day"].loc[modalsplit_df["day"] == 0] = 8
+    modalsplit_df["date"].loc[modalsplit_df["hour"] == 23] = modalsplit_df["date"] - pd.to_timedelta(1, unit='d')
+    
+    
     modalsplit_df["weekday"] = modalsplit_df['date'].dt.day_name()
 
 
