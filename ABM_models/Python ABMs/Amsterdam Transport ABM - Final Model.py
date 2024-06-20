@@ -190,7 +190,8 @@ class Humans(Agent):
             self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][1]
         if 3 in list(np.concatenate(self.WeekSchedules).flat):
             self.Workplace = Profess["geometry"].sample(1).values[0].coords[0]
-
+        self.destination_activity = self.Residence
+        
         # mobility behavior variables
         self.path_memory = 0
         self.traveldecision = 0

@@ -29,12 +29,13 @@ scenario = "StatusQuo"
 # scenario ="PedStrWidthCenter"
 # scenario = "PedStrLenCenter"
 # scenario = "PedStrLenOutskirt"
-scenario = "PrkPriceInterv"
+# scenario = "PrkPriceInterv"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-modelruns = [381609]
+# modelruns = [805895]
+modelruns = [708658]
 
 # spatialjointype = "origdest"
 spatialjointype = "trackintersect"
