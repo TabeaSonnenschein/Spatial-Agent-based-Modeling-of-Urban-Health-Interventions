@@ -6,6 +6,10 @@ import geopandas as gpd
 from pycirclize import Circos
 import numpy as np
 from matplotlib.lines import Line2D
+import contextily as cx
+from matplotlib_scalebar.scalebar import ScaleBar
+from shapely.geometry.point import Point
+from itertools import chain
 ####################################################
 
 
@@ -327,6 +331,170 @@ def plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors, NO2monthm
         figure.legend(handles=legend_elements, loc='lower right', ncol=1, title = "Subgroups")
         figure.savefig(f"CirclePlot_with_Legend{suffix}.png", dpi=600)
 
+def plotCircosMeanStrat(aggexposure, subgroups, subgroupcolors, outcomevar, roundval, suffix = None):
+        outerringdict = {}
+        outerringdict_xvalues = {}
+        for subgroup in subgroups:
+            outerringdict[subgroup] = len(subgroups[subgroup])-0.5
+            outerringdict_xvalues[subgroup]= list(range(len(subgroups[subgroup])))
+        outerringdict_labels = subgroups
+        print([f"{outcomevar}_{val}" for subgroup in subgroups for val in subgroups[subgroup]])
+        aggexposure_subs = aggexposure.loc[aggexposure["timeunit"]=="total",[f"{outcomevar}_{val}" for subgroup in subgroups for val in subgroups[subgroup]]]
+        minval = np.min(aggexposure_subs.min(axis=1))
+        maxval = np.max(aggexposure_subs.max(axis=1))
+        step = ((maxval - minval)/5).round(roundval)
+        print("minval", minval, "maxval", maxval, "step", step)
+        rangeval =list(np.arange(start=minval, stop = maxval + step, step = step))
+        rangeval = [round(val, roundval) for val in rangeval]
+        maxval = rangeval[-1]
+        minval = rangeval[0]
+        print("rangeval", rangeval, "minval", minval, "maxval", maxval, "step", step)
+        
+   
+        axiscol = "white"
+        gridcol = "lightgrey"
+        # Create Circos plot
+        circos = Circos(outerringdict, space=20)
+
+                 
+        for sector in circos.sectors:
+                print(sector.name)
+                # Plot sector name
+                sector.text(f"{sector.name.capitalize().replace('_', ' ')}", r=125, size=14)
+                # Create x positions & randomized y values for data plotting
+                x = outerringdict_xvalues[sector.name]
+
+                labeltrack = sector.add_track((98, 99), r_pad_ratio=0)
+                labeltrack.axis(ec = "none")
+                labeltrack.xticks_by_interval(
+                    1,
+                    label_size=8,
+                    label_orientation="vertical",
+                    label_formatter=lambda v: f"{outerringdict_labels[sector.name][v]}",
+                )
+                
+                Track = sector.add_track((30, 97), r_pad_ratio=0)
+                Track.axis(ec = axiscol)
+                # Track.yticks(y=rangeval, labels=rangeval,vmin=minval, vmax=maxval, side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
+                for yval in rangeval:
+                    Track.line([Track.start,Track.end], [yval, yval], vmin=minval, vmax=maxval, lw=1, ls="dotted", color = gridcol)
+                    
+                sectordata = list(aggexposure_subs[[f"{outcomevar}_{val}"for val in subgroups[sector.name]]].values[0])
+                print(x, sectordata, subgroupcolors[sector.name])
+                Track.bar(x=x, height = sectordata, vmin=minval, vmax = maxval , width=0.4, color=subgroupcolors[sector.name])
+                
+
+        figure = circos.plotfig(dpi=600)
+        figure.savefig(f"CirclePlot_{outcomevar}_Subgroups_{suffix}.png", dpi=600)
+
+def get_label_rotation(angle, offset):
+    # Rotation must be specified in degrees :(
+    rotation = np.rad2deg(angle + offset)
+    if angle <= np.pi:
+        alignment = "right"
+        rotation = rotation + 180
+    else: 
+        alignment = "left"
+    return rotation, alignment
+
+def add_labels(angles, values, labels, offset, ax):
+    
+    # This is the space between the end of the bar and the label
+    padding = 4
+    
+    # Iterate over angles, values, and labels, to add all of them.
+    for angle, value, label, in zip(angles, values, labels):
+        angle = angle
+        
+        # Obtain text rotation and alignment
+        rotation, alignment = get_label_rotation(angle, offset)
+
+        # And finally add the text
+        ax.text(
+            x=angle, 
+            y=value + padding, 
+            s=label, 
+            ha=alignment, 
+            va="center", 
+            rotation=rotation, 
+            rotation_mode="anchor"
+        ) 
+def CircleGraphStrat(stratexposure_df, outcomevar, suffix = None):
+        # rng = np.random.default_rng(123)
+        # minval = np.min(stratexposure_df[outcomevar].values)
+        # maxval = np.max(stratexposure_df[outcomevar].values)
+        # step = ((maxval - minval)/5).round(roundval)
+        # print("minval", minval, "maxval", maxval, "step", step)
+        # rangeval =list(np.arange(start=minval, stop = maxval + step, step = step))
+        # rangeval = [round(val, roundval) for val in rangeval]
+        # maxval = rangeval[-1]
+        # minval = rangeval[0]
+        # print("rangeval", rangeval, "minval", minval, "maxval", maxval, "step", step)
+        # All this part is like the code above
+        VALUES = stratexposure_df[outcomevar].values
+        LABELS = stratexposure_df["Label"].values
+        GROUP = stratexposure_df["Group"].values
+        
+        OFFSET = np.pi / 2
+        PAD = 3
+        ANGLES_N = len(VALUES) + PAD * len(np.unique(GROUP))
+        ANGLES = np.linspace(0, 2 * np.pi, num=ANGLES_N, endpoint=False)
+        WIDTH = (2 * np.pi) / len(ANGLES)
+
+        GROUPS_SIZE = [len(i[1]) for i in stratexposure_df.groupby("Group")]
+
+        offset = 0
+        IDXS = []
+        for size in GROUPS_SIZE:
+            IDXS += list(range(offset + PAD, offset + size + PAD))
+            offset += size + PAD
+
+        fig, ax = plt.subplots(figsize=(20, 10), subplot_kw={"projection": "polar"})
+        ax.set_theta_offset(OFFSET)
+        ax.set_ylim(-100, 100)
+        ax.set_frame_on(False)
+        ax.xaxis.grid(False)
+        ax.yaxis.grid(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        GROUPS_SIZE = [len(i[1]) for i in stratexposure_df.groupby("Group")]
+        COLORS = [f"C{i}" for i, size in enumerate(GROUPS_SIZE) for _ in range(size)]
+
+        ax.bar(
+            ANGLES[IDXS], VALUES, width=WIDTH, color=COLORS, 
+            edgecolor="white", linewidth=2
+        )
+
+        add_labels(ANGLES[IDXS], VALUES, LABELS, OFFSET, ax)
+
+        # Extra customization below here --------------------
+
+        # This iterates over the sizes of the groups adding reference
+        # lines and annotations.
+
+        offset = 0 
+        for group, size in zip(["A", "B", "C", "D"], GROUPS_SIZE):
+            # Add line below bars
+            x1 = np.linspace(ANGLES[offset + PAD], ANGLES[offset + size + PAD - 1], num=50)
+            ax.plot(x1, [-5] * 50, color="#333333")
+            
+            # Add text to indicate group
+            ax.text(
+                np.mean(x1), -20, group, color="#333333", fontsize=14, 
+                fontweight="bold", ha="center", va="center"
+            )
+            
+            # Add reference lines at 20, 40, 60, and 80
+            x2 = np.linspace(ANGLES[offset], ANGLES[offset + PAD - 1], num=50)
+            ax.plot(x2, [20] * 50, color="#bebebe", lw=0.8)
+            ax.plot(x2, [40] * 50, color="#bebebe", lw=0.8)
+            ax.plot(x2, [60] * 50, color="#bebebe", lw=0.8)
+            ax.plot(x2, [80] * 50, color="#bebebe", lw=0.8)
+            
+            offset += size + PAD
+        fig.savefig(f"CirclePlot_{outcomevar}_{suffix}.png", dpi=600)
+
 
 def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors, NO2monthmin = -1, NO2monthmax = 1.5, NO2monthstep = 0.5,
                                    NO2hourmin=-1.5, NO2hourmax = 1, NO2hourstep = 0.5,
@@ -505,27 +673,28 @@ experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/AB
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 bestStatusQuo = 708658
 modelruns = [708658]
+popsamples = [1]
 # modelruns = [381609]
 # modelruns = [805895]
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-for modelrun in modelruns:
+for count, modelrun in enumerate(modelruns):
     # read exposure data
     os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelrun}/ExposureViz")
-    print("Reading the data")
-    # exposure_df_horizon = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_horizonAsColumns.csv")
-    exposure_df_vertical = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_verticalAsRows.csv")
+    # print("Reading the data")
+    # # exposure_df_horizon = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_horizonAsColumns.csv")
+    # exposure_df_vertical = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_verticalAsRows.csv")
 
-    exposure_df_vertical["date"] = [f"{daymonth[0]}-{daymonth[1]}-2019" for daymonth in exposure_df_vertical[["day", "month"]].values]
-    exposure_df_vertical['date'] = pd.to_datetime(exposure_df_vertical['date'], format='%d-%m-%Y', errors='coerce')
-    exposure_df_vertical["weekday"] = exposure_df_vertical['date'].dt.day_name()
-    exposure_df_vertical['weekday'] = pd.Categorical(exposure_df_vertical['weekday'], categories=days_order, ordered=True)
-    # exposure_df_vertical["weekday"] = exposure_df_vertical["weekday"].replace({"Monday": "Sunday", "Tuesday": "Monday", "Wednesday": "Tuesday", "Thursday": "Wednesday", "Friday": "Thursday", "Saturday": "Friday", "Sunday": "Saturday"})
+    # exposure_df_vertical["date"] = [f"{daymonth[0]}-{daymonth[1]}-2019" for daymonth in exposure_df_vertical[["day", "month"]].values]
+    # exposure_df_vertical['date'] = pd.to_datetime(exposure_df_vertical['date'], format='%d-%m-%Y', errors='coerce')
+    # exposure_df_vertical["weekday"] = exposure_df_vertical['date'].dt.day_name()
+    # exposure_df_vertical['weekday'] = pd.Categorical(exposure_df_vertical['weekday'], categories=days_order, ordered=True)
+    # # exposure_df_vertical["weekday"] = exposure_df_vertical["weekday"].replace({"Monday": "Sunday", "Tuesday": "Monday", "Wednesday": "Tuesday", "Thursday": "Wednesday", "Friday": "Thursday", "Saturday": "Friday", "Sunday": "Saturday"})
 
 
-    agent_df = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/Amsterdam_population_subset{nb_agents}_{modelrun}.csv")
-    print("Merging the data")
-    exposure_df_vertical = pd.merge(agent_df, exposure_df_vertical, on="agent_ID", how="right")
+    # agent_df = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/Amsterdam_population_subset{nb_agents}_{modelrun}_{popsamples[count]}.csv")
+    # print("Merging the data")
+    # exposure_df_vertical = pd.merge(agent_df, exposure_df_vertical, on="agent_ID", how="right")
 
 
     # # Renaming some columns for elegance
@@ -618,15 +787,15 @@ for modelrun in modelruns:
     ### Visualize the aggregate data in a circle plot
     ##########################################################
     
-    # aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv")
+    aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv")
 
-    # subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "lightseagreen", "aquamarine", "greenyellow", "green", "olive" ]
+    subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "green","greenyellow",  "lightseagreen", "aquamarine","olive" ]
         
-    # subgroups_Meta = {"income": ["Low", "Medium", "High"],
-    #             "sex": ["male", "female"], 
-    #             "migration_background": ["Dutch", "Western", "Non-Western"],
-    #             "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
-    #             "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
+    subgroups_Meta = {"income": ["Low", "Medium", "High"],
+                "sex": ["male", "female"], 
+                "migration_background": ["Dutch", "Western", "Non-Western"],
+                "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
+                "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
     
     # for stratgroup in subgroups_Meta:
     #     print(f"Plotting the exposure stratification for {stratgroup}")
@@ -654,32 +823,62 @@ for modelrun in modelruns:
     #                                NO2hourmax=NO2hourmax, NO2hourmin=NO2hourmin,
     #                                suffix = f"_{scenario}_{modelrun}_{stratgroup}")   
 
-    ###########################################
-    # map exposure per neighborhood
-    ###########################################
-    print("Plotting mean status quo scenario exposure per neighborhood")
-    neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
-    print(neighborhoods.columns)
-    exposure_df_vertical
-    exposure_neigh = exposure_df_vertical[["neighb_code"] +outcomevars].groupby(["neighb_code"],  as_index=False).mean()
-    exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
-    print(exposure_neigh.head())
-    neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
+    subgroupcolors = {stratgroup: subgroupcolorpalette[count] for count, stratgroup in enumerate(subgroups_Meta)}
 
-    def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, outcomelabel = None):
-        if outcomelabel is None:
-            outcomelabel = outcomvar
-        spatialdata.plot(outcomvar, antialiased=False, legend = True)
-        plt.title(f"{outcomelabel} Per Neighborhood")
-        plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.pdf', dpi = 300)
-        if showplots:
-            plt.show()
-        plt.close()
+    aggexposure_subs = aggexposure.loc[aggexposure["timeunit"]=="total",[f"{outcomevar}_{val}" for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup] for outcomevar in outcomevars]]
+    stratexposure_df = pd.DataFrame({f"{outcomevar}": [aggexposure_subs[f"{outcomevar}_{val}"].values for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]] for outcomevar in outcomevars})
+    stratexposure_df["Label"] = [val for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+    stratexposure_df["Group"] = [subgroup for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+    for outcomevar in outcomevars:
+        stratexposure_df[outcomevar] = [x[0] for x in stratexposure_df[outcomevar]]
+        stratexposure_df[f"{outcomevar}_deviation"] = stratexposure_df[f"{outcomevar}"] - aggexposure.loc[aggexposure["timeunit"]=="total", outcomevar].values[0]
+    print(stratexposure_df.head(20))
 
-    showplots = False
-    for outcomvar in outcomevars:
-        PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun=modelrun, 
-                             spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar])
+    stratexposure_df.to_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate_strat.csv", index=False)
+    
+    # plotCircosMeanStrat(aggexposure, subgroups= subgroups_Meta, subgroupcolors = subgroupcolors, outcomevar = "NO2", roundval = 1, suffix = None)
+
+    CircleGraphStrat(stratexposure_df, outcomevar = "NO2", suffix = f"_{scenario}_{modelrun}")
+    
+    
+    # ###########################################
+    # # map exposure per neighborhood
+    # ###########################################
+    # print("Plotting mean status quo scenario exposure per neighborhood")
+    # crs = 28992    
+    # points = gpd.GeoSeries(
+    #     [Point(485000, 120000), Point(485001, 120000)], crs=crs
+    # )  # Geographic WGS 84 - degrees
+    # points = points.to_crs(32619)  # Projected WGS 84 - meters
+    # distance_meters = points[0].distance(points[1])
+    # print(distance_meters)
+    # neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
+    # print(neighborhoods.columns)
+    # exposure_df_vertical
+    # exposure_neigh = exposure_df_vertical[["neighb_code"] +outcomevars].groupby(["neighb_code"],  as_index=False).mean()
+    # exposure_neigh.to_csv(f"Exposure_A{nb_agents}_{modelrun}_neigh.csv", index=False)
+    # exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
+    # print(exposure_neigh.head())
+    # neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
+
+    # def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, distance_meters, outcomelabel = None):
+    #     if outcomelabel is None:
+    #         outcomelabel = outcomvar
+    #     ax = spatialdata.plot(outcomvar, antialiased=False, legend = True)
+    #     cx.add_basemap(ax, crs=spatialdata.crs, source=cx.providers.CartoDB.PositronNoLabels)
+    #     scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
+    #     ax.add_artist(scalebar)
+    #     plt.title(f"{outcomelabel} Per Neighborhood")
+    #     plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.png', dpi = 600, bbox_inches='tight', pad_inches=0.1)
+    #     if showplots:
+    #         plt.show()
+    #     plt.close()
+
+    # showplots = False
+    # for outcomvar in outcomevars:
+    #     PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun=modelrun, 
+    #                          spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
+    #                          distance_meters=distance_meters)
 
 
     # #########################

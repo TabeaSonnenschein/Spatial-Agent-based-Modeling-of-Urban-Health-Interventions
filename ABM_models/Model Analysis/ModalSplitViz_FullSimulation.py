@@ -46,9 +46,9 @@ def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax
                                    MSperc_monthmin, MSperc_monthmax, MSperc_monthstep,
                                    MSabs_hourmin, MSabs_hourmax, MSabs_hourstep,
                                    MSabs_monthmin, MSabs_monthmax, MSabs_monthstep,
-                                   suffix = None, abs = "line"):
-        outerringdict = {"Hours": 23, "Weekdays": 6, "Timeunits": 1,"Months": 3, 
-                        "Total": 0.4
+                                   suffix = None, abs = "line", perc = "line"):
+        outerringdict = {"Hours": 23.4, "Weekdays": 6.4, "Timeunits": 1,"Months": 3.4, 
+                        "Total": 0.6
                         }
         outerringdict_xvalues = {
             "Hours": list(range(24)) ,
@@ -74,8 +74,9 @@ def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax
         
         axiscol = "dimgray"
         gridcol = "lightgrey"
+        axiswidth = 1.3
         # Create Circos plot
-        circos = Circos(outerringdict, space=18)
+        circos = Circos(outerringdict, space=20)
 
         for sector in circos.sectors:
             print(sector.name)
@@ -85,7 +86,7 @@ def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax
                 MS_perc.axis(ec = "none")
                 MS_perc.text("mode (%)", x = MS_perc.start, color="black", adjust_rotation=True, orientation="vertical" ,size=14)
 
-                MS_abs = sector.add_track((25, 60), r_pad_ratio=0.1)
+                MS_abs = sector.add_track((20, 55), r_pad_ratio=0.1)
                 MS_abs.axis(ec = "none")
                 MS_abs.text("mode (abs)", x = MS_abs.start, color="black", adjust_rotation=True, orientation="vertical" ,size=14)
 
@@ -99,8 +100,8 @@ def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax
 
 
                 # NO2 line
-                MS_perc = sector.add_track((65, 100), r_pad_ratio=0.1)
-                MS_perc.axis(ec = axiscol)
+                MS_perc = sector.add_track((65, 100), r_pad_ratio=0)
+                MS_perc.axis(ec = axiscol, lw = axiswidth)
                 if sector.name == "Hours":
                     MS_perc_min = MSperc_hourmin
                     MS_perc_max = MSperc_hourmax
@@ -115,27 +116,40 @@ def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax
                 MS_perc_max = rangeMSperc[-1]
                 print(MS_perc_min, MS_perc_max, MSperc_hourstep, MSperc_monthstep, rangeMSperc)
                 MS_perc.yticks(y=rangeMSperc, labels=rangeMSperc,vmin=MS_perc_min, vmax=MS_perc_max, side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
-                for MSpercval in rangeMSperc:
+                for MSpercval in rangeMSperc[1:-1]:
                     MS_perc.line([MS_perc.start, MS_perc.end], [MSpercval, MSpercval], vmin=MS_perc_min, vmax=MS_perc_max, lw=1, ls="dotted", color = gridcol)
                 
-                if sector.name == "Total":
+                # MS_perc.line([MS_perc.start, MS_perc.end], [rangeMSperc[0], rangeMSperc[0]], vmin=MS_perc_min, vmax=MS_perc_max, lw=1.5, color = axiscol)
+                # MS_perc.line([MS_perc.start, MS_perc.end], [rangeMSperc[-1], rangeMSperc[-1]], vmin=MS_perc_min, vmax=MS_perc_max, lw=1.5, color = axiscol)
+                if perc == "line":
+                    if sector.name == "Total":
+                        for mode in modes:
+                            MS_perc.scatter(x, sectorrows_df[f"{mode}fraction"].values, vmin=MS_perc_min, vmax=MS_perc_max,lw=2, color=modecolors[mode])
+                    else:
+                        for mode in modes:
+                            MS_perc.line(x, sectorrows_df[f"{mode}fraction"].values, vmin=MS_perc_min, vmax=MS_perc_max,lw=2, color=modecolors[mode])
+                elif perc == "stackedbar":
+                    additivesectorvals = sectorrows_df.copy()
+                    for count, mode in enumerate(modes):
+                        additivesectorvals[f"{mode}fraction"] = sectorrows_df[[f"{m}fraction" for m in modes[count:]]].sum(axis=1)
+                        additivesectorvals[f"{mode}fraction"] = additivesectorvals[f"{mode}fraction"].round(1)
                     for mode in modes:
-                        MS_perc.scatter(x, sectorrows_df[f"{mode}fraction"].values, vmin=MS_perc_min, vmax=MS_perc_max,lw=2, color=modecolors[mode])
-                else:
-                    for mode in modes:
-                        MS_perc.line(x, sectorrows_df[f"{mode}fraction"].values, vmin=MS_perc_min, vmax=MS_perc_max,lw=2, color=modecolors[mode])
-
+                            MS_perc.bar(x, additivesectorvals[f"{mode}fraction"].values, width=0.4 , align= "edge", vmin=MS_perc_min, vmax=MS_perc_max, lw=2, color = modecolors[mode])
+                            
                 MS_perc.xticks_by_interval(
                     1,
                     label_size=8,
                     label_orientation="vertical",
                     label_formatter=lambda v: f"{outerringdict_labels[sector.name][v]}",
+                    line_kws={"lw": axiswidth, "color": axiscol},
+                    text_kws={"color": axiscol},
+                    
                 )
                 
                 print("plotting abs")
                 # Plot points
-                MS_abs = sector.add_track((25, 60), r_pad_ratio=0.1)
-                MS_abs.axis(ec = axiscol)
+                MS_abs = sector.add_track((20, 55), r_pad_ratio=0)
+                MS_abs.axis(ec = axiscol, lw = axiswidth)
                 if sector.name == "Hours":
                     MS_abs_min = MSabs_hourmin
                     MS_abs_max = MSabs_hourmax
@@ -148,9 +162,11 @@ def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax
                 rangeMSabs = [int(val) for val in rangeMSabs]
                 MS_abs_max = rangeMSabs[-1]
                 MS_abs.yticks(y=rangeMSabs, labels=rangeMSabs,vmin=MS_abs_min, vmax=MS_abs_max,  side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
-                for MSabsval in rangeMSabs:
+                for MSabsval in rangeMSabs[1:-1]:
                     MS_abs.line([MS_abs.start, MS_abs.end], [MSabsval, MSabsval], vmin=MS_abs_min, vmax=MS_abs_max,  lw=1, ls="dotted", color = gridcol)
                 
+                #MS_abs.line([MS_abs.start, MS_abs.end], [rangeMSabs[0], rangeMSabs[0]], vmin=MS_abs_min, vmax=MS_abs_max, lw=1.5, color = axiscol)
+                #MS_abs.line([MS_abs.start, MS_abs.end], [rangeMSabs[-1], rangeMSabs[-1]], vmin=MS_abs_min, vmax=MS_abs_max, lw=1.5, color = axiscol)
                 if abs == "line":
                     if sector.name == "Total":
                         for mode in modes:
@@ -164,7 +180,10 @@ def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax
                     for count, mode in enumerate(modes):
                         additivesectorvals[mode] = sectorrows_df[modes[count:]].sum(axis=1)
                     for mode in modes:
-                            MS_abs.bar(x, additivesectorvals[mode].values, width=0.4 , vmin=MS_abs_min, vmax=MS_abs_max, lw=2, color = modecolors[mode])
+                            MS_abs.bar(x, additivesectorvals[mode].values, width=0.4 , align= "edge",  vmin=MS_abs_min, vmax=MS_abs_max, lw=2, color = modecolors[mode])
+
+                MS_abs.xticks_by_interval(1, show_label=False, line_kws={"lw": 1.5, "color": axiscol})
+                
 
         # Create legend
         legend_elements = []
@@ -212,13 +231,14 @@ scenario = "StatusQuo"
 # scenario ="PedStrWidthCenter"
 # scenario = "PedStrLenCenter"
 # scenario = "PedStrLenOutskirt"
-# scenario = "PrkPriceInterv"
+scenario = "PrkPriceInterv"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 # bestStatusQuo = 481658
 modelruns = [708658]
+modelruns = [107935, 805895]
 # modelruns = [381609]
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -272,40 +292,40 @@ if "singleIntervention" in viztype:
 
 if "CirclePlot" in viztype:
     for modelrun in modelruns:
+        os.chdir(path_data)
+        print("Creating an aggregate dataset")
+        modalsplit_df =  pd.read_csv(f"{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitLog{nb_agents}_{scenario}_{modelrun}.csv")
+        modalsplit_df.drop(columns=['date', "day"], inplace=True)
+        modalsplit_df['weekday'] = pd.Categorical(modalsplit_df['weekday'], categories=days_order, ordered=True)
+        outcomevars = ["bike", "drive", "transit", "walk"] 
+        modalsplit_df[outcomevars] = modalsplit_df[outcomevars].fillna(0)
         
-        # print("Creating an aggregate dataset")
-        # modalsplit_df =  pd.read_csv(f"{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitLog{nb_agents}_{scenario}_{modelrun}.csv")
-        # modalsplit_df.drop(columns=['date', "day"], inplace=True)
-        # modalsplit_df['weekday'] = pd.Categorical(modalsplit_df['weekday'], categories=days_order, ordered=True)
-        # outcomevars = ["bike", "drive", "transit", "walk"] 
-        # modalsplit_df[outcomevars] = modalsplit_df[outcomevars].fillna(0)
+        print(modalsplit_df.head())
+        os.chdir(destination)
         
-        # print(modalsplit_df.head())
-        # os.chdir(destination)
-        
-        # timeunits = ["hour", "weekday", "month"]
-        # outcomevars = ["bike", "drive", "transit", "walk"] 
+        timeunits = ["hour", "weekday", "month"]
+        outcomevars = ["bike", "drive", "transit", "walk"] 
 
-        # aggmodalsplit = modalsplit_df[outcomevars].mean().values
-        # aggmodalsplit = pd.DataFrame([["total"]+list(aggmodalsplit)], columns=["timeunit"]+outcomevars)
-        # print(aggmodalsplit)
-        # for timeunit in timeunits:
-        #     timeunitexposure = pd.DataFrame(modalsplit_df[[timeunit]+outcomevars].groupby(timeunit, as_index=False).mean())
-        #     timeunitexposure["timeunit"] = [f"{timeunit} {unit}" for unit in timeunitexposure[timeunit]]
-        #     print(timeunitexposure.head())
-        #     aggmodalsplit = pd.concat([aggmodalsplit, timeunitexposure[["timeunit"]+outcomevars]], axis=0, ignore_index=True)
-        #     print(aggmodalsplit.head(30))   
+        aggmodalsplit = modalsplit_df[outcomevars].mean().values
+        aggmodalsplit = pd.DataFrame([["total"]+list(aggmodalsplit)], columns=["timeunit"]+outcomevars)
+        print(aggmodalsplit)
+        for timeunit in timeunits:
+            timeunitexposure = pd.DataFrame(modalsplit_df[[timeunit]+outcomevars].groupby(timeunit, as_index=False).mean())
+            timeunitexposure["timeunit"] = [f"{timeunit} {unit}" for unit in timeunitexposure[timeunit]]
+            print(timeunitexposure.head())
+            aggmodalsplit = pd.concat([aggmodalsplit, timeunitexposure[["timeunit"]+outcomevars]], axis=0, ignore_index=True)
+            print(aggmodalsplit.head(30))   
         
-        # aggmodalsplit.index = aggmodalsplit["timeunit"]
+        aggmodalsplit.index = aggmodalsplit["timeunit"]
         
-        # aggmodalsplit["Allmodes"] = aggmodalsplit["bike"] + aggmodalsplit["drive"] + aggmodalsplit["transit"] + aggmodalsplit["walk"]
-        # aggmodalsplit["bikefraction"] = (aggmodalsplit["bike"] / aggmodalsplit["Allmodes"]) 
-        # aggmodalsplit["drivefraction"] = (aggmodalsplit["drive"] / aggmodalsplit["Allmodes"])
-        # aggmodalsplit["transitfraction"] = (aggmodalsplit["transit"] / aggmodalsplit["Allmodes"]) 
-        # aggmodalsplit["walkfraction"] = (aggmodalsplit["walk"] / aggmodalsplit["Allmodes"]) 
-        # print(aggmodalsplit.head(30))   
+        aggmodalsplit["Allmodes"] = aggmodalsplit["bike"] + aggmodalsplit["drive"] + aggmodalsplit["transit"] + aggmodalsplit["walk"]
+        aggmodalsplit["bikefraction"] = (aggmodalsplit["bike"] / aggmodalsplit["Allmodes"]) 
+        aggmodalsplit["drivefraction"] = (aggmodalsplit["drive"] / aggmodalsplit["Allmodes"])
+        aggmodalsplit["transitfraction"] = (aggmodalsplit["transit"] / aggmodalsplit["Allmodes"]) 
+        aggmodalsplit["walkfraction"] = (aggmodalsplit["walk"] / aggmodalsplit["Allmodes"]) 
+        print(aggmodalsplit.head(30))   
 
-        # aggmodalsplit.to_csv(f"ModalSplit_A{nb_agents}_{scenario}_{modelrun}_aggregate.csv", index=False)
+        aggmodalsplit.to_csv(f"ModalSplit_A{nb_agents}_{scenario}_{modelrun}_aggregate.csv", index=False)
         
         print("Creating Circos plot")
         os.chdir(destination)
@@ -336,7 +356,7 @@ if "CirclePlot" in viztype:
                                        MSperc_monthmin = MSperc_monthmin, MSperc_monthmax = MSperc_monthmax,MSperc_monthstep=MSperc_monthstep,
                                        MSabs_hourmin = MSabs_hourmin, MSabs_hourmax = MSabs_hourmax,MSabs_hourstep=MSabs_hourstep,
                                        MSabs_monthmin = MSabs_monthmin, MSabs_monthmax = MSabs_monthmax,MSabs_monthstep=MSabs_monthstep,
-                                       suffix = f"_{scenario}_{modelrun}_line", abs = "line")
+                                       suffix = f"_{scenario}_{modelrun}_AllLine", abs = "line")
 
         aggmodalsplit["totaltrips"] = aggmodalsplit["bike"] + aggmodalsplit["drive"] + aggmodalsplit["transit"] + aggmodalsplit["walk"]
         MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = calc_min_max(aggmodalsplit,  timeunit_contains = "weekday", stratvals = ["totaltrips"],
@@ -347,10 +367,21 @@ if "CirclePlot" in viztype:
 
         plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin = MSperc_hourmin, MSperc_hourmax = MSperc_hourmax, MSperc_hourstep=MSperc_hourstep,
                                        MSperc_monthmin = MSperc_monthmin, MSperc_monthmax = MSperc_monthmax,MSperc_monthstep=MSperc_monthstep,
-                                       MSabs_hourmin = 0, MSabs_hourmax = MSabs_hourmax,MSabs_hourstep=2000,
+                                       MSabs_hourmin = 0, MSabs_hourmax = MSabs_hourmax,MSabs_hourstep=3000,
                                        MSabs_monthmin = 0, MSabs_monthmax = MSabs_monthmax,MSabs_monthstep=2000,
-                                       suffix = f"_{scenario}_{modelrun}_stackedbar", abs = "stackedbar")
+                                       suffix = f"_{scenario}_{modelrun}_AbsStackedbar", abs = "stackedbar")
 
+
+        aggmodalsplit["bikefraction"] = aggmodalsplit["bikefraction"] * 100
+        aggmodalsplit["drivefraction"] = aggmodalsplit["drivefraction"] * 100
+        aggmodalsplit["transitfraction"] = aggmodalsplit["transitfraction"] * 100
+        aggmodalsplit["walkfraction"] = aggmodalsplit["walkfraction"] * 100
+
+        plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin = 0, MSperc_hourmax = 100, MSperc_hourstep=20,
+                                       MSperc_monthmin = 0, MSperc_monthmax = 100,MSperc_monthstep=20,
+                                       MSabs_hourmin = 0, MSabs_hourmax = MSabs_hourmax,MSabs_hourstep=3000,
+                                       MSabs_monthmin = 0, MSabs_monthmax = MSabs_monthmax,MSabs_monthstep=2000,
+                                       suffix = f"_{scenario}_{modelrun}_AllStackedbar", abs = "stackedbar", perc="stackedbar")
         
     
 if "statusquocomparison" in viztype:

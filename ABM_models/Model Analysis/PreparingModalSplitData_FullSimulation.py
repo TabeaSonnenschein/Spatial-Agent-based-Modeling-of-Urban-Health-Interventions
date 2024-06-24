@@ -49,42 +49,21 @@ for modelrun in modelruns:
     # transform the list of dictionaries to a dataframe
     modalsplit_df = pd.DataFrame.from_dict(dict)
     modalsplit_df["datesuffix"] = hours
-    modalsplit_df["month"] = modalsplit_df["datesuffix"].str.split("_").str[0]
-    modalsplit_df["day"] = modalsplit_df["datesuffix"].str.split("_").str[1]
-    modalsplit_df["hour"] = modalsplit_df["datesuffix"].str.split("_").str[2]
-    # modalsplit_df["date"] = modalsplit_df["hour"].str.split(" ").str[0]
-    # modalsplit_df["hour"] = modalsplit_df["hour"].str.split(" ").str[1]
-    # modalsplit_df["hour"] = modalsplit_df["hour"].str.split(":").str[0]
-    # modalsplit_df["month"] = modalsplit_df["date"].str.split("-").str[1]
-    # modalsplit_df["day"] = modalsplit_df["date"].str.split("-").str[2]
+    modalsplit_df["month"] = [x[1:] for x in modalsplit_df["datesuffix"].str.split("_").str[0]]
+    modalsplit_df["day"] = [x[1:] for x in modalsplit_df["datesuffix"].str.split("_").str[1]]
+    modalsplit_df["hour"] = [x[1:] for x in modalsplit_df["datesuffix"].str.split("_").str[2]]
+    
     print(modalsplit_df.head())
     modalsplit_df["hour"] = modalsplit_df["hour"].astype(int)
     modalsplit_df["day"] = modalsplit_df["day"].astype(int)
     modalsplit_df["month"] = modalsplit_df["month"].astype(int)
-    modalsplit_df["date"] = f"2019-{modalsplit_df['month']}-{modalsplit_df['day']}"
+    modalsplit_df["date"] = [f"2019-{modalsplit_df['month'].iloc[x]}-{modalsplit_df['day'].iloc[x]}" for x in range(len(modalsplit_df))]
     try:
         modalsplit_df['date'] = pd.to_datetime(modalsplit_df['date'], format='%Y-%m-%d', errors='coerce')
     except Exception as e:
         print("Error converting dates:", e)
-        
-    # modalsplit_df["hour"]-= 1
-    # modalsplit_df.loc[modalsplit_df["hour"] == -1, "hour"] = 23
-    # modalsplit_df.loc[modalsplit_df["hour"] == 23, "day"] -= 1
-    # modalsplit_df.loc[modalsplit_df["day"] == 0, "month"] -= 3
-    # modalsplit_df.loc[modalsplit_df["hour"] == 23, "date"] = modalsplit_df["date"].loc[modalsplit_df["hour"] == 23] - pd.to_timedelta(1, unit='d')
-    # indices = np.where(modalsplit_df["day"] == 0)[0]
-    # print(indices)
-    # if len(indices) > 0:
-    #     modalsplit_df.loc[indices,"date"] = [modalsplit_df.loc[ind -1,"date"] for ind in indices]
-    # modalsplit_df.loc[modalsplit_df["day"] == 0, "day"] = 7
-
-
-    
     modalsplit_df["weekday"] = modalsplit_df['date'].dt.day_name()
-    modalsplit_df["weekday"] = modalsplit_df["weekday"].replace({"Monday": "Sunday", "Tuesday": "Monday", "Wednesday": "Tuesday", "Thursday": "Wednesday", "Friday": "Thursday", "Saturday": "Friday", "Sunday": "Saturday"})
-
-
-
+    modalsplit_df[["bike", "drive", "transit", "walk"]] = modalsplit_df[["bike", "drive", "transit", "walk"]].fillna(0)
     print(modalsplit_df.head())
 
     modalsplit_df.to_csv(f"ModalSplitLog{nb_agents}_{scenario}_{modelrun}.csv", index=False)
