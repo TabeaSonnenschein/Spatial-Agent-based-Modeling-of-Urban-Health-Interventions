@@ -643,6 +643,18 @@ def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors, NO2mo
         figure.savefig(f"CirclePlot_with_Legend{suffix}.png", dpi=600)
 
 
+def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, distance_meters, vmax = None, outcomelabel = None):
+    if outcomelabel is None:
+        outcomelabel = outcomvar
+    ax = spatialdata.plot(outcomvar, antialiased=False, legend = True, vmax = vmax)
+    cx.add_basemap(ax, crs=spatialdata.crs, source=cx.providers.CartoDB.PositronNoLabels)
+    scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
+    ax.add_artist(scalebar)
+    plt.title(f"{outcomelabel} Per Neighborhood")
+    plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.png', dpi = 600, bbox_inches='tight', pad_inches=0.1)
+    if showplots:
+        plt.show()
+    plt.close()
 
 
 ######################################################
@@ -671,349 +683,455 @@ scenario = "StatusQuo"
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-bestStatusQuo = 708658
-modelruns = [708658]
-popsamples = [1]
+# bestStatusQuo = 708658
+# modelruns = [modelrun for modelrun in modelruns if not(modelrun in [708658,481658])]
+modelruns = [modelrun for modelrun in modelruns if not(modelrun in [481658])]
+popsamples = [int(experimentoverview.loc[experimentoverview["Model Run"]== modelrun, "Population Sample"].values[0]) for modelrun in modelruns]
+print(modelruns, popsamples)
+
 # modelruns = [381609]
 # modelruns = [805895]
 
-days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-for count, modelrun in enumerate(modelruns):
-    # read exposure data
-    os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelrun}/ExposureViz")
-    # print("Reading the data")
-    # # exposure_df_horizon = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_horizonAsColumns.csv")
-    # exposure_df_vertical = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_verticalAsRows.csv")
-
-    # exposure_df_vertical["date"] = [f"{daymonth[0]}-{daymonth[1]}-2019" for daymonth in exposure_df_vertical[["day", "month"]].values]
-    # exposure_df_vertical['date'] = pd.to_datetime(exposure_df_vertical['date'], format='%d-%m-%Y', errors='coerce')
-    # exposure_df_vertical["weekday"] = exposure_df_vertical['date'].dt.day_name()
-    # exposure_df_vertical['weekday'] = pd.Categorical(exposure_df_vertical['weekday'], categories=days_order, ordered=True)
-    # # exposure_df_vertical["weekday"] = exposure_df_vertical["weekday"].replace({"Monday": "Sunday", "Tuesday": "Monday", "Wednesday": "Tuesday", "Thursday": "Wednesday", "Friday": "Thursday", "Saturday": "Friday", "Sunday": "Saturday"})
-
-
-    # agent_df = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/Amsterdam_population_subset{nb_agents}_{modelrun}_{popsamples[count]}.csv")
-    # print("Merging the data")
-    # exposure_df_vertical = pd.merge(agent_df, exposure_df_vertical, on="agent_ID", how="right")
-
-
-    # # Renaming some columns for elegance
-    # exposure_df_vertical = exposure_df_vertical.rename(columns={"incomeclass_int": "income", "migrationbackground": "migr_bck"})
-    # exposure_df_vertical["income"] = exposure_df_vertical["income"].astype(int)
-    # # restructuring data
-    # exposure_df_vertical["income_class"]=exposure_df_vertical["income"].apply(lambda x: "Low" if x in range(1,5) else ("Medium" if x in range(5,9) else "High"))
-    # # 1 low # 10 high
-    # # restructuring age into groups
-    # exposure_df_vertical["age_group"]=exposure_df_vertical["age"].apply(lambda x: "Aged 0-29y" if x in range(0,30) else ("Aged 30-59" if x in range(30,60) else "Aged 60+"))    
-
-    # # make hh_size into a categorical variable
-    # exposure_df_vertical["HH_size"] = [f"HH size {hhsize}" for hhsize in exposure_df_vertical["HH_size"]]
-    
-    # # print("Analyzing the data")
-    # # print(exposure_df_vertical.head())
-    # # print(exposure_df_vertical.info())
-    # # print(exposure_df_vertical.describe())
-    # # for column in exposure_df_vertical.select_dtypes(include=['object']):
-    # #     print("\nValue counts for", column)
-    # #     print(exposure_df_vertical[column].value_counts())
-
-
-    # print("Plotting the data")
-    # #################################
-    # ###  Exposure stratifications ###
-    # #################################
-    print("Plotting the exposure stratification")
-    continuousstratvars = ["income"]
-    categoricalstratvars = ["sex", "migr_bck", "income_class", "age_group", "HH_size"]
-    plottypes = [ "line", "violin"] # "scatter"
-    outcomevars = ["NO2", "MET"]
-    timevars = ["hour", "weekday", "month"]
-
-    fullnamedict = {
-        "income": "Income Decile: 1 low, 10 high",
-        "sex": "sex",
-        "migr_bck": "Migration Background",
-        "income_class": "Income Group",
-        "age_group": "Age Group",
-        "HH_size": "Household Size",
-        "NO2": "NO2 (µg/m3)",
-        "MET": "Metabolic Equivalent of Task (MET)",
-        "NO2_diff": "NO2 Difference (µg/m3)",
-        "MET_diff": "Metabolic Equivalent of Task (MET) Difference" }
+viztasks = [
+            # "Exposure preparation",
+            # "Exposure descriptives",
+            # "Exposure stratification",
+            # "Aggregate exposure df",
+            # "Exposure Time Circle plot",
+            # "Exposure Circle plot strat",
+            # "spatial Exposure mapping",
+            # "Comparative plots",
+            # "Mean across runs aggregate exposure df",
+            # "Mean across runs exposure circle plot",
+            "Mean across runs and Neighborhoods",
+            ]
             
-    # showplots = False
-    # PlotVarsInLists(timevars=timevars,plottypes=plottypes, outcomevars=outcomevars, continuousstratvars=continuousstratvars,
-    #                 categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
-    #                 df=exposure_df_vertical, fullnamedict=fullnamedict)
+categoricalstratvars = ["sex", "migr_bck", "income_class", "age_group", "HH_size"]
+plottypes = [ "line", "violin"] # "scatter"
+outcomevars = ["NO2", "MET"]
+timevars = ["hour", "weekday", "month"]
+
+fullnamedict = {
+    "income": "Income Decile: 1 low, 10 high",
+    "sex": "sex",
+    "migr_bck": "Migration Background",
+    "income_class": "Income Group",
+    "age_group": "Age Group",
+    "HH_size": "Household Size",
+    "NO2": "NO2 (µg/m3)",
+    "MET": "Metabolic Equivalent of Task (MET)",
+    "NO2_diff": "NO2 Difference (µg/m3)",
+    "MET_diff": "Metabolic Equivalent of Task (MET) Difference" }
+
+days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+for count, modelrun in enumerate(modelruns):
+    if "Exposure preparation" in viztasks:
+        # read exposure data
+        os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelrun}/ExposureViz")
+        print("Reading the data")
+        # exposure_df_horizon = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_horizonAsColumns.csv")
+        exposure_df_vertical = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_verticalAsRows.csv")
+
+        exposure_df_vertical["date"] = [f"{daymonth[0]}-{daymonth[1]}-2019" for daymonth in exposure_df_vertical[["day", "month"]].values]
+        exposure_df_vertical['date'] = pd.to_datetime(exposure_df_vertical['date'], format='%d-%m-%Y', errors='coerce')
+        exposure_df_vertical["weekday"] = exposure_df_vertical['date'].dt.day_name()
+        exposure_df_vertical['weekday'] = pd.Categorical(exposure_df_vertical['weekday'], categories=days_order, ordered=True)
+        # exposure_df_vertical["weekday"] = exposure_df_vertical["weekday"].replace({"Monday": "Sunday", "Tuesday": "Monday", "Wednesday": "Tuesday", "Thursday": "Wednesday", "Friday": "Thursday", "Saturday": "Friday", "Sunday": "Saturday"})
 
 
+        agent_df = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/Amsterdam_population_subset{nb_agents}_{modelrun}_{popsamples[count]}.csv")
+        print("Merging the data")
+        exposure_df_vertical = pd.merge(agent_df, exposure_df_vertical, on="agent_ID", how="right")
 
-    # #### create an aggregate dataset
-    # print("Creating an aggregate dataset")
-    # timeunits = ["hour", "weekday", "month"]
 
-    # aggexposure = exposure_df_vertical[outcomevars].mean().values
-    # aggexposure = pd.DataFrame([["total"]+list(aggexposure)], columns=["timeunit"]+outcomevars)
-    # print(aggexposure)
-    # for timeunit in timeunits:
-    #     timeunitexposure = pd.DataFrame(exposure_df_vertical[[timeunit]+outcomevars].groupby(timeunit, as_index=False).mean())
-    #     timeunitexposure["timeunit"] = [f"{timeunit} {unit}" for unit in timeunitexposure[timeunit]]
-    #     print(timeunitexposure.head())
-    #     aggexposure = pd.concat([aggexposure, timeunitexposure[["timeunit"]+outcomevars]], axis=0, ignore_index=True)
-    #     print(aggexposure.head(30))   
-    
-    # aggexposure.index = aggexposure["timeunit"]
-    # for strativar in categoricalstratvars:
-    #     stratexposure = pd.DataFrame(exposure_df_vertical[[strativar]+outcomevars].groupby(strativar, as_index=False).mean())
-    #     stratexposure["timeunit"] = "total"
-    #     stratexposure = pd.pivot(index="timeunit", columns=strativar, values=outcomevars, data=stratexposure)
-    #     stratcol = [f"{col[0]}_{col[1]}" for col in stratexposure.columns]
-    #     stratexposure.columns = stratcol
-    #     print(stratexposure.head())
-    #     aggexposure[stratcol] = None
-    #     aggexposure.loc[aggexposure["timeunit"] == "total", stratcol] = stratexposure[stratcol]
-    #     for timeunit in timeunits:
-    #         timeunitexposure = pd.DataFrame(exposure_df_vertical[[timeunit, strativar]+outcomevars].groupby([timeunit, strativar], as_index=False).mean())
-    #         timeunitexposure["timeunit"] = [f"{timeunit} {unit}" for unit in timeunitexposure[timeunit]]
-    #         timeunitexposure = pd.pivot(index="timeunit", columns=strativar, values=outcomevars, data=timeunitexposure)
-    #         timeunitexposure.columns = stratcol
-    #         print(timeunitexposure.head())
-    #         aggexposure.loc[timeunitexposure.index, stratcol] = timeunitexposure[stratcol]
-    #         print(aggexposure.head(30))
+        # Renaming some columns for elegance
+        exposure_df_vertical = exposure_df_vertical.rename(columns={"incomeclass_int": "income", "migrationbackground": "migr_bck"})
+        exposure_df_vertical["income"] = exposure_df_vertical["income"].astype(int)
+        # restructuring data
+        exposure_df_vertical["income_class"]=exposure_df_vertical["income"].apply(lambda x: "Low" if x in range(1,5) else ("Medium" if x in range(5,9) else "High"))
+        # 1 low # 10 high
+        # restructuring age into groups
+        exposure_df_vertical["age_group"]=exposure_df_vertical["age"].apply(lambda x: "Aged 0-29y" if x in range(0,30) else ("Aged 30-59" if x in range(30,60) else "Aged 60+"))    
+
+        # make hh_size into a categorical variable
+        exposure_df_vertical["HH_size"] = [f"HH size {hhsize}" for hhsize in exposure_df_vertical["HH_size"]]
+        continuousstratvars = ["income"]
         
-    # aggexposure.to_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv", index=False)
-    
-    ##########################################################  
-    ### Visualize the aggregate data in a circle plot
-    ##########################################################
-    
-    aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv")
 
+            
+    if "Exposure descriptives" in viztasks:
+        print("Analyzing the data")
+        print(exposure_df_vertical.head())
+        print(exposure_df_vertical.info())
+        print(exposure_df_vertical.describe())
+        for column in exposure_df_vertical.select_dtypes(include=['object']):
+            print("\nValue counts for", column)
+            print(exposure_df_vertical[column].value_counts())
+
+    if "Exposure stratification" in viztasks:
+        # #################################
+        # ###  Exposure stratifications ###
+        # #################################
+        print("Plotting the exposure stratification")
+
+        showplots = False
+        PlotVarsInLists(timevars=timevars,plottypes=plottypes, outcomevars=outcomevars, continuousstratvars=continuousstratvars,
+                        categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
+                        df=exposure_df_vertical, fullnamedict=fullnamedict)
+
+
+    if "Aggregate exposure df" in viztasks:
+        # #### create an aggregate dataset
+        print("Creating an aggregate dataset")
+        timeunits = ["hour", "weekday", "month"]
+
+        aggexposure = exposure_df_vertical[outcomevars].mean().values
+        aggexposure = pd.DataFrame([["total"]+list(aggexposure)], columns=["timeunit"]+outcomevars)
+        print(aggexposure)
+        for timeunit in timeunits:
+            timeunitexposure = pd.DataFrame(exposure_df_vertical[[timeunit]+outcomevars].groupby(timeunit, as_index=False).mean())
+            timeunitexposure["timeunit"] = [f"{timeunit} {unit}" for unit in timeunitexposure[timeunit]]
+            print(timeunitexposure.head())
+            aggexposure = pd.concat([aggexposure, timeunitexposure[["timeunit"]+outcomevars]], axis=0, ignore_index=True)
+            print(aggexposure.head(30))   
+    
+        aggexposure.index = aggexposure["timeunit"]
+        for strativar in categoricalstratvars:
+            stratexposure = pd.DataFrame(exposure_df_vertical[[strativar]+outcomevars].groupby(strativar, as_index=False).mean())
+            stratexposure["timeunit"] = "total"
+            stratexposure = pd.pivot(index="timeunit", columns=strativar, values=outcomevars, data=stratexposure)
+            stratcol = [f"{col[0]}_{col[1]}" for col in stratexposure.columns]
+            stratexposure.columns = stratcol
+            print(stratexposure.head())
+            aggexposure[stratcol] = None
+            aggexposure.loc[aggexposure["timeunit"] == "total", stratcol] = stratexposure[stratcol]
+            for timeunit in timeunits:
+                timeunitexposure = pd.DataFrame(exposure_df_vertical[[timeunit, strativar]+outcomevars].groupby([timeunit, strativar], as_index=False).mean())
+                timeunitexposure["timeunit"] = [f"{timeunit} {unit}" for unit in timeunitexposure[timeunit]]
+                timeunitexposure = pd.pivot(index="timeunit", columns=strativar, values=outcomevars, data=timeunitexposure)
+                timeunitexposure.columns = stratcol
+                print(timeunitexposure.head())
+                aggexposure.loc[timeunitexposure.index, stratcol] = timeunitexposure[stratcol]
+                print(aggexposure.head(30))
+            
+        aggexposure.to_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv", index=False)
+    
+    
+    if "Exposure Time Circle plot" in viztasks:
+        
+        ##########################################################  
+        ### Visualize the aggregate data in a circle plot
+        ##########################################################
+        
+        aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv")
+
+        subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "green","greenyellow",  "lightseagreen", "aquamarine","olive" ]
+            
+        subgroups_Meta = {"income": ["Low", "Medium", "High"],
+                    "sex": ["male", "female"], 
+                    "migration_background": ["Dutch", "Western", "Non-Western"],
+                    "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
+                    "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
+        
+        for stratgroup in subgroups_Meta:
+            print(f"Plotting the exposure stratification for {stratgroup}")
+            subgroups = {stratgroup:subgroups_Meta[stratgroup]}
+            subgroupcolors = {stratgroup: subgroupcolorpalette[:len(subgroups[stratgroup])]}
+            if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"NO2_{val}"].min() < 23.5 else False for val in subgroups[stratgroup]]):
+                NO2monthmin = 23
+            else:
+                NO2monthmin = 23.5
+            if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"MET_{val}"].min() < 0.75 else False for val in subgroups[stratgroup]]):
+                METmonthmin = 0.5
+            else:
+                METmonthmin = 0.75
+            if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].max() > 30 else False for val in subgroups[stratgroup]]):
+                NO2hourmax = 32
+            else:
+                NO2hourmax = 30
+            if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].min() <25 else False for val in subgroups[stratgroup]]):
+                NO2hourmin = 18
+            else:
+                NO2hourmin = 20
+            
+            plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,  
+                                       NO2monthmin = NO2monthmin, METmonthmin= METmonthmin, 
+                                       NO2hourmax=NO2hourmax, NO2hourmin=NO2hourmin,
+                                       suffix = f"_{scenario}_{modelrun}_{stratgroup}")   
+
+    if "Exposure Circle plot strat" in viztasks:
+        subgroupcolors = {stratgroup: subgroupcolorpalette[count] for count, stratgroup in enumerate(subgroups_Meta)}
+
+        aggexposure_subs = aggexposure.loc[aggexposure["timeunit"]=="total",[f"{outcomevar}_{val}" for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup] for outcomevar in outcomevars]]
+        stratexposure_df = pd.DataFrame({f"{outcomevar}": [aggexposure_subs[f"{outcomevar}_{val}"].values for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]] for outcomevar in outcomevars})
+        stratexposure_df["Label"] = [val for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+        stratexposure_df["Group"] = [subgroup for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+        for outcomevar in outcomevars:
+            stratexposure_df[outcomevar] = [x[0] for x in stratexposure_df[outcomevar]]
+            stratexposure_df[f"{outcomevar}_deviation"] = stratexposure_df[f"{outcomevar}"] - aggexposure.loc[aggexposure["timeunit"]=="total", outcomevar].values[0]
+        print(stratexposure_df.head(20))
+
+        stratexposure_df.to_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate_strat.csv", index=False)
+    
+        plotCircosMeanStrat(aggexposure, subgroups= subgroups_Meta, subgroupcolors = subgroupcolors, outcomevar = "NO2", roundval = 1, suffix = None)
+
+        CircleGraphStrat(stratexposure_df, outcomevar = "NO2", suffix = f"_{scenario}_{modelrun}")
+        
+    if "spatial Exposure mapping" in viztasks:
+        ###########################################
+        # map exposure per neighborhood
+        ###########################################
+        print("Plotting mean status quo scenario exposure per neighborhood")
+        crs = 28992    
+        points = gpd.GeoSeries(
+            [Point(485000, 120000), Point(485001, 120000)], crs=crs
+        )  # Geographic WGS 84 - degrees
+        points = points.to_crs(32619)  # Projected WGS 84 - meters
+        distance_meters = points[0].distance(points[1])
+        print(distance_meters)
+        neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
+        print(neighborhoods.columns)
+        exposure_df_vertical
+        exposure_neigh = exposure_df_vertical[["neighb_code"] +outcomevars].groupby(["neighb_code"],  as_index=False).mean()
+        exposure_neigh.to_csv(f"Exposure_A{nb_agents}_{modelrun}_neigh.csv", index=False)
+        exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
+        print(exposure_neigh.head())
+        neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
+
+        showplots = False
+        for outcomvar in outcomevars:
+            PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun=modelrun, 
+                                spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
+                                distance_meters=distance_meters)
+
+    if "Comparative plots" in viztasks:
+        #########################
+        ### Comparative Plots ###
+        #########################
+
+        aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv")
+        aggexposurestatquo = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz/Exposure_A{nb_agents}_Mean_{scenario}_aggregate.csv")
+
+
+        aggexposurediff = aggexposure.copy()
+        outcomecols = aggexposure.columns[1:]
+        for outcomvar in outcomecols:
+            aggexposurediff[f"{outcomvar}_diff"] = aggexposure[f"{outcomvar}"] - aggexposurestatquo[f"{outcomvar}"]
+            
+        aggexposurediff.to_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate_diff.csv", index=False)
+
+        differencecols = [f"{outcomvar}_diff" for outcomvar in outcomecols]
+        
+        aggexposure[outcomecols] = aggexposurediff[differencecols]
+        
+        subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "lightseagreen", "aquamarine", "greenyellow", "green", "olive" ]
+            
+        subgroups_Meta = {"income": ["Low", "Medium", "High"],
+                    "sex": ["male", "female"], 
+                    "migration_background": ["Dutch", "Western", "Non-Western"],
+                    "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
+                    "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
+        def calc_min_max(column_prefix, timeunit_contains, stratvals):
+            min_val = np.min([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].min() for val in stratvals]).round(2)
+            max_val = np.max([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].max() for val in stratvals]).round(2)
+            step = ((max_val - min_val)/5).round(2)
+            min_val = (min_val - step).round(2)  
+            max_val = (max_val + step).round(2)
+            step = ((max_val - min_val)/5).round(2)
+            if step == 0:
+                min_val = np.min([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].min() for val in stratvals]).round(4)
+                max_val = np.max([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].max() for val in stratvals]).round(4)      
+                step = ((max_val - min_val)/4).round(4)    
+                min_val = (min_val - step).round(4)  
+                max_val = (max_val + step).round(4)
+                step = ((max_val - min_val)/4).round(4)
+            return min_val, max_val, step
+        
+        for stratgroup in subgroups_Meta:
+            print(f"Plotting the exposure stratification for {stratgroup}")
+            subgroups = {stratgroup:subgroups_Meta[stratgroup]}
+            subgroupcolors = {stratgroup: subgroupcolorpalette[:len(subgroups[stratgroup])]}
+            NO2monthmin, NO2monthmax, NO2monthstep = calc_min_max("NO2", "weekday", subgroups[stratgroup])
+            NO2hourmin, NO2hourmax, NO2hourstep = calc_min_max("NO2", "hour", subgroups[stratgroup])
+            METmonthmin, METmonthmax, METmonthstep = calc_min_max("MET", "weekday", subgroups[stratgroup])
+            METhourmin, METhourmax, METhourstep = calc_min_max("MET", "hour",   subgroups[stratgroup])
+
+            print("NO2month", NO2monthmin, NO2monthmax, NO2monthstep)
+            print("NO2hour", NO2hourmin, NO2hourmax, NO2hourstep)
+            print("METmonth", METmonthmin, METmonthmax, METmonthstep)
+            print("METhour", METhourmin, METhourmax, METhourstep)
+            
+            plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,  
+                                        NO2monthmax=NO2monthmax, NO2monthmin=NO2monthmin, NO2monthstep=NO2monthstep,
+                                            NO2hourmax=NO2hourmax, NO2hourmin=NO2hourmin, NO2hourstep=NO2hourstep,
+                                            METmonthmax=METmonthmax, METmonthmin=METmonthmin, METmonthstep=METmonthstep,
+                                            METhourmax=METhourmax, METhourmin=METhourmin, METhourstep=METhourstep,
+                                            suffix = f"_{scenario}_{modelrun}_{stratgroup}_Difference")   
+
+    
+if "Mean across runs aggregate exposure df" in viztasks:
+    if not os.path.exists(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz"):
+        # Create the directory
+        os.mkdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
+    os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
+    print("Creating an aggregate time stratification dataset")
+    print(modelruns, popsamples)
+    aggexposure = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelruns[0]}/ExposureViz/Exposure_A{nb_agents}_{modelruns[0]}_aggregate.csv")
+    cols = aggexposure.columns[1:]
+    for count, modelrun in enumerate(modelruns[1:]):
+        aggexposure2 = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelrun}/ExposureViz/Exposure_A{nb_agents}_{modelrun}_aggregate.csv")
+        aggexposure[cols] = aggexposure[cols] + aggexposure2[cols]
+    aggexposure[cols] = aggexposure[cols]/len(modelruns)
+    aggexposure.to_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_aggregate.csv", index=False)    
+    
+    
+if "Mean across runs exposure circle plot" in viztasks:
+    os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
+    aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_aggregate.csv")
     subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "green","greenyellow",  "lightseagreen", "aquamarine","olive" ]
-        
+            
     subgroups_Meta = {"income": ["Low", "Medium", "High"],
                 "sex": ["male", "female"], 
                 "migration_background": ["Dutch", "Western", "Non-Western"],
                 "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
                 "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
     
-    # for stratgroup in subgroups_Meta:
-    #     print(f"Plotting the exposure stratification for {stratgroup}")
-    #     subgroups = {stratgroup:subgroups_Meta[stratgroup]}
-    #     subgroupcolors = {stratgroup: subgroupcolorpalette[:len(subgroups[stratgroup])]}
-    #     if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"NO2_{val}"].min() < 23.5 else False for val in subgroups[stratgroup]]):
-    #         NO2monthmin = 23
-    #     else:
-    #         NO2monthmin = 23.5
-    #     if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"MET_{val}"].min() < 0.75 else False for val in subgroups[stratgroup]]):
-    #         METmonthmin = 0.5
-    #     else:
-    #         METmonthmin = 0.75
-    #     if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].max() > 30 else False for val in subgroups[stratgroup]]):
-    #         NO2hourmax = 32
-    #     else:
-    #         NO2hourmax = 30
-    #     if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].min() <25 else False for val in subgroups[stratgroup]]):
-    #         NO2hourmin = 18
-    #     else:
-    #         NO2hourmin = 20
+    for stratgroup in subgroups_Meta:
+        print(f"Plotting the exposure stratification for {stratgroup}")
+        subgroups = {stratgroup:subgroups_Meta[stratgroup]}
+        subgroupcolors = {stratgroup: subgroupcolorpalette[:len(subgroups[stratgroup])]}
+        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"NO2_{val}"].min() < 23.5 else False for val in subgroups[stratgroup]]):
+            NO2monthmin = 23
+        else:
+            NO2monthmin = 23.5
+        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"MET_{val}"].min() < 0.75 else False for val in subgroups[stratgroup]]):
+            METmonthmin = 0.5
+        else:
+            METmonthmin = 0.75
+        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].max() > 30 else False for val in subgroups[stratgroup]]):
+            NO2hourmax = 32
+        else:
+            NO2hourmax = 30
+        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].min() <25 else False for val in subgroups[stratgroup]]):
+            NO2hourmin = 18
+        else:
+            NO2hourmin = 20
         
-    #     plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,  
-    #                                NO2monthmin = NO2monthmin, METmonthmin= METmonthmin, 
-    #                                NO2hourmax=NO2hourmax, NO2hourmin=NO2hourmin,
-    #                                suffix = f"_{scenario}_{modelrun}_{stratgroup}")   
+        plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,  
+                                    NO2monthmin = NO2monthmin, METmonthmin= METmonthmin, 
+                                    NO2hourmax=NO2hourmax, NO2hourmin=NO2hourmin,
+                                    suffix = f"_{scenario}_MeanAcrossRuns_{stratgroup}")   
+                      
 
-    subgroupcolors = {stratgroup: subgroupcolorpalette[count] for count, stratgroup in enumerate(subgroups_Meta)}
+if "Mean across runs and Neighborhoods" in viztasks:
+    os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
+    print("Creating an aggregate neighborhood exposure dataset")
+    print(modelruns, popsamples)
 
-    aggexposure_subs = aggexposure.loc[aggexposure["timeunit"]=="total",[f"{outcomevar}_{val}" for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup] for outcomevar in outcomevars]]
-    stratexposure_df = pd.DataFrame({f"{outcomevar}": [aggexposure_subs[f"{outcomevar}_{val}"].values for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]] for outcomevar in outcomevars})
-    stratexposure_df["Label"] = [val for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
-    stratexposure_df["Group"] = [subgroup for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+    exposure_neigh = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelruns[0]}/ExposureViz/Exposure_A{nb_agents}_{modelruns[0]}_neigh.csv")
+    exposure_neigh.sort_values("neighb_code", inplace=True)
+    # rename columns with modelrun suffix
+    exposure_neigh.columns = [exposure_neigh.columns.values[0]]+[f"{col}_4" for col in exposure_neigh.columns.values[1:]]    
+    for count, modelrun in enumerate(modelruns[1:]):
+        print(f"Adding data from modelrun {modelrun}")
+        exposure_neigh2 = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelrun}/ExposureViz/Exposure_A{nb_agents}_{modelrun}_neigh.csv")
+        exposure_neigh2.sort_values("neighb_code", inplace=True)
+        exposure_neigh2.columns = [exposure_neigh2.columns.values[0]]+[f"{col}_{count}" for col in exposure_neigh2.columns.values[1:]]   
+        exposure_neigh = exposure_neigh.merge(exposure_neigh2, on="neighb_code", how="outer")
+
+        print(exposure_neigh.tail(30))
+
     for outcomevar in outcomevars:
-        stratexposure_df[outcomevar] = [x[0] for x in stratexposure_df[outcomevar]]
-        stratexposure_df[f"{outcomevar}_deviation"] = stratexposure_df[f"{outcomevar}"] - aggexposure.loc[aggexposure["timeunit"]=="total", outcomevar].values[0]
-    print(stratexposure_df.head(20))
-
-    stratexposure_df.to_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate_strat.csv", index=False)
+        exposure_neigh[outcomevar] = exposure_neigh[[f"{outcomevar}_{count}" for count in range(len(modelruns))]].mean(axis=1)
     
-    # plotCircosMeanStrat(aggexposure, subgroups= subgroups_Meta, subgroupcolors = subgroupcolors, outcomevar = "NO2", roundval = 1, suffix = None)
+    print(exposure_neigh.head(20))
+    exposure_neigh.to_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_neigh.csv", index=False)    
+    exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
 
-    CircleGraphStrat(stratexposure_df, outcomevar = "NO2", suffix = f"_{scenario}_{modelrun}")
-    
-    
-    # ###########################################
-    # # map exposure per neighborhood
-    # ###########################################
-    # print("Plotting mean status quo scenario exposure per neighborhood")
-    # crs = 28992    
-    # points = gpd.GeoSeries(
-    #     [Point(485000, 120000), Point(485001, 120000)], crs=crs
-    # )  # Geographic WGS 84 - degrees
-    # points = points.to_crs(32619)  # Projected WGS 84 - meters
-    # distance_meters = points[0].distance(points[1])
-    # print(distance_meters)
-    # neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
-    # print(neighborhoods.columns)
-    # exposure_df_vertical
-    # exposure_neigh = exposure_df_vertical[["neighb_code"] +outcomevars].groupby(["neighb_code"],  as_index=False).mean()
-    # exposure_neigh.to_csv(f"Exposure_A{nb_agents}_{modelrun}_neigh.csv", index=False)
-    # exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
-    # print(exposure_neigh.head())
-    # neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
+    print("Plotting mean status quo scenario exposure per neighborhood")
 
-    # def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, distance_meters, outcomelabel = None):
-    #     if outcomelabel is None:
-    #         outcomelabel = outcomvar
-    #     ax = spatialdata.plot(outcomvar, antialiased=False, legend = True)
-    #     cx.add_basemap(ax, crs=spatialdata.crs, source=cx.providers.CartoDB.PositronNoLabels)
-    #     scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
-    #     ax.add_artist(scalebar)
-    #     plt.title(f"{outcomelabel} Per Neighborhood")
-    #     plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.png', dpi = 600, bbox_inches='tight', pad_inches=0.1)
-    #     if showplots:
-    #         plt.show()
-    #     plt.close()
+    crs = 28992    
+    points = gpd.GeoSeries(
+        [Point(485000, 120000), Point(485001, 120000)], crs=crs
+    )  # Geographic WGS 84 - degrees
+    points = points.to_crs(32619)  # Projected WGS 84 - meters
+    distance_meters = points[0].distance(points[1])
+    print(distance_meters)
+    neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
+    print(neighborhoods.columns)
+    neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
 
-    # showplots = False
-    # for outcomvar in outcomevars:
-    #     PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun=modelrun, 
-    #                          spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
-    #                          distance_meters=distance_meters)
+    showplots = False
+    maxvals = {"NO2": 30, "MET": 1.5}
+    for outcomvar in outcomevars:
+        PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun="MeanAcrossRuns", 
+                            spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
+                            distance_meters=distance_meters, vmax=maxvals[outcomvar])
+
+# print("Plotting Comparison to Status Quo over Time")
+# # read exposure data
+# modelrun_stat = "StatusQuo"
+# exposure_df_statusq = pd.read_csv(path_data + 'AgentExposure/' + modelrun_stat + f"/AgentExposure_A{nb_agents}_M1_{modelrun_stat}_hourAsRowsMerged.csv")
+# suffixes = ("_interv", "_statusq")
+# exposure_comp = pd.merge(exposure_df_vertical, exposure_df_statusq, on=["agent_ID", "hour"], how="left", suffixes=suffixes)
+
+# for outcomvar in outcomevars:
+#     CompareAverageExposure2Scenarios(outcomvar, ["_interv", "_statusq"], showplots, modelrun, scenariolabels=[ "After Intervention", "Before Intervention"],ylabel =  fullnamedict[outcomvar])
+
+# print("Plotting the difference between intervention and status quo scenario")
+
+# # plot the difference between intervention and status quo scenario
+# exposure_comp["NO2_diff"] = exposure_comp["NO2_interv"] -exposure_comp["NO2_statusq"]
+# exposure_comp["MET_diff"] = exposure_comp["MET_interv"] - exposure_comp["MET_statusq"]
+# exposure_comp = exposure_comp.rename(columns={"sex"+suffixes[1]: "sex", "migr_bck"+suffixes[1]: "migr_bck", "neighb_code"+suffixes[1]: "neighb_code"})
+
+# print(exposure_comp[["NO2_diff", "MET_diff"]].describe())
+# PlotVarsInLists(plottypes=plottypes, outcomevars=["NO2_diff", "MET_diff"], continuousstratvars=continuousstratvars,
+#                 categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
+#                 df=exposure_comp, fullnamedict=fullnamedict)
+
+# #ploting the difference between intervention and status quo scenario on average over the day
+# print("Plotting the difference between intervention and status quo scenario on average over the day")
+
+# print(exposure_comp.columns)
+# # restructuring the data to have the hour as a column
+# exposure_day = exposure_comp[["agent_ID", "sex", "migr_bck", "income_class", "income", "NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]].groupby(["agent_ID", "sex", "migr_bck", "income_class", "income"],  as_index=False).mean()
+# print(exposure_day.describe())
 
 
-    # #########################
-    # ### Comparative Plots ###
-    # #########################
+# outcomevars = ["NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]
 
-    # aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv")
-    # aggexposurestatquo = pd.read_csv(path_data + f'/StatusQuo/{nb_agents}Agents/AgentExposure/{bestStatusQuo}/ExposureViz/Exposure_A{nb_agents}_{bestStatusQuo}_aggregate.csv')
+# fullnamedict2 = {"NO2_diff": "NO2 Difference (µg/m3)",
+#                 "NO2_interv": "NO2 Intervention (µg/m3)",
+#                 "NO2_statusq": "NO2 Status Quo (µg/m3)",
+#                 "MET_diff": "MET Difference",
+#                 "MET_interv": "MET Intervention",
+#                 "MET_statusq": "MET Status Quo"}
 
 
-    # aggexposurediff = aggexposure.copy()
-    # outcomecols = aggexposure.columns[1:]
-    # for outcomvar in outcomecols:
-    #     aggexposurediff[f"{outcomvar}_diff"] = aggexposure[f"{outcomvar}"] - aggexposurestatquo[f"{outcomvar}"]
+# for outcomvar in outcomevars:
+#     for stratifiers in categoricalstratvars:
+#         MeanComparisonWithoutTime(outcomvar=outcomvar, stratifier=stratifiers, showplots=showplots, modelrun=modelrun, df=exposure_day, ylabel=fullnamedict2[outcomvar], xlabel=fullnamedict[stratifiers])
         
-    # aggexposurediff.to_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate_diff.csv", index=False)
+# ### map the change in exposure per neighborhood
+# print("Plotting the difference between intervention and status quo scenario per neighborhood")
+# neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
+# print(neighborhoods.columns)
+# exposure_neigh = exposure_comp[["neighb_code", "NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]].groupby(["neighb_code"],  as_index=False).mean()
+# exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
+# print(exposure_neigh.head())
+# neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
 
-    # differencecols = [f"{outcomvar}_diff" for outcomvar in outcomecols]
-    
-    # aggexposure[outcomecols] = aggexposurediff[differencecols]
-    
-    # subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "lightseagreen", "aquamarine", "greenyellow", "green", "olive" ]
-        
-    # subgroups_Meta = {"income": ["Low", "Medium", "High"],
-    #             "sex": ["male", "female"], 
-    #             "migration_background": ["Dutch", "Western", "Non-Western"],
-    #             "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
-    #             "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
-    # def calc_min_max(column_prefix, timeunit_contains, stratvals):
-    #     min_val = np.min([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].min() for val in stratvals]).round(2)
-    #     max_val = np.max([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].max() for val in stratvals]).round(2)
-    #     step = ((max_val - min_val)/5).round(2)
-    #     min_val = (min_val - step).round(2)  
-    #     max_val = (max_val + step).round(2)
-    #     step = ((max_val - min_val)/5).round(2)
-    #     if step == 0:
-    #         min_val = np.min([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].min() for val in stratvals]).round(4)
-    #         max_val = np.max([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].max() for val in stratvals]).round(4)      
-    #         step = ((max_val - min_val)/4).round(4)    
-    #         min_val = (min_val - step).round(4)  
-    #         max_val = (max_val + step).round(4)
-    #         step = ((max_val - min_val)/4).round(4)
-    #     return min_val, max_val, step
-    
-    # for stratgroup in subgroups_Meta:
-    #     print(f"Plotting the exposure stratification for {stratgroup}")
-    #     subgroups = {stratgroup:subgroups_Meta[stratgroup]}
-    #     subgroupcolors = {stratgroup: subgroupcolorpalette[:len(subgroups[stratgroup])]}
-    #     NO2monthmin, NO2monthmax, NO2monthstep = calc_min_max("NO2", "weekday", subgroups[stratgroup])
-    #     NO2hourmin, NO2hourmax, NO2hourstep = calc_min_max("NO2", "hour", subgroups[stratgroup])
-    #     METmonthmin, METmonthmax, METmonthstep = calc_min_max("MET", "weekday", subgroups[stratgroup])
-    #     METhourmin, METhourmax, METhourstep = calc_min_max("MET", "hour",   subgroups[stratgroup])
+# def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, outcomelabel = None):
+#     if outcomelabel is None:
+#         outcomelabel = outcomvar
+#     spatialdata.plot(outcomvar, antialiased=False, legend = True)
+#     plt.title(f"{outcomelabel} Per Neighborhood")
+#     plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.pdf', dpi = 300)
+#     if showplots:
+#         plt.show()
+#     plt.close()
 
-    #     print("NO2month", NO2monthmin, NO2monthmax, NO2monthstep)
-    #     print("NO2hour", NO2hourmin, NO2hourmax, NO2hourstep)
-    #     print("METmonth", METmonthmin, METmonthmax, METmonthstep)
-    #     print("METhour", METhourmin, METhourmax, METhourstep)
-        
-    #     plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,  
-    #                                    NO2monthmax=NO2monthmax, NO2monthmin=NO2monthmin, NO2monthstep=NO2monthstep,
-    #                                     NO2hourmax=NO2hourmax, NO2hourmin=NO2hourmin, NO2hourstep=NO2hourstep,
-    #                                     METmonthmax=METmonthmax, METmonthmin=METmonthmin, METmonthstep=METmonthstep,
-    #                                     METhourmax=METhourmax, METhourmin=METhourmin, METhourstep=METhourstep,
-    #                                     suffix = f"_{scenario}_{modelrun}_{stratgroup}_Difference")   
-
-    
-    
-    
-    
-    
-    
-    
-    # print("Plotting Comparison to Status Quo over Time")
-    # # read exposure data
-    # modelrun_stat = "StatusQuo"
-    # exposure_df_statusq = pd.read_csv(path_data + 'AgentExposure/' + modelrun_stat + f"/AgentExposure_A{nb_agents}_M1_{modelrun_stat}_hourAsRowsMerged.csv")
-    # suffixes = ("_interv", "_statusq")
-    # exposure_comp = pd.merge(exposure_df_vertical, exposure_df_statusq, on=["agent_ID", "hour"], how="left", suffixes=suffixes)
-
-    # for outcomvar in outcomevars:
-    #     CompareAverageExposure2Scenarios(outcomvar, ["_interv", "_statusq"], showplots, modelrun, scenariolabels=[ "After Intervention", "Before Intervention"],ylabel =  fullnamedict[outcomvar])
-
-    # print("Plotting the difference between intervention and status quo scenario")
-
-    # # plot the difference between intervention and status quo scenario
-    # exposure_comp["NO2_diff"] = exposure_comp["NO2_interv"] -exposure_comp["NO2_statusq"]
-    # exposure_comp["MET_diff"] = exposure_comp["MET_interv"] - exposure_comp["MET_statusq"]
-    # exposure_comp = exposure_comp.rename(columns={"sex"+suffixes[1]: "sex", "migr_bck"+suffixes[1]: "migr_bck", "neighb_code"+suffixes[1]: "neighb_code"})
-
-    # print(exposure_comp[["NO2_diff", "MET_diff"]].describe())
-    # PlotVarsInLists(plottypes=plottypes, outcomevars=["NO2_diff", "MET_diff"], continuousstratvars=continuousstratvars,
-    #                 categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
-    #                 df=exposure_comp, fullnamedict=fullnamedict)
-
-    # #ploting the difference between intervention and status quo scenario on average over the day
-    # print("Plotting the difference between intervention and status quo scenario on average over the day")
-
-    # print(exposure_comp.columns)
-    # # restructuring the data to have the hour as a column
-    # exposure_day = exposure_comp[["agent_ID", "sex", "migr_bck", "income_class", "income", "NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]].groupby(["agent_ID", "sex", "migr_bck", "income_class", "income"],  as_index=False).mean()
-    # print(exposure_day.describe())
-
-
-    # outcomevars = ["NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]
-
-    # fullnamedict2 = {"NO2_diff": "NO2 Difference (µg/m3)",
-    #                 "NO2_interv": "NO2 Intervention (µg/m3)",
-    #                 "NO2_statusq": "NO2 Status Quo (µg/m3)",
-    #                 "MET_diff": "MET Difference",
-    #                 "MET_interv": "MET Intervention",
-    #                 "MET_statusq": "MET Status Quo"}
-
-
-    # for outcomvar in outcomevars:
-    #     for stratifiers in categoricalstratvars:
-    #         MeanComparisonWithoutTime(outcomvar=outcomvar, stratifier=stratifiers, showplots=showplots, modelrun=modelrun, df=exposure_day, ylabel=fullnamedict2[outcomvar], xlabel=fullnamedict[stratifiers])
-            
-    # ### map the change in exposure per neighborhood
-    # print("Plotting the difference between intervention and status quo scenario per neighborhood")
-    # neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
-    # print(neighborhoods.columns)
-    # exposure_neigh = exposure_comp[["neighb_code", "NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]].groupby(["neighb_code"],  as_index=False).mean()
-    # exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
-    # print(exposure_neigh.head())
-    # neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
-
-    # def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, outcomelabel = None):
-    #     if outcomelabel is None:
-    #         outcomelabel = outcomvar
-    #     spatialdata.plot(outcomvar, antialiased=False, legend = True)
-    #     plt.title(f"{outcomelabel} Per Neighborhood")
-    #     plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.pdf', dpi = 300)
-    #     if showplots:
-    #         plt.show()
-    #     plt.close()
-
-    # for outcomvar in outcomevars:
-    #     PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun=modelrun, spatialdata=neighborhoods, outcomelabel=fullnamedict2[outcomvar])
+# for outcomvar in outcomevars:
+#     PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun=modelrun, spatialdata=neighborhoods, outcomelabel=fullnamedict2[outcomvar])

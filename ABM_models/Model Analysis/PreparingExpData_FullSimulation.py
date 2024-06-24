@@ -20,14 +20,16 @@ scenario = "StatusQuo"
 # scenario ="PedStrWidthCenter"
 # scenario = "PedStrLenCenter"
 # scenario = "PedStrLenOutskirt"
-scenario = "PrkPriceInterv"
+# scenario = "PrkPriceInterv"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
+modelruns = [modelrun for modelrun in modelruns if not(modelrun in [708658,481658])]
+print(modelruns)
 # bestStatusQuo = 481658
 # modelruns = [708658, 481658]
-modelruns = [381609, 805895]
+# modelruns = [381609, 805895]
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 for modelrun in modelruns:

@@ -231,7 +231,7 @@ scenario = "StatusQuo"
 # scenario ="PedStrWidthCenter"
 # scenario = "PedStrLenCenter"
 # scenario = "PedStrLenOutskirt"
-scenario = "PrkPriceInterv"
+# scenario = "PrkPriceInterv"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
@@ -240,6 +240,7 @@ modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario,
 modelruns = [708658]
 modelruns = [107935, 805895]
 # modelruns = [381609]
+modelruns = ["MeanAcrossRuns"]
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -263,7 +264,8 @@ if "singleIntervention" in viztype:
     for modelrun in modelruns:
         print(f"Processing model run {modelrun}")
         modalsplit_df =  pd.read_csv(f"{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitLog{nb_agents}_{scenario}_{modelrun}.csv")
-        modalsplit_df.drop(columns=['date', "day"], inplace=True)
+        if modelrun != "MeanAcrossRuns":
+            modalsplit_df.drop(columns=['date', "day"], inplace=True)
         modalsplit_df['weekday'] = pd.Categorical(modalsplit_df['weekday'], categories=days_order, ordered=True)
         melted_interv = pd.melt(modalsplit_df, id_vars=['hour', 'weekday', 'month'], var_name='mode_of_transport', value_name='counts').reset_index()
         melted_interv['counts'].fillna(0, inplace=True)
@@ -295,7 +297,8 @@ if "CirclePlot" in viztype:
         os.chdir(path_data)
         print("Creating an aggregate dataset")
         modalsplit_df =  pd.read_csv(f"{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitLog{nb_agents}_{scenario}_{modelrun}.csv")
-        modalsplit_df.drop(columns=['date', "day"], inplace=True)
+        if modelrun != "MeanAcrossRuns":
+            modalsplit_df.drop(columns=['date', "day"], inplace=True)
         modalsplit_df['weekday'] = pd.Categorical(modalsplit_df['weekday'], categories=days_order, ordered=True)
         outcomevars = ["bike", "drive", "transit", "walk"] 
         modalsplit_df[outcomevars] = modalsplit_df[outcomevars].fillna(0)
