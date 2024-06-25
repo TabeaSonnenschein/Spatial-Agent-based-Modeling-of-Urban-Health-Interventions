@@ -90,5 +90,5 @@ print(distance_meters)
 labels = ["Mean annual NO2"] + [f"Mean NO2 in {monthsnames[month-1]}" for month in [1, 4,7,10]] + [f"Mean NO2 at Hour {hour}" for hour in range(24)] + [f"Mean NO2 on {weekday}s" for weekday in days_order] 
 os.chdir(destination)
 MapSpatialDataFixedColorMapSetofVariables(variables = colnames, rasterdf = AirPollGrid_x, jointlabel = "", 
-                                                specificlabel = labels, vmin=0, vmax=50,distance_meters= distance_meters, 
+                                                specificlabel = labels, vmin=0, vmax=40,distance_meters= distance_meters, 
                                                 cmap="turbo", suffix=f"{scenario}_MeanAcrossRuns")

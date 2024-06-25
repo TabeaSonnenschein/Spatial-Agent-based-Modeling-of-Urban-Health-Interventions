@@ -35,7 +35,7 @@ scenario = "StatusQuo"
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 # modelruns = [805895]
-modelruns = [416590]
+modelruns = [105114]
 
 # spatialjointype = "origdest"
 spatialjointype = "trackintersect"
