@@ -10,20 +10,7 @@ import numpy as np
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 
-# scenario = "SpeedInterv"
 scenario = "StatusQuo"
-# scenario = "PedStrWidth"
-# scenario = "RetaiDnsDiv"
-# scenario = "LenBikRout"
-# scenario = "PedStrWidthOutskirt"
-# scenario = "PedStrWidthCenter"
-# scenario = "AmenityDnsExistingAmenityPlaces"
-# scenario = "AmenityDnsDivExistingAmenityPlaces"
-# scenario = "PedStrLen"
-# scenario = "PedStrWidthOutskirt"
-# scenario = "PedStrWidthCenter"
-# scenario = "PedStrLenCenter"
-# scenario = "PedStrLenOutskirt"
 # scenario = "PrkPriceInterv"
 
 # identify model run for scenario
@@ -35,6 +22,7 @@ modelruns = [modelrun for modelrun in modelruns if not(modelrun in [708658,48165
 os.chdir(os.path.join(path_data,scenario, f"{nb_agents}Agents/ModalSplit"))
 
 for modelrun in modelruns:
+    print("Modelrun:", modelrun)
     # read the txt file, which consists of a list of dictionaries and transform to a dataframe
     with open(f"ModalSplitLog{nb_agents}_{scenario}_{modelrun}.txt") as f:
         content = f.readlines()

@@ -29,13 +29,14 @@ scenario = "StatusQuo"
 # scenario ="PedStrWidthCenter"
 # scenario = "PedStrLenCenter"
 # scenario = "PedStrLenOutskirt"
-# scenario = "PrkPriceInterv"
+scenario = "PrkPriceInterv"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 # modelruns = [805895]
-modelruns = [105114]
+# modelruns = [574415,379922, 335262]
+modelruns = [783341]
 
 # spatialjointype = "origdest"
 spatialjointype = "trackintersect"
@@ -68,6 +69,7 @@ plt.savefig(f"{destination}/SpatialExtract_ontopTotExtent_{extractname}.png")
 plt.close()
 
 for modelrun in modelruns:
+    print("Modelrun: ", modelrun)
     observations = os.listdir(path=f"{path_data}/{scenario}/{nb_agents}Agents/Tracks/{modelrun}")
     final_gdf = gpd.GeoDataFrame()
     for observation in observations:

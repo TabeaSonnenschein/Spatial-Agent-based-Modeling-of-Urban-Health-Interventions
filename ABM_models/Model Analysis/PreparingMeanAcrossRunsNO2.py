@@ -11,21 +11,7 @@ from shapely import Point
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 
-# scenario = "SpeedInterv"
 scenario = "StatusQuo"
-# scenario = "PedStrWidth"
-# scenario = "RetaiDnsDiv"
-# scenario = "LenBikRout"
-# scenario = "PedStrWidthOutskirt"
-# scenario = "PedStrWidthCenter"
-# scenario = "AmenityDnsExistingAmenityPlaces"
-# scenario  = "AmenityDnsDivExistingAmenityPlaces"
-# scenario = "StatusQuoAllVars"
-# scenario = "PedStrLen"
-# scenario ="PedStrWidthOutskirt"
-# scenario ="PedStrWidthCenter"
-# scenario = "PedStrLenCenter"
-# scenario = "PedStrLenOutskirt"
 # scenario = "PrkPriceInterv"
 
 cellsize = 50

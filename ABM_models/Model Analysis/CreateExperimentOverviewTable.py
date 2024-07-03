@@ -11,6 +11,10 @@ for experiment in Experiments:
     NumberAgents = os.listdir(path=os.path.join(path_data, experiment))
     for numberagents in NumberAgents:
         ModelRuns = os.listdir(path=os.path.join(path_data, experiment, numberagents, "AgentExposure"))
+        try:
+            ModelRuns.remove("MeanExposureViz")
+        except:
+            pass
         popsamples = os.listdir(path=os.path.join(path_data, experiment, numberagents))
         print(popsamples)
         for modelrun in ModelRuns:

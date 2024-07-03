@@ -8,6 +8,7 @@ from routingpy.routers import MapboxOSRM
 import time
 import matplotlib.pyplot as plt
 import random
+import json
 
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/"
 crs = "epsg:28992"
@@ -131,19 +132,73 @@ walking_distance = walking_speed * walking_time  # meters
 ### join the agent_isochrones with the POIs of city functions to identify the 15min city gaps
 ########################################################
 # read data
-# agent_isochrones = gpd.read_feather(path_data+f"SpatialData/AgentResidenceIsochrones{walking_time}m.feather")
-# agent_isochrones = agent_isochrones.to_crs(crs)
-# # functions of the city
-# greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
-# Schools = gpd.read_feather(path_data+"SpatialData/Schools.feather")
-# Supermarkets = gpd.read_feather(path_data+"SpatialData/Supermarkets.feather")
-# Universities = gpd.read_feather(path_data+"SpatialData/Universities.feather")
-# Kindergardens = gpd.read_feather(path_data+"SpatialData/Kindergardens.feather")
-# Restaurants = gpd.read_feather(path_data+"SpatialData/Restaurants.feather")
-# Entertainment = gpd.read_feather(path_data+"SpatialData/Entertainment.feather")
-# ShopsnServ = gpd.read_feather(path_data+"SpatialData/ShopsnServ.feather")
-# Nightlife = gpd.read_feather(path_data+"SpatialData/Nightlife.feather")
-# Professional = gpd.read_feather(path_data+"SpatialData/Profess.feather")
+necessaryAmenities = pd.read_csv("D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/interventiondocs/15min city/necessaryAmenities_withoutnames.csv")
+
+agent_isochrones = gpd.read_feather(path_data+f"SpatialData/AgentResidenceIsochrones{walking_time}m.feather")
+agent_isochrones = agent_isochrones.to_crs(crs)
+# functions of the city
+greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
+Schools = gpd.read_feather(path_data+"SpatialData/Schools.feather")
+Supermarkets = gpd.read_feather(path_data+"SpatialData/Supermarkets.feather")
+Universities = gpd.read_feather(path_data+"SpatialData/Universities.feather")
+Kindergardens = gpd.read_feather(path_data+"SpatialData/Kindergardens.feather")
+Restaurants = gpd.read_feather(path_data+"SpatialData/Restaurants.feather")
+Entertainment = gpd.read_feather(path_data+"SpatialData/Entertainment.feather")
+ShopsnServ = gpd.read_feather(path_data+"SpatialData/ShopsnServ.feather")
+Nightlife = gpd.read_feather(path_data+"SpatialData/Nightlife.feather")
+Professional = gpd.read_feather(path_data+"SpatialData/Profess.feather")
+
+
+# retrieve unique necessaryAmenity["class"] values
+amenityclasses = necessaryAmenities[["class", "count", "Data", "Foursquare"]].drop_duplicates()
+amenityclasses = {amenityclasses["class"].iloc[x]:{"count": amenityclasses["count"].iloc[x], "Data": amenityclasses["Data"].iloc[x], "Foursquare": amenityclasses["Foursquare"].iloc[x] } for x in range(len(amenityclasses))}
+for amenityclass in amenityclasses.keys():
+    venueids = necessaryAmenities.loc[necessaryAmenities["class"] == amenityclass, "venueid"].values
+    amenityclasses[amenityclass]["venueids"] = list(venueids)
+print(amenityclasses)
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
+#save dictionary
+with open("D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/interventiondocs/15min city/NecessaryAmenities.json", "w") as f:
+    json.dump(amenityclasses, f, cls=NpEncoder)
+
+
+
+Data = [greenspace, Schools, Supermarkets, Universities, Kindergardens, Restaurants, Entertainment, ShopsnServ, Nightlife, Professional]
+
+for count, amenity in enumerate(amenityclasses.keys()):
+    # find a datafile with the name amenityclases[poi]["Data"]
+    POIs = [df for df in Data if df.name == amenityclasses[amenity]["Data"]][0]
+    if amenityclasses[amenity]["Foursquare"] == 1:
+        # find the venueids
+        venueids = amenityclasses[amenity]["venueids"]
+        # filter the POIs with the venueids
+        POIs = POIs.loc[POIs["venueid"].isin(venueids)]
+    
+    poiisochrones = gpd.sjoin(agent_isochrones, POIs, how="left", predicate="intersects")
+    poiisochrones = poiisochrones.rename(columns={"index_right":amenity})
+    print( poiisochrones[["Intid", amenity]].head(50))
+    poiisochrones[amenity] = poiisochrones[amenity].apply(lambda x: 0 if np.isnan(x) else 1)
+    print(len(poiisochrones), poiisochrones[["Intid", amenity]].head(50))
+    
+    # count the number of POIs in each isochrone
+    poiisochrones = poiisochrones[["Intid", amenity]].groupby("Intid").agg({amenity:"sum"}).reset_index()
+    print(len(poiisochrones), poiisochrones.head())
+    print(poiisochrones[amenity].value_counts())
+    agent_isochrones = agent_isochrones.merge(poiisochrones, on="Intid", how="left")
+    
+isochronepoifrequencies = agent_isochrones.drop(columns=["geometry"]).drop_duplicates()
+isochronepoifrequencies.to_csv(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mPOIs.csv", index=False)
+
 
 
 # POIs = [Schools, Supermarkets, Universities, Kindergardens, Restaurants, Entertainment, ShopsnServ, Nightlife, Professional, greenspace]
@@ -214,6 +269,7 @@ walking_distance = walking_speed * walking_time  # meters
 ######## fill the 15min city gaps
 ######################################################
 # read data
+necessaryAmenities = pd.read_csv("D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/interventiondocs/15min city/necessaryAmenities_withoutnames.csv")
 agent_isochrones = gpd.read_feather(path_data+f"SpatialData/AgentResidenceIsochrones{walking_time}m.feather")
 agent_isochrones = agent_isochrones.to_crs(crs)
 greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
@@ -227,67 +283,69 @@ ShopsnServ = gpd.read_feather(path_data+"SpatialData/ShopsnServ.feather")
 Nightlife = gpd.read_feather(path_data+"SpatialData/Nightlife.feather")
 Professional = gpd.read_feather(path_data+"SpatialData/Profess.feather")
 
-isochronePoistats = pd.read_csv(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mPOIsStats.csv")
-isochronepoifrequencies = pd.read_csv(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mPOIs.csv")
-POInames = ["Schools", "Supermarkets", "Universities","Kindergardens", "Restaurants", "Entertainment", "ShopsnServ", "Nightlife", "Professional"]
-POIs = [Schools, Supermarkets, Universities, Kindergardens, Restaurants, Entertainment, ShopsnServ, Nightlife, Professional]
-minnrs = [1,2,1,1,3,1,3,1,3,1]
-isochronePoistats["MinNrFacilities"] = minnrs
-isochronePoistats["NrNewFacilities"] = None
 
-print(agent_isochrones.columns)
-print(agent_isochrones.head(30))
-## make agent_isochrones["Intid"] to int
-agent_isochrones["Intid"] = agent_isochrones["Intid"].astype(int)
 
-uniqueIntids = agent_isochrones["Intid"].drop_duplicates().values
-for count,poi in enumerate(POInames):
-    minnr = minnrs[count]
-    print(poi, "minnr", minnr)
-    lackingcells = isochronepoifrequencies.loc[isochronepoifrequencies[poi]<minnr, "Intid"].values
+# isochronePoistats = pd.read_csv(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mPOIsStats.csv")
+# isochronepoifrequencies = pd.read_csv(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mPOIs.csv")
+# POInames = ["Schools", "Supermarkets", "Universities","Kindergardens", "Restaurants", "Entertainment", "ShopsnServ", "Nightlife", "Professional"]
+# POIs = [Schools, Supermarkets, Universities, Kindergardens, Restaurants, Entertainment, ShopsnServ, Nightlife, Professional]
+# minnrs = [1,2,1,1,3,1,3,1,3,1]
+# isochronePoistats["MinNrFacilities"] = minnrs
+# isochronePoistats["NrNewFacilities"] = None
+
+# print(agent_isochrones.columns)
+# print(agent_isochrones.head(30))
+# ## make agent_isochrones["Intid"] to int
+# agent_isochrones["Intid"] = agent_isochrones["Intid"].astype(int)
+
+# uniqueIntids = agent_isochrones["Intid"].drop_duplicates().values
+# for count,poi in enumerate(POInames):
+#     minnr = minnrs[count]
+#     print(poi, "minnr", minnr)
+#     lackingcells = isochronepoifrequencies.loc[isochronepoifrequencies[poi]<minnr, "Intid"].values
     
-    # sort lackingcells and greedycells randomly
-    random.shuffle(lackingcells)
+#     # sort lackingcells and greedycells randomly
+#     random.shuffle(lackingcells)
     
-    newPOIs = gpd.GeoDataFrame()
-    for lackingcell in lackingcells:
-        isochrone = agent_isochrones.loc[agent_isochrones["Intid"] == lackingcell]
-        isochronestats = isochronepoifrequencies.loc[isochronepoifrequencies["Intid"] == lackingcell]
-        nrlacking = minnr - isochronestats[poi].values[0]
-        # print(isochronestats)
-        if (len(newPOIs) >0 )and (len(gpd.sjoin(isochrone,newPOIs, how = "inner",predicate="intersects")) >= nrlacking):
-            pass
-        else:
-            # create a random point in that isochrone
-            random_point = gpd.GeoSeries(isochrone["geometry"]).sample_points(nrlacking, random_state=1)
-            # add the point to the poi gdf
-            random_point = gpd.GeoDataFrame(geometry=random_point, crs=crs)
-            # add the point to POIs[count]
-            if len(newPOIs) == 0:
-                newPOIs = random_point
-            else:
-                newPOIs = pd.concat([newPOIs,random_point])
-    newPOIs = newPOIs.explode(ignore_index=True)
-    newPOIs["POI"] = poi
-    print(len(newPOIs ))
-    newPOIs.to_file(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mMissing{poi}.shp", driver="ESRI Shapefile")
-    isochronePoistats.loc[isochronePoistats["POI"] == poi, "NrNewFacilities"] = len(newPOIs)
+#     newPOIs = gpd.GeoDataFrame()
+#     for lackingcell in lackingcells:
+#         isochrone = agent_isochrones.loc[agent_isochrones["Intid"] == lackingcell]
+#         isochronestats = isochronepoifrequencies.loc[isochronepoifrequencies["Intid"] == lackingcell]
+#         nrlacking = minnr - isochronestats[poi].values[0]
+#         # print(isochronestats)
+#         if (len(newPOIs) >0 )and (len(gpd.sjoin(isochrone,newPOIs, how = "inner",predicate="intersects")) >= nrlacking):
+#             pass
+#         else:
+#             # create a random point in that isochrone
+#             random_point = gpd.GeoSeries(isochrone["geometry"]).sample_points(nrlacking, random_state=1)
+#             # add the point to the poi gdf
+#             random_point = gpd.GeoDataFrame(geometry=random_point, crs=crs)
+#             # add the point to POIs[count]
+#             if len(newPOIs) == 0:
+#                 newPOIs = random_point
+#             else:
+#                 newPOIs = pd.concat([newPOIs,random_point])
+#     newPOIs = newPOIs.explode(ignore_index=True)
+#     newPOIs["POI"] = poi
+#     print(len(newPOIs ))
+#     newPOIs.to_file(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mMissing{poi}.shp", driver="ESRI Shapefile")
+#     isochronePoistats.loc[isochronePoistats["POI"] == poi, "NrNewFacilities"] = len(newPOIs)
     
-    greedycells = isochronepoifrequencies.loc[isochronepoifrequencies[poi] > minnr, ["Intid", poi]].sort_values(poi, ascending=False)["Intid"].values
-    POIs[count]["id"] = range(len(POIs[count]))
-    if len(greedycells) > len(newPOIs):
-        greedycells = greedycells[:len(newPOIs)]
-        greedyisochrones = agent_isochrones.loc[agent_isochrones["Intid"].isin(greedycells)]
-        busypois = list(gpd.sjoin(greedyisochrones, POIs[count], how = "inner", predicate="intersects")["id"].values)
-        execcessivePois = random.sample( busypois, len(newPOIs))
-        execcessivePois = POIs[count].loc[POIs[count]["id"].isin(execcessivePois)]
-        execcessivePois.to_file(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mExeccessive{poi}.shp", driver="ESRI Shapefile")
+#     greedycells = isochronepoifrequencies.loc[isochronepoifrequencies[poi] > minnr, ["Intid", poi]].sort_values(poi, ascending=False)["Intid"].values
+#     POIs[count]["id"] = range(len(POIs[count]))
+#     if len(greedycells) > len(newPOIs):
+#         greedycells = greedycells[:len(newPOIs)]
+#         greedyisochrones = agent_isochrones.loc[agent_isochrones["Intid"].isin(greedycells)]
+#         busypois = list(gpd.sjoin(greedyisochrones, POIs[count], how = "inner", predicate="intersects")["id"].values)
+#         execcessivePois = random.sample( busypois, len(newPOIs))
+#         execcessivePois = POIs[count].loc[POIs[count]["id"].isin(execcessivePois)]
+#         execcessivePois.to_file(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mExeccessive{poi}.shp", driver="ESRI Shapefile")
     
-    # remove exessivePOIs from the POIs
-    updatedPOIs = POIs[count].loc[~POIs[count]["id"].isin(execcessivePois["id"].values)]
+#     # remove exessivePOIs from the POIs
+#     updatedPOIs = POIs[count].loc[~POIs[count]["id"].isin(execcessivePois["id"].values)]
     
-    updatedPOIs = pd.concat([updatedPOIs, newPOIs])
-    updatedPOIs.to_file(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mUpdated{poi}.shp", driver="ESRI Shapefile")
+#     updatedPOIs = pd.concat([updatedPOIs, newPOIs])
+#     updatedPOIs.to_file(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/AgentResidenceIsochrones{walking_time}mUpdated{poi}.shp", driver="ESRI Shapefile")
     
     
 ################################################################
