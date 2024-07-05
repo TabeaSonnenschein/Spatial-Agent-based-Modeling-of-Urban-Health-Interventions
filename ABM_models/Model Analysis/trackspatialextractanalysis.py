@@ -14,27 +14,14 @@ path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 os.chdir(path_data)
 crs = "epsg:28992"
 
-# scenario = "SpeedInterv"
-scenario = "StatusQuo"
-# scenario = "PedStrWidth"
-# scenario = "RetaiDnsDiv"
-# scenario = "LenBikRout"
-# scenario = "PedStrWidthOutskirt"
-# scenario = "PedStrWidthCenter"
-# scenario = "AmenityDnsExistingAmenityPlaces"
-# scenario  = "AmenityDnsDivExistingAmenityPlaces"
-# scenario = "StatusQuoAllVars"
-# scenario = "PedStrLen"
-# scenario ="PedStrWidthOutskirt"
-# scenario ="PedStrWidthCenter"
-# scenario = "PedStrLenCenter"
-# scenario = "PedStrLenOutskirt"
+# scenario = "StatusQuo"
 scenario = "PrkPriceInterv"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-modelruns = [783341]
+modelruns = [811643]
+# modelruns = [24766]
 
 
 spatialjointype = "trackintersect"

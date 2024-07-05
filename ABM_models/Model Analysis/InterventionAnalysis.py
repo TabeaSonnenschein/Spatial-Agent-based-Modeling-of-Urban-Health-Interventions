@@ -31,6 +31,7 @@ maketable = False
 vizintervention = True
 
 experimentoverview = pd.read_csv("ExperimentOverview.csv")
+experimentoverview = experimentoverview.loc[experimentoverview["fullrun"] == "True"]
 popsamples = experimentoverview["Population Sample"].unique()
 popsamples = [x for x in popsamples if str(x) != 'nan']	
 popsamples.sort()
