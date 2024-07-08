@@ -60,13 +60,14 @@ import Math_utils
 warnings.filterwarnings("ignore", module="shapely")
 
 
-def init_worker_init(schedules, Resid, univers, Scho, Prof):
-    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants
+def init_worker_init(schedules, Resid, univers, Scho, Prof, Supermark):
+    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets
     schedulelist = schedules
     Residences = Resid
     Universities = univers
     Schools = Scho
     Profess = Prof
+    Supermarkets = Supermark
 
     # initialize worker processes
 def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid, airpolgr):
@@ -151,7 +152,7 @@ class Humans(Agent):
     """
 
     def __init__(self,vector, model):
-        global schedulelist, Residences, Universities, Schools, Profess
+        global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets
         self.unique_id = vector.iloc[0]
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
@@ -186,10 +187,11 @@ class Humans(Agent):
         if self.current_edu == "high":
             self.University = Universities["geometry"].sample(1).values[0].coords[0]
         elif (self.current_edu != "no_current_edu") or (4 in list(np.concatenate(self.WeekSchedules).flat)):
-            # select school that is closest to self.Residence
-            self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][1]
+            self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][0]
         if 3 in list(np.concatenate(self.WeekSchedules).flat):
             self.Workplace = Profess["geometry"].sample(1).values[0].coords[0]
+        
+        self.Supermarket = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Supermarkets["geometry"].unary_union)][0]
         self.destination_activity = self.Residence
         
         # mobility behavior variables
@@ -205,6 +207,7 @@ class Humans(Agent):
         self.hourlytravelMET, self.hourlyplaceMET, self.hourlyMET = 0,0,0
         
     def ScheduleManager(self, current_datetime):
+      global Kindergardens, ShopsnServ, greenspace
       # identifying the current activity
       self.current_activity = self.WeekSchedules[self.weekday][self.activitystep]
       # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
@@ -215,7 +218,6 @@ class Humans(Agent):
           commute = 1
           self.destination_activity = self.Workplace
           if "self.homeTOwork" in locals() and  (self.former_activity in [5, 1, 6, 7]):  # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
-            self.track_path = self.homeTOwork
             self.track_geometry = self.homeTOwork_geometry
             self.modalchoice = self.homeTOwork_mode
             self.track_duration = self.homeTOwork_duration
@@ -228,6 +230,7 @@ class Humans(Agent):
             self.destination_activity = self.University
           else:
             self.destination_activity = self.School
+          print("destination activity", self.destination_activity)
           # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
           if "self.homeTOschool_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]): 
             self.track_geometry = self.homeTOschool_geometry
@@ -236,16 +239,20 @@ class Humans(Agent):
             self.path_memory = 1
             print("saved pathway")
 
-        elif self.current_activity == "groceries_shopping":
-          self.destination_activity = self.Supermarket
-          groceries = 1
-          # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
-          if "self.homeTOsuperm_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]):
-            self.track_geometry = self.homeTOsuperm_geometry
-            self.track_duration = self.homeTOsuperm_duration
-            self.modalchoice = self.homeTOsuperm_mode
-            self.path_memory = 1
-            print("saved pathway")
+        elif self.current_activity == 9:  # shopping/services
+          if random.random() < 0.72: #number taken from Veenstra et al., 2009
+            print("groceries")
+            self.destination_activity = self.Supermarket
+            groceries = 1
+            if "self.homeTOsuperm_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]): # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
+              self.track_geometry = self.homeTOsuperm_geometry
+              self.track_duration = self.homeTOsuperm_duration
+              self.modalchoice = self.homeTOsuperm_mode
+              self.path_memory = 1
+              print("saved pathway")
+          else:
+            self.destination_activity = ShopsnServ["geometry"].sample(1).values[0].coords[0]
+            
 
         elif self.current_activity == "kindergarden":
           self.destination_activity = self.Kindergarden
@@ -259,6 +266,7 @@ class Humans(Agent):
 
         # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
         elif self.current_activity in [5, 1, 6, 7]:
+          print("at home")
           self.destination_activity = self.Residence
           if "self.workTOhome_geometry" in locals() and self.former_activity == 3:  # 3 = work
               self.track_geometry = self.workTOhome_geometry
@@ -309,8 +317,8 @@ class Humans(Agent):
           else:
             self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
-        elif self.current_activity in [9, 8]:  # 9 = shopping/services, 8 = walking the dog
-          self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
+        elif self.current_activity == 8: # 8 = sports/ outdoor activity
+          self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.pos)), greenspace["geometry"].unary_union)][0]
 
 
         # Identifuing whether agent needs to travel to new destination
@@ -558,7 +566,7 @@ class TransportAirPollutionExposureModel(Model):
         # Create the agents
         print("Creating Agents")
         st = time.time()
-        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess)) as pool:
+        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess, Supermarkets)) as pool:
             self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
             pool.close()
             pool.join()
@@ -800,6 +808,7 @@ if __name__ == "__main__":
 
     # New Population sample or already existing one
     newpop = False
+    subsetnr = 0
     
     # Length of the simulation run
     NrHours = 24
@@ -811,20 +820,8 @@ if __name__ == "__main__":
     
     # Type of scenario
     # modelname = "StatusQuo" 
-    # modelname = "SpeedInterv"
-    # modelname = "RetaiDnsDiv"
-    # modelname = "PedStrWidth"
-    # modelname = "LenBikRout"
-    # modelname = "PedStrWidthOutskirt"
-    # modelname = "PedStrWidthCenter"
-    # modelname = "AmenityDnsExistingAmenityPlaces"
-    # modelname  = "AmenityDnsDivExistingAmenityPlaces"
-    # modelname = "PedStrLen"
-    # modelname ="PedStrWidthOutskirt"
-    # modelname ="PedStrWidthCenter"
-    # modelname = "PedStrLenCenter"
-    # modelname = "PedStrLenOutskirt"
-    modelname = "PrkPriceInterv"
+    # modelname = "PrkPriceInterv"
+    modelname = "15mCity"
     
     # cellsize of the Airpollution and Traffic grid
     cellsize = 50    # 50m x 50m
@@ -891,11 +888,11 @@ if __name__ == "__main__":
       random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
       random_subset.to_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}.csv", index=False)
     else:
-      random_subset = pd.read_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}.csv")
+      random_subset = pd.read_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}_{subsetnr}.csv")
 
     random_subset["student"] = 0
     random_subset.loc[random_subset["current_education"] == "high", "student"] = 1
-    random_subset.to_csv(path_data+"ModelRuns/"+modelname+"/" + str(nb_humans)+ f"Agents/Amsterdam_population_subset{nb_humans}_{randomID}.csv", index=False)
+    random_subset.to_csv(path_data+"ModelRuns/"+modelname+"/" + str(nb_humans)+ f"Agents/Amsterdam_population_subset{nb_humans}_{randomID}_{subsetnr}.csv", index=False)
     
     # Activity Schedules
     print("Reading Activity Schedules")
@@ -919,18 +916,30 @@ if __name__ == "__main__":
     spatial_extent = gpd.read_feather(path_data+"SpatialData/SpatialExtent.feather")
     buildings = gpd.read_feather(path_data+"SpatialData/Buildings.feather")
     streets = gpd.read_feather(path_data+"SpatialData/Streets.feather")
-    greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
     Residences = gpd.read_feather(path_data+"SpatialData/Residences.feather")
-    Schools = gpd.read_feather(path_data+"SpatialData/Schools.feather")
-    Supermarkets = gpd.read_feather(path_data+"SpatialData/Supermarkets.feather")
-    Universities = gpd.read_feather(path_data+"SpatialData/Universities.feather")
-    Kindergardens = gpd.read_feather(path_data+"SpatialData/Kindergardens.feather")
-    Restaurants = gpd.read_feather(path_data+"SpatialData/Restaurants.feather")
-    Entertainment = gpd.read_feather(path_data+"SpatialData/Entertainment.feather")
-    ShopsnServ = gpd.read_feather(path_data+"SpatialData/ShopsnServ.feather")
-    Nightlife = gpd.read_feather(path_data+"SpatialData/Nightlife.feather")
-    Profess = gpd.read_feather(path_data+"SpatialData/Profess.feather")
     carroads = gpd.read_feather(path_data+"SpatialData/carroads.feather")
+    Universities = gpd.read_feather(path_data+"SpatialData/Universities.feather")
+    
+    if modelname == "15mCity":
+      greenspace = gpd.read_feather(path_data+f"SpatialData/Greenspace{modelname}.feather")
+      Schools = gpd.read_feather(path_data+f"SpatialData/Schools{modelname}.feather")
+      Supermarkets = gpd.read_feather(path_data+f"SpatialData/Supermarkets{modelname}.feather")
+      Kindergardens = gpd.read_feather(path_data+f"SpatialData/Kindergardens{modelname}.feather")
+      Restaurants = gpd.read_feather(path_data+f"SpatialData/Restaurants{modelname}.feather")
+      Entertainment = gpd.read_feather(path_data+f"SpatialData/Entertainment{modelname}.feather")
+      ShopsnServ = gpd.read_feather(path_data+f"SpatialData/ShopsnServ{modelname}.feather")
+      Nightlife = gpd.read_feather(path_data+f"SpatialData/Nightlife{modelname}.feather")
+      Profess = gpd.read_feather(path_data+f"SpatialData/Profess{modelname}.feather")
+    else:
+      greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
+      Schools = gpd.read_feather(path_data+"SpatialData/Schools.feather")
+      Supermarkets = gpd.read_feather(path_data+"SpatialData/Supermarkets.feather")
+      Kindergardens = gpd.read_feather(path_data+"SpatialData/Kindergardens.feather")
+      Restaurants = gpd.read_feather(path_data+"SpatialData/Restaurants.feather")
+      Entertainment = gpd.read_feather(path_data+"SpatialData/Entertainment.feather")
+      ShopsnServ = gpd.read_feather(path_data+"SpatialData/ShopsnServ.feather")
+      Nightlife = gpd.read_feather(path_data+"SpatialData/Nightlife.feather")
+      Profess = gpd.read_feather(path_data+"SpatialData/Profess.feather")
 
     # Load Intervention Environment
     # Status Quo
@@ -941,8 +950,12 @@ if __name__ == "__main__":
     # other Interventions
     else:
       EnvBehavDeterms = gpd.read_feather(path_data+f"SpatialData/EnvBehavDeterminants{modelname}.feather")
-  
+      if modelname == "15mCity":
+        EnvBehavDeterms['retaiDns'] = EnvBehavDeterms['retaiDns15']
+        EnvBehavDeterms['greenCovr'] = EnvBehavDeterms['grenCovr15']
+        EnvBehavDeterms['retailDiv'] = EnvBehavDeterms['retDiv15']
 
+ 
     # Read the Environmental Stressor Data and Model
     cellsize = "50m"
     suffix = "TrV_TrI_noTrA"
