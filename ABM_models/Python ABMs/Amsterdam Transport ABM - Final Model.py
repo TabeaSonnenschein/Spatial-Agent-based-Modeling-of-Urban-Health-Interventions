@@ -60,21 +60,23 @@ import Math_utils
 warnings.filterwarnings("ignore", module="shapely")
 
 
-def init_worker_init(schedules, Resid, univers, Scho, Prof, Supermark):
-    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets
+def init_worker_init(schedules, Resid, univers, Scho, Prof, Supermark, greenspac):
+    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets, greenspace
     schedulelist = schedules
     Residences = Resid
     Universities = univers
     Schools = Scho
     Profess = Prof
     Supermarkets = Supermark
+    greenspace = greenspac
 
     # initialize worker processes
-def init_worker_simul(Resid, Entertain, Restaur, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid, airpolgr):
-    global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid, AirPollGrid
+def init_worker_simul(Resid, Entertain, Restaur, shops, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid, airpolgr):
+    global Residences, Entertainment, Restaurants, ShopsnServ, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables, EnvStressGrid, AirPollGrid
     Residences = Resid
     Entertainment = Entertain
     Restaurants = Restaur
+    ShopsnServ = shops
     EnvBehavDeterms = envdeters
     ModalChoiceModel = modalchoice
     OrderPredVars = ordprevars
@@ -152,7 +154,7 @@ class Humans(Agent):
     """
 
     def __init__(self,vector, model):
-        global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets
+        global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets, greenspace
         self.unique_id = vector.iloc[0]
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
@@ -176,6 +178,7 @@ class Humans(Agent):
         self.weekday = self.model.weekday
         self.activitystep=self.model.activitystep
         
+        
         # regular destinations
         try:
             self.Residence = Residences.loc[Residences["nghb_cd"] == self.Neighborhood, "geometry"].sample(1).values[0].coords[0]
@@ -186,12 +189,19 @@ class Humans(Agent):
             pass
         if self.current_edu == "high":
             self.University = Universities["geometry"].sample(1).values[0].coords[0]
+            # self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
         elif (self.current_edu != "no_current_edu") or (4 in list(np.concatenate(self.WeekSchedules).flat)):
             self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][0]
+            # self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
         if 3 in list(np.concatenate(self.WeekSchedules).flat):
             self.Workplace = Profess["geometry"].sample(1).values[0].coords[0]
+            self.homeTOwork, self.workTOhome_geometry = None, None
+        
+        if 8 in list(np.concatenate(self.WeekSchedules).flat):
+            self.Park = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), greenspace["geometry"].unary_union)][0]
         
         self.Supermarket = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Supermarkets["geometry"].unary_union)][0]
+        self.homeTOsuperm_geometry, self.supermTOhome_geometry = None, None
         self.destination_activity = self.Residence
         
         # mobility behavior variables
@@ -207,7 +217,7 @@ class Humans(Agent):
         self.hourlytravelMET, self.hourlyplaceMET, self.hourlyMET = 0,0,0
         
     def ScheduleManager(self, current_datetime):
-      global Kindergardens, ShopsnServ, greenspace
+      global Kindergardens, ShopsnServ
       # identifying the current activity
       self.current_activity = self.WeekSchedules[self.weekday][self.activitystep]
       # identifying whether activity changed and if so, where the new activity is locatec and whether we have a saved route towards that destination
@@ -217,7 +227,7 @@ class Humans(Agent):
         if self.current_activity == 3:  # 3 = work
           commute = 1
           self.destination_activity = self.Workplace
-          if "self.homeTOwork" in locals() and  (self.former_activity in [5, 1, 6, 7]):  # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
+          if (self.homeTOwork != None) and  (self.former_activity in [5, 1, 6, 7]):  # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
             self.track_geometry = self.homeTOwork_geometry
             self.modalchoice = self.homeTOwork_mode
             self.track_duration = self.homeTOwork_duration
@@ -232,19 +242,19 @@ class Humans(Agent):
             self.destination_activity = self.School
           print("destination activity", self.destination_activity)
           # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
-          if "self.homeTOschool_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]): 
+          if (self.homeTOschool_geometry != None) and (self.former_activity in [5, 1, 6, 7]): 
             self.track_geometry = self.homeTOschool_geometry
             self.modalchoice = self.homeTOschool_mode
             self.track_duration = self.homeTOschool_duration
             self.path_memory = 1
             print("saved pathway")
 
-        elif self.current_activity == 9:  # shopping/services
+        elif self.current_activity == 9:  # 9 = shopping/services
           if random.random() < 0.72: #number taken from Veenstra et al., 2009
             print("groceries")
             self.destination_activity = self.Supermarket
             groceries = 1
-            if "self.homeTOsuperm_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]): # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
+            if (self.homeTOsuperm_geometry != None) and (self.former_activity in [5, 1, 6, 7]): # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
               self.track_geometry = self.homeTOsuperm_geometry
               self.track_duration = self.homeTOsuperm_duration
               self.modalchoice = self.homeTOsuperm_mode
@@ -266,23 +276,22 @@ class Humans(Agent):
 
         # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
         elif self.current_activity in [5, 1, 6, 7]:
-          print("at home")
           self.destination_activity = self.Residence
-          if "self.workTOhome_geometry" in locals() and self.former_activity == 3:  # 3 = work
+          if (self.workTOhome_geometry != None) and (self.former_activity == 3):  # 3 = work
               self.track_geometry = self.workTOhome_geometry
               self.modalchoice = self.homeTOwork_mode
               self.track_duration = self.homeTOwork_duration
               self.path_memory = 1
               print("saved pathway_ return")
 
-          elif "self.schoolTOhome_geometry" in locals() and self.former_activity == 4:  # 4 = school/university
+          elif ("self.schoolTOhome_geometry" in locals()) and (self.former_activity == 4):  # 4 = school/university
               self.track_geometry = self.schoolTOhome_geometry
               self.modalchoice = self.homeTOschool_mode
               self.track_duration = self.homeTOschool_duration
               self.path_memory = 1
-              print("saved pathway_ return")
+              print("saved pathway_School return")
 
-          elif "self.supermTOhome_geometry" in locals() and self.location == self.Supermarket:
+          elif (self.supermTOhome_geometry != None) and (self.former_activity == 9): # 9 = shopping/services
               self.track_geometry = self.supermTOhome_geometry
               self.modalchoice = self.homeTOsuperm_mode
               self.track_duration = self.homeTOsuperm_duration
@@ -318,7 +327,7 @@ class Humans(Agent):
             self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity == 8: # 8 = sports/ outdoor activity
-          self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.pos)), greenspace["geometry"].unary_union)][0]
+          self.destination_activity = self.Park
 
 
         # Identifuing whether agent needs to travel to new destination
@@ -511,7 +520,7 @@ class Humans(Agent):
             self.weekday = current_datetime.weekday()
     
     def step(self, current_datetime):
-        global Residences, Entertainment, Restaurants, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
+        global Residences, Entertainment, Restaurants,  ShopsnServ, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
         global WeatherVars
         self.ManageTime(current_datetime)
         if self.minute == 0:
@@ -566,7 +575,7 @@ class TransportAirPollutionExposureModel(Model):
         # Create the agents
         print("Creating Agents")
         st = time.time()
-        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess, Supermarkets)) as pool:
+        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess, Supermarkets, greenspace)) as pool:
             self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
             pool.close()
             pool.join()
@@ -830,7 +839,7 @@ if __name__ == "__main__":
     profile = False
     
     # Stage of the Traffic Model
-    TraffStage = "PredictionR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
+    TraffStage = "PredictionNoR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
     
     
     # Traffic Model
@@ -1051,7 +1060,7 @@ if __name__ == "__main__":
     m = TransportAirPollutionExposureModel(nb_humans=nb_humans, path_data=path_data, starting_date=starting_date)
    
     print("Starting Multiprocessing Pool")
-    pool =  Pool(processes=n, initializer= init_worker_simul, initargs=(Residences, Entertainment, Restaurants, EnvBehavDeterms, 
+    pool =  Pool(processes=n, initializer= init_worker_simul, initargs=(Residences, Entertainment, Restaurants,  ShopsnServ, EnvBehavDeterms, 
                                                           ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, 
                                                           projecy_to_crs, crs, routevariables, originvariables, 
                                                           destinvariables, airpoll_grid_raster, AirPollGrid[["int_id", "ON_ROAD", "geometry"]]))
