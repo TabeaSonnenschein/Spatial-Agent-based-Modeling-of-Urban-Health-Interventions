@@ -8,35 +8,20 @@ path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData"
 os.chdir(path_data)
 crs = "epsg:28992"
 
-
-# scenario = "SpeedInterv"
 scenario = "StatusQuo"
-# scenario = "PedStrWidth"
-# scenario = "RetaiDnsDiv"
-# scenario = "LenBikRout"
-# scenario = "PedStrWidthOutskirt"
-# scenario = "PedStrWidthCenter"
-# scenario = "AmenityDnsExistingAmenityPlaces"
-# scenario  = "AmenityDnsDivExistingAmenityPlaces"
-# scenario = "StatusQuoAllVars"
-# scenario = "PedStrLen"
-# scenario ="PedStrWidthOutskirt"
-# scenario ="PedStrWidthCenter"
-# scenario = "PedStrLenCenter"
-# scenario = "PedStrLenOutskirt"
 scenario = "PrkPriceInterv"
 
 interanalysissuffix = "_parkingprice_interventionextent_trackintersect"
-maketable = False
+maketable = True
 vizintervention = True
 
 experimentoverview = pd.read_csv("ExperimentOverview.csv")
-experimentoverview = experimentoverview.loc[experimentoverview["fullrun"] == "True"]
+experimentoverview = experimentoverview.loc[experimentoverview["fullrun"] == True]
 popsamples = experimentoverview["Population Sample"].unique()
 popsamples = [x for x in popsamples if str(x) != 'nan']	
 popsamples.sort()
 print(popsamples)
-poprange = range(0,5)
+poprange = range(0,10)
 
 if maketable:
     IntervRunDict = {}

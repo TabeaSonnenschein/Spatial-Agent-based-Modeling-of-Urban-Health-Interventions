@@ -20,7 +20,7 @@ scenario = "PrkPriceInterv"
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-modelruns = [811643]
+modelruns = [532916]
 # modelruns = [24766]
 
 
