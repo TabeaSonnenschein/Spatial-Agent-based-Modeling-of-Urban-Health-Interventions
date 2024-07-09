@@ -919,3 +919,5 @@ walking_distance = walking_speed * walking_time  # meters
 # Kindergardens = gpd.read_file(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/15mcity/AgentResidenceIsochrones{walking_time}mUpdatedchildcare.shp")
 # Kindergardens.to_feather(path_data+f"SpatialData/Kindergardens{walking_time}mCity.feather")
 
+# Kindergardens = gpd.read_file(f"D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Facilities/15mcity/AgentResidenceIsochrones15mPOIschildcare_before.shp")
+# Kindergardens.to_feather(path_data+f"SpatialData/Kindergardens.feather")

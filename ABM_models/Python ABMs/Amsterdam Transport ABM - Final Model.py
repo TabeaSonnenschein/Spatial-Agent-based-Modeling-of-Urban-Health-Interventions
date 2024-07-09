@@ -60,8 +60,8 @@ import Math_utils
 warnings.filterwarnings("ignore", module="shapely")
 
 
-def init_worker_init(schedules, Resid, univers, Scho, Prof, Supermark, greenspac):
-    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets, greenspace
+def init_worker_init(schedules, Resid, univers, Scho, Prof, Supermark, greenspac, kindergard):
+    global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets, greenspace, Kindergardens
     schedulelist = schedules
     Residences = Resid
     Universities = univers
@@ -69,6 +69,7 @@ def init_worker_init(schedules, Resid, univers, Scho, Prof, Supermark, greenspac
     Profess = Prof
     Supermarkets = Supermark
     greenspace = greenspac
+    Kindergardens = kindergard
 
     # initialize worker processes
 def init_worker_simul(Resid, Entertain, Restaur, shops, envdeters, modalchoice, ordprevars, cols, projectWSG84, projcrs, crs_string, routevars, originvars, destinvars, Grid, airpolgr):
@@ -154,7 +155,7 @@ class Humans(Agent):
     """
 
     def __init__(self,vector, model):
-        global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets, greenspace
+        global schedulelist, Residences, Universities, Schools, Profess, Entertainment, Restaurants, Supermarkets, greenspace, Kindergardens
         self.unique_id = vector.iloc[0]
         super().__init__(self.unique_id, model)
         # socio-demographic attributes
@@ -164,7 +165,6 @@ class Humans(Agent):
                                                                 # "Western", "Non_Western", "Dutch", 'income','employed',
                                                                 #'edu_3_levels','HH_size', 'Nrchildren', 'student', 'driving_habit','biking_habit',
                                                                 #'transit_habit']
-        # need to add hhsize and nrchildren
 
         # Activity Schedules
         self.ScheduleID = vector.iloc[18]          # Schedule IDs
@@ -189,19 +189,24 @@ class Humans(Agent):
             pass
         if self.current_edu == "high":
             self.University = Universities["geometry"].sample(1).values[0].coords[0]
-            # self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
+            self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
         elif (self.current_edu != "no_current_edu") or (4 in list(np.concatenate(self.WeekSchedules).flat)):
             self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][0]
-            # self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
+            self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
         if 3 in list(np.concatenate(self.WeekSchedules).flat):
             self.Workplace = Profess["geometry"].sample(1).values[0].coords[0]
-            self.homeTOwork, self.workTOhome_geometry = None, None
+            self.homeTOwork_geometry, self.workTOhome_geometry = None, None
         
         if 8 in list(np.concatenate(self.WeekSchedules).flat):
             self.Park = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), greenspace["geometry"].unary_union)][0]
+        if 13 in list(np.concatenate(self.WeekSchedules).flat):
+            self.Kindergarden = Kindergardens["geometry"].sample(1).values[0].coords[0]
+            self.homeTOkinderga_geometry, self.kindergaTOhome_geometry = None, None
+        if 9 in list(np.concatenate(self.WeekSchedules).flat):
+            self.Supermarket = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Supermarkets["geometry"].unary_union)][0]
+            self.homeTOsuperm_geometry, self.supermTOhome_geometry = None, None
         
-        self.Supermarket = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Supermarkets["geometry"].unary_union)][0]
-        self.homeTOsuperm_geometry, self.supermTOhome_geometry = None, None
+        self.TripVars = [0,0,0,0,0]  #"purpose_commute", 'purpose_leisure','purpose_groceries_shopping','purpose_education', 'purpose_bring_person'
         self.destination_activity = self.Residence
         
         # mobility behavior variables
@@ -214,7 +219,7 @@ class Humans(Agent):
         self.newplace, self.newactivity = 0, 0
         self.visitedPlaces, self.durationPlaces, self.activities, self.durationActivties =  [Point(tuple(self.Residence))], [0], [self.WeekSchedules[self.weekday][self.activitystep]], [0]
         self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
-        self.hourlytravelMET, self.hourlyplaceMET, self.hourlyMET = 0,0,0
+        self.hourlytravelMET, self.hourlyMET = 0,0
         
     def ScheduleManager(self, current_datetime):
       global Kindergardens, ShopsnServ
@@ -227,12 +232,11 @@ class Humans(Agent):
         if self.current_activity == 3:  # 3 = work
           commute = 1
           self.destination_activity = self.Workplace
-          if (self.homeTOwork != None) and  (self.former_activity in [5, 1, 6, 7]):  # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
+          if (self.homeTOwork_geometry != None) and  (self.former_activity in [5, 1, 6, 7]):  # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
             self.track_geometry = self.homeTOwork_geometry
             self.modalchoice = self.homeTOwork_mode
             self.track_duration = self.homeTOwork_duration
             self.path_memory = 1
-            print("saved pathway")
 
         elif self.current_activity == 4:  # 4 = school/university
           edu_trip = 1
@@ -240,18 +244,15 @@ class Humans(Agent):
             self.destination_activity = self.University
           else:
             self.destination_activity = self.School
-          print("destination activity", self.destination_activity)
           # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
           if (self.homeTOschool_geometry != None) and (self.former_activity in [5, 1, 6, 7]): 
             self.track_geometry = self.homeTOschool_geometry
             self.modalchoice = self.homeTOschool_mode
             self.track_duration = self.homeTOschool_duration
             self.path_memory = 1
-            print("saved pathway")
 
         elif self.current_activity == 9:  # 9 = shopping/services
           if random.random() < 0.72: #number taken from Veenstra et al., 2009
-            print("groceries")
             self.destination_activity = self.Supermarket
             groceries = 1
             if (self.homeTOsuperm_geometry != None) and (self.former_activity in [5, 1, 6, 7]): # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
@@ -259,51 +260,48 @@ class Humans(Agent):
               self.track_duration = self.homeTOsuperm_duration
               self.modalchoice = self.homeTOsuperm_mode
               self.path_memory = 1
-              print("saved pathway")
+              print("using saved pathway supermarket")
           else:
             self.destination_activity = ShopsnServ["geometry"].sample(1).values[0].coords[0]
             
 
-        elif self.current_activity == "kindergarden":
+        elif self.current_activity == 13: # 3= kindergarden
           self.destination_activity = self.Kindergarden
           # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
-          if "self.homeTOkinderga_geometry" in locals() and (self.former_activity in [5, 1, 6, 7]):
+          if (self.homeTOkinderga_geometry != None) and (self.former_activity in [5, 1, 6, 7]):
             self.track_geometry = self.homeTOkinderga_geometry
             self.track_duration = self.homeTOkinderga_duration
             self.modalchoice = self.homeTOkinderga_mode
             self.path_memory = 1
-            print("saved pathway")
+            print("using saved pathway kindergarden")
 
         # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
         elif self.current_activity in [5, 1, 6, 7]:
           self.destination_activity = self.Residence
-          if (self.workTOhome_geometry != None) and (self.former_activity == 3):  # 3 = work
+          if (self.former_activity == 3) and (self.workTOhome_geometry != None) :  # 3 = work
               self.track_geometry = self.workTOhome_geometry
               self.modalchoice = self.homeTOwork_mode
               self.track_duration = self.homeTOwork_duration
               self.path_memory = 1
-              print("saved pathway_ return")
 
-          elif ("self.schoolTOhome_geometry" in locals()) and (self.former_activity == 4):  # 4 = school/university
+          elif (self.former_activity == 4) and (self.schoolTOhome_geometry != None):  # 4 = school/university
               self.track_geometry = self.schoolTOhome_geometry
               self.modalchoice = self.homeTOschool_mode
               self.track_duration = self.homeTOschool_duration
               self.path_memory = 1
-              print("saved pathway_School return")
 
-          elif (self.supermTOhome_geometry != None) and (self.former_activity == 9): # 9 = shopping/services
+          elif (self.former_activity == 9) and (self.TripVars[2] == 1) and (self.supermTOhome_geometry != None): # 9 = shopping/services
               self.track_geometry = self.supermTOhome_geometry
               self.modalchoice = self.homeTOsuperm_mode
               self.track_duration = self.homeTOsuperm_duration
               self.path_memory = 1
-              print("saved pathway_ return")
 
-          elif "self.kindergaTOhome_geometry" in locals() and self.location == self.Kindergarden:
+          elif (self.former_activity == 13) and (self.kindergaTOhome_geometry != None) :
               self.track_geometry = self.kindergaTOhome_geometry
               self.modalchoice = self.homeTOkinderga_mode
               self.track_duration = self.homeTOkinderga_duration
               self.path_memory = 1
-              print("saved pathway_ return")
+              print("using saved pathway_ kindergarden return")
 
         elif self.current_activity == 11: # entertainment / culture
           leisure = 1
@@ -391,29 +389,29 @@ class Humans(Agent):
     
     def SavingRoute(self):
       if(self.former_activity in [5, 1, 6, 7]):
-        if self.current_activity == 3 : 
+        if self.current_activity == 3 : # 3 = work
             self.homeTOwork_mode = self.modechoice
             self.homeTOwork_geometry = self.track_geometry 
             self.homeTOwork_duration = self.track_duration
             self.workTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
 		
-        elif self.current_activity == 4: 
+        elif self.current_activity == 4: # 4 = school/university
             self.homeTOschool_mode = self.modechoice
             self.homeTOschool_geometry = self.track_geometry  
             self.homeTOschool_duration = self.track_duration
             self.schoolTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
-			
-        elif self.current_activity == "kindergarden" : 
-            self.homeTOkinderga_mode = self.modechoice
-            self.homeTOkinderga_geometry = self.track_geometry 
-            self.homeTOkinderga_duration = self.track_duration
-            self.kindergaTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
 
-        elif self.current_activity == "groceries_shopping": 
+        elif (self.current_activity == 9) and (self.TripVars[2] == 1): # 9 = shopping/services and TripVars[2] == 1 is groceries
             self.homeTOsuperm_mode = self.modechoice
             self.homeTOsuperm_geometry = self.track_geometry 
             self.homeTOsuperm_duration = self.track_duration
             self.supermTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
+			
+        elif self.current_activity == 13 : # 13 = kindergarden
+            self.homeTOkinderga_mode = self.modechoice
+            self.homeTOkinderga_geometry = self.track_geometry 
+            self.homeTOkinderga_duration = self.track_duration
+            self.kindergaTOhome_geometry = Math_utils.reverse_geom(self.track_geometry)
     
     def TripSegmentsPerHour(self):
       if self.arrival_time.hour != self.hour:
@@ -463,8 +461,6 @@ class Humans(Agent):
       if len(self.visitedPlaces) > 0:
         # NO2
         self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [x*10 for x in self.durationPlaces]))
-        # Metabolic Equivalent of Task
-        self.hourlyplaceMET = sum([1.5 * 10 * value if (self.activities[count] != 1) else 0 for count, value in enumerate(self.durationActivties)])  # 1.5 MET for 10 minutes times duration measured in 10minute steps
         
     def ResetPlaceTracks(self):
       if self.activity== "perform_activity":
@@ -485,7 +481,7 @@ class Humans(Agent):
         trackjoin = [[EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in sublist] for sublist in trackpoints]
         self.hourlytravelNO2 = sum(np.multiply([mean(val) if len(val)>0 else 0 for val in trackjoin], self.thishourduration))
         # Metabolic Equivalent of Task
-        self.hourlytravelMET = sum(np.multiply(list(map(lambda x: float(x.replace('bike', "6").replace('drive', "1.5").replace('walk', "3").replace('transit', "2")) , self.thishourmode))
+        self.hourlytravelMET = sum(np.multiply(list(map(lambda x: float(x.replace('bike', "6.8").replace('drive', "1.65").replace('walk', "3.5").replace('transit', "1.9")) , self.thishourmode))
                                                 , self.thishourduration))
         
     def ResetTravelTracks(self):
@@ -507,8 +503,8 @@ class Humans(Agent):
         self.AtPlaceExposure()
         self.hourlyNO2 = (self.hourlyplaceNO2 + self.hourlytravelNO2)/60
         self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
-        self.hourlyMET = (self.hourlyplaceMET + self.hourlytravelMET)/60
-        self.hourlytravelMET, self.hourlyplaceMET = 0,0
+        self.hourlyMET = self.hourlytravelMET/60
+        self.hourlytravelMET  = 0
   
     def ManageTime(self, current_datetime):
         self.minute = current_datetime.minute
@@ -519,10 +515,25 @@ class Humans(Agent):
         if self.hour == 0: # new day
             self.weekday = current_datetime.weekday()
     
+    def ResetSavedPathNewMonth(self):
+        if (self.current_edu == "high") or (self.current_edu != "no_current_edu") or (4 in list(np.concatenate(self.WeekSchedules).flat)):
+            self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
+        if 3 in list(np.concatenate(self.WeekSchedules).flat):
+            self.homeTOwork_geometry, self.workTOhome_geometry = None, None
+        if 8 in list(np.concatenate(self.WeekSchedules).flat):
+            self.Park = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), greenspace["geometry"].unary_union)][0]
+        if 13 in list(np.concatenate(self.WeekSchedules).flat):
+            self.homeTOkinderga_geometry, self.kindergaTOhome_geometry = None, None
+        if 9 in list(np.concatenate(self.WeekSchedules).flat):
+          self.homeTOsuperm_geometry, self.supermTOhome_geometry = None, None
+    
     def step(self, current_datetime):
         global Residences, Entertainment, Restaurants,  ShopsnServ, EnvBehavDeterms, ModalChoiceModel, OrderPredVars, colvars, project_to_WSG84, projecy_to_crs, crs, routevariables, originvariables, destinvariables
         global WeatherVars
         self.ManageTime(current_datetime)
+        # if new month, reset saved pathways
+        if (current_datetime.day == 1) and (self.hour == 0) and (self.minute == 0):
+            self.ResetSavedPathNewMonth()
         if self.minute == 0:
             self.ResetTravelTracks()
             self.ResetPlaceTracks()
@@ -575,7 +586,7 @@ class TransportAirPollutionExposureModel(Model):
         # Create the agents
         print("Creating Agents")
         st = time.time()
-        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess, Supermarkets, greenspace)) as pool:
+        with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess, Supermarkets, greenspace, Kindergardens)) as pool:
             self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
             pool.close()
             pool.join()
