@@ -85,8 +85,10 @@ if PrepareHETUS:
     pd.DataFrame.to_csv(Synthpop_schedules, "D:\PhD EXPANSE\Data\EU microdata access\HETUS2010_Synthpop_schedules.csv", index=False)
 
     # create the activity schedules framework
-    Weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    # 1 = Sunday; 2 = Monday; 3 = Tuesday; 4 = Wednesday; 5 = Thursday; 6 = Friday; 7 = Saturday
+    Weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ]
     Weekdays_int = [1,2,3,4,5,6,7]
+
 
     print(HETUS2010.columns.values.tolist())
 
@@ -143,7 +145,7 @@ if PrepareHETUS:
 
     for i in range(len(HETUS2010.index)):
         loclist = list(HETUS2010.loc[i, LocationVars])
-        HETUS2010.loc[i, LocationVars] = [0 if value == loclist[count - 1] else 1 for count, value in enumerate(loclist)]
+        HETUS2010.loc[i, LocationVars] = [0 if value == loclist[count - 1] else 1 for count, value in enumerate(loclist)] # 1 if location changes, 0 if location stays the same
         personsubset =  HETUS2010.loc[HETUS2010["HID"] ==HETUS2010["HID"].iloc[i], :]
         day = HETUS2010["DDV1"].iloc[i]
         HETUS2010.loc[i, ActivityVars] = [value if value != 12 else findNextActivity(count, personsubset, day) for count, value in enumerate(HETUS2010.loc[i, ActivityVars])]

@@ -42,7 +42,7 @@ print(SynthPop["ScheduleID"].value_counts())
 
 
 SynthPop["ScheduleID"].fillna("SchedBaby", inplace=True)
-SynthPop["ScheduleID"].loc[SynthPop["age"].between(6,10)] = "SchedChild"
+SynthPop["ScheduleID"].loc[SynthPop["age"].between(4,9)] = "SchedChild"
 
 # Now SynthPop has a column with the schedule group ID
 print(SynthPop.head(20))

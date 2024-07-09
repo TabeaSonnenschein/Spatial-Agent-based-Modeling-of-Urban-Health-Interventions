@@ -178,7 +178,6 @@ class Humans(Agent):
         self.weekday = self.model.weekday
         self.activitystep=self.model.activitystep
         
-        
         # regular destinations
         try:
             self.Residence = Residences.loc[Residences["nghb_cd"] == self.Neighborhood, "geometry"].sample(1).values[0].coords[0]
@@ -460,8 +459,10 @@ class Humans(Agent):
     def AtPlaceExposure(self):
       if len(self.visitedPlaces) > 0:
         # NO2
-        self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [x*10 for x in self.durationPlaces]))
-        
+        indoorfilter = [1 if x == 8 else 0.51 for x in self.activities]  #8 =  outdoor activity hence no filter
+        self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [duration*10*indoorfilter[count] for count, duration in enumerate(self.durationPlaces)]))
+        # self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [x*10 for x in self.durationPlaces]))
+
     def ResetPlaceTracks(self):
       if self.activity== "perform_activity":
         self.visitedPlaces = [self.visitedPlaces[-1]]
