@@ -593,6 +593,7 @@ class Humans(Agent):
 class TransportAirPollutionExposureModel(Model):
     def __init__(self, nb_humans, path_data, crs="epsg:28992",
                  starting_date=datetime(2019, 1, 1, 6, 50, 0), steps_minute=10):
+        super().__init__(nb_humans, path_data, crs, starting_date, steps_minute)
         # Insert the global definitions, variables, and actions here
         self.path_data = path_data
         self.starting_datetime = starting_date
@@ -616,16 +617,18 @@ class TransportAirPollutionExposureModel(Model):
         # self.NO2filters = {"drive": 1, "bike": 1, "walk": 1, "transit": 1}
         
         self.hourlyext = 0
+        self.onroadcells = (AirPollGrid["ON_ROAD"] == 1)
+        
         # Create the agents
         print("Creating Agents")
         st = time.time()
         with Pool(initializer=init_worker_init, initargs=(schedulelist, Residences, Universities, Schools, Profess, Supermarkets, greenspace, Kindergardens)) as pool:
-            self.agents = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
+            self.Humans = pool.starmap(Humans, [(random_subset.iloc[x],  self) for x in range(self.nb_humans)], chunksize=100) 
             pool.close()
             pool.join()
             pool.terminate()
-        for agent in self.agents:
-            self.continoussp.place_agent(agent, agent.Residence)
+        for Human in self.Humans:
+            self.continoussp.place_agent(Human, Human.Residence)
         print("Human Init Time: ", time.time() - st, "Seconds")
 
 
@@ -672,7 +675,7 @@ class TransportAirPollutionExposureModel(Model):
         TraffAssDat.write(pd.DataFrame(zip(predictors, reg.coef_)).to_string()) 
         self.R2 =  reg.score(self.TraffGrid.loc[self.onroadcells,predictors], self.TraffGrid.loc[self.onroadcells,self.TraffVcolumn])
         TraffAssDat.write(f"\nR2 {self.R2}\n\n")
-        self.TraffGrid["TraffV"] = 0
+        self.TraffGrid["TraffV"] = 0.0
         self.TraffGrid.loc[self.onroadcells,"TraffV"] = reg.predict(self.TraffGrid.loc[self.onroadcells,predictors])
 
 
@@ -685,7 +688,7 @@ class TransportAirPollutionExposureModel(Model):
         self.R2, _ = pearsonr(self.TraffGrid.loc[self.onroadcells,"TraffV"],
                       self.TraffGrid.loc[self.onroadcells, self.TraffVcolumn])
         TraffAssDat.write(f"R2 {self.R2*self.R2}\n\n")
-        AirPollGrid[f"TraffVrest{self.hour}"] =  0.0
+        AirPollGrid[f"TraffVrest{self.hour}_{self.current_datetime.day}"] =  0.0
         Remainders =  (self.TraffGrid.loc[self.onroadcells,self.TraffVcolumn])-(self.TraffGrid.loc[self.onroadcells,"TraffV"])
         AirPollGrid.loc[self.onroadcells, f"TraffVrest{self.hour}_{self.current_datetime.day}"] = list(Remainders)
 
@@ -708,7 +711,7 @@ class TransportAirPollutionExposureModel(Model):
 
     def TrafficAssignment(self):
         global streetLength
-        HourlyTraffic = pool.starmap(RetrieveRoutes, [(agent.thishourmode, agent.thishourtrack) for agent in self.agents], chunksize = 500)
+        HourlyTraffic = pool.starmap(RetrieveRoutes, [(Human.thishourmode, Human.thishourtrack) for Human in self.Humans], chunksize = 500)
         HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, HourlyTraffic))))
         # gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs).to_file(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/TrafficTracks/TrafficTracks_A{nb_humans}_H{self.hour-1}.shp')
         print("Nr of hourly traffic tracks: ", len(HourlyTraffic))
@@ -732,18 +735,18 @@ class TransportAirPollutionExposureModel(Model):
           # self.TraffGrid['count'] = self.TraffGrid['count'].fillna(0)
           # self.TraffGrid = AirPollGrid.drop("count", axis= 1).merge(self.TraffGrid[["int_id", "count"]].groupby(['int_id'], as_index=False).mean(), on="int_id")
           print("joined traffic tracks to grid")
-          self.onroadcells = (self.TraffGrid["ON_ROAD"] == 1)
           if TraffStage == "Regression":
               self.TraffCountRegression(HourlyTraffic)
         else:
           self.TraffGrid = AirPollGrid.loc[:,["int_id", "geometry", "ON_ROAD", "baseline_NO2", self.TraffVcolumn]]
           self.TraffGrid['count'] = 0
-          self.onroadcells = (self.TraffGrid["ON_ROAD"] == 1)
+        
+        if TraffStage == "Remainder":
+          self.TrafficRemainderCalc(HourlyTraffic)
           
         if TraffStage in ["PredictionNoR2","PredictionR2"]:
           self.TotalTraffCalc(HourlyTraffic)     
           self.TraffGrid["TraffIntens"] = np.array(self.TraffGrid["TraffV"]) * streetLength
-          # self.TrafficRemainderCalc(HourlyTraffic)
         else:
           self.TraffGrid["TraffV"] = self.TraffGrid['count']
           
@@ -824,24 +827,23 @@ class TransportAirPollutionExposureModel(Model):
 
         st = time.time()        
         if self.minute == 0:
-          ModalSplitH = pool.starmap(RetrieveModalSplitHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
+          ModalSplitH = pool.starmap(RetrieveModalSplitHour, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
           ModalSplitLog.write(f"{self.datesuffix}, {Counter(list(it.chain.from_iterable(filter(None, list(it.chain.from_iterable(ModalSplitH))))))}\n")
-          # Alltracks = pool.starmap(RetrieveAllTracksHour, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
+          # Alltracks = pool.starmap(RetrieveAllTracksHour, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
           # Alltracks = pd.DataFrame(list(filter(lambda x: len(x[1])>0, [item for sublist in Alltracks for item in sublist])), 
           #              columns=['agent', 'geometry', 'mode', 'duration'])
           # Alltracks["geometry"] = Alltracks["geometry"].apply(lambda x: "; ".join([str(el) for el in x]))
           # Alltracks.to_csv(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/Tracks/{randomID}/AllTracks_{randomID}_A{nb_humans}_{self.datesuffix}_{modelname}.csv', 
           #                index=False, quoting=csv.QUOTE_NONNUMERIC, float_format='%.15g')
           if TraffStage in ["PredictionNoR2", "PredictionR2"]:
-            self.agents = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]), self.WeatherVars)  for agents in np.array_split(self.agents, n)], chunksize=1)))
+            self.Humans = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]), self.WeatherVars)  for agents in np.array_split(self.Humans, n)], chunksize=1)))
             print("collecting and saving exposure")
-            AgentExposure = pool.starmap(RetrieveExposure, [(agents, 0) for agents in np.array_split(self.agents, n)], chunksize = 1)
+            AgentExposure = pool.starmap(RetrieveExposure, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
             pd.DataFrame([item for items in AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/AgentExposure/{randomID}/AgentExposure_{randomID}_A{nb_humans}_{self.datesuffix}_{modelname}.csv', index=False)
           else:
-            self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime, self.WeatherVars)  for agents in np.array_split(self.agents, n)], chunksize=1)))
+            self.Humans = list(it.chain.from_iterable(pool.starmap(worker_process, [(Humans, self.current_datetime, self.WeatherVars)  for Humans in np.array_split(self.Humans, n)], chunksize=1)))
         else:
-          self.agents = list(it.chain.from_iterable(pool.starmap(worker_process, [(agents, self.current_datetime, self.WeatherVars)  for agents in np.array_split(self.agents, n)], chunksize=1)))
-            
+          self.Humans = list(it.chain.from_iterable(pool.starmap(worker_process, [(Humans, self.current_datetime, self.WeatherVars)  for Humans in np.array_split(self.Humans, n)], chunksize=1)))            
         gc.collect(generation=0)
         gc.collect(generation=1)
         gc.collect(generation=2)
@@ -864,11 +866,11 @@ if __name__ == "__main__":
 
     # New Population sample or already existing one
     newpop = False
-    subsetnr = 0
+    subsetnr = 5
     
     # Length of the simulation run
     NrHours = 24
-    NrDays = 5
+    NrDays = 4
     NrMonths = 1
     
     # Starting Date and Time
@@ -886,12 +888,12 @@ if __name__ == "__main__":
     profile = False
     
     # Stage of the Traffic Model
-    TraffStage = "Regression" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
+    TraffStage = "Remainder" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
     
     
     # Traffic Model
     if nb_humans == 21750:
-      TraffVCoeff =  3.171920208      # 43500 = 1.93116625	21750 = 3.171920208	8700 = 7.214888208
+      TraffVCoeff =  5.53923309648345     # 43500 = 1.93116625	21750 = 3.171920208	8700 = 7.214888208
     elif nb_humans == 43500:
       TraffVCoeff =  1.93116625      # 43500 = 1.93116625	21750 = 3.171920208	8700 = 7.214888208
     elif nb_humans == 8700:
@@ -1136,9 +1138,9 @@ if __name__ == "__main__":
 
     pool.terminate()         
             
-    # if TraffStage == "Remainder":
-    #   traffrestcols = [f"TraffVrest{hour}" for hour in range(24)]
-    #   pd.DataFrame(AirPollGrid[["int_id"]+ traffrestcols]).to_csv(path_data+f"ModelRuns/TrafficRemainder/AirPollGrid_HourlyTraffRemainder_{nb_humans}_pop{subsetnr}_{randomID}.csv", index=False)
+    if TraffStage == "Remainder":
+      traffrestcols = [ col for col in AirPollGrid.columns if "TraffVrest" in col]
+      pd.DataFrame(AirPollGrid[["int_id"]+ traffrestcols]).to_csv(path_data+"ModelRuns/"+modelname+"/" + str(nb_humans)+ f"Agents/Traffic/AirPollGrid_HourlyTraffRemainder_{nb_humans}_pop{subsetnr}_{randomID}.csv", index=False)
     
     if TraffStage != "PredictionNoR2":
       TraffAssDat.close()
