@@ -829,12 +829,12 @@ class TransportAirPollutionExposureModel(Model):
         if self.minute == 0:
           ModalSplitH = pool.starmap(RetrieveModalSplitHour, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
           ModalSplitLog.write(f"{self.datesuffix}, {Counter(list(it.chain.from_iterable(filter(None, list(it.chain.from_iterable(ModalSplitH))))))}\n")
-          # Alltracks = pool.starmap(RetrieveAllTracksHour, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
-          # Alltracks = pd.DataFrame(list(filter(lambda x: len(x[1])>0, [item for sublist in Alltracks for item in sublist])), 
-          #              columns=['agent', 'geometry', 'mode', 'duration'])
-          # Alltracks["geometry"] = Alltracks["geometry"].apply(lambda x: "; ".join([str(el) for el in x]))
-          # Alltracks.to_csv(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/Tracks/{randomID}/AllTracks_{randomID}_A{nb_humans}_{self.datesuffix}_{modelname}.csv', 
-          #                index=False, quoting=csv.QUOTE_NONNUMERIC, float_format='%.15g')
+          Alltracks = pool.starmap(RetrieveAllTracksHour, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
+          Alltracks = pd.DataFrame(list(filter(lambda x: len(x[1])>0, [item for sublist in Alltracks for item in sublist])), 
+                       columns=['agent', 'geometry', 'mode', 'duration'])
+          Alltracks["geometry"] = Alltracks["geometry"].apply(lambda x: "; ".join([str(el) for el in x]))
+          Alltracks.to_csv(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/Tracks/{randomID}/AllTracks_{randomID}_A{nb_humans}_{self.datesuffix}_{modelname}.csv', 
+                         index=False, quoting=csv.QUOTE_NONNUMERIC, float_format='%.15g')
           if TraffStage in ["PredictionNoR2", "PredictionR2"]:
             self.Humans = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]), self.WeatherVars)  for agents in np.array_split(self.Humans, n)], chunksize=1)))
             print("collecting and saving exposure")
@@ -866,12 +866,12 @@ if __name__ == "__main__":
 
     # New Population sample or already existing one
     newpop = False
-    subsetnr = 5
+    subsetnr = 0
     
     # Length of the simulation run
     NrHours = 24
-    NrDays = 4
-    NrMonths = 1
+    NrDays = 7
+    NrMonths = 4
     
     # Starting Date and Time
     starting_date = datetime(2019, 1, 1, 0, 0, 0)
@@ -888,7 +888,7 @@ if __name__ == "__main__":
     profile = False
     
     # Stage of the Traffic Model
-    TraffStage = "Remainder" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
+    TraffStage = "PredictionR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
     
     
     # Traffic Model

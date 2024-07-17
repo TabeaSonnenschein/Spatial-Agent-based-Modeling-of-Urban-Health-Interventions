@@ -11,7 +11,7 @@ nb_humans = 21750
 # modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 modelruns = [895997, 853373, 108181, 13018, 362560, 362256, 310510, 218448, 158037, 874562]
 subsetnr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-newcols = [f"TraffVrest_{hour}" for hour in range(24)]
+newcols = [f"TraffVrest{hour}" for hour in range(24)]
 for count,modelrun in enumerate(modelruns):
     # read in the text data
     TraffRemainder = pd.read_csv(f'{path_data}ModelRuns/{scenario}/{nb_humans}Agents/Traffic/AirPollGrid_HourlyTraffRemainder_{nb_humans}_pop{subsetnr[count]}_{modelrun}.csv')
@@ -25,7 +25,7 @@ for count,modelrun in enumerate(modelruns):
         hourindices = [count for count, colhour in enumerate(colhours) if colhour == hour]
         hourcols = [TraffVrestcols[hourindex] for hourindex in hourindices]
         print(hourcols)
-        TraffRemainder[f"TraffVrest_{hour}"] = TraffRemainder[hourcols].mean(axis=1)
+        TraffRemainder[f"TraffVrest{hour}"] = TraffRemainder[hourcols].mean(axis=1)
         
     TraffRemainder[["int_id"]+newcols].to_csv(f"{path_data}ModelRuns/{scenario}/{nb_humans}Agents/Traffic/MeanTraffRemainder_{nb_humans}_pop{subsetnr[count]}_{modelrun}.csv", index=False)
     if count == 0:
