@@ -28,9 +28,9 @@ monthsnames = ["January",  "February",  "March",  "April",  "May",  "June",
 
 
 viztype = [
-        "singleIntervention", 
+        # "singleIntervention", 
         # "statusquocomparison", 
-        # "multipleRunComparison"
+        "multipleRunComparison"
         ]
 
 if not os.path.exists(path_data+f"/{scenario}/{nb_agents}Agents/NO2/NO2Viz"):

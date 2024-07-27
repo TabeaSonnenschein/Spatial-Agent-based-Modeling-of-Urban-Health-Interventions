@@ -237,18 +237,16 @@ scenario = "StatusQuo"
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 # bestStatusQuo = 481658
-modelruns = [708658]
-modelruns = [107935, 805895]
-# modelruns = [381609]
+modelruns = [759390, 580030, 2479, 393279, 376271]
 modelruns = ["MeanAcrossRuns"]
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 viztype = [
         # "singleIntervention", 
-        "CirclePlot",
+        # "CirclePlot",
         # "statusquocomparison", 
-        # "multipleRunComparison",
+        "multipleRunComparison",
         # "extentvisualization",
         # "extentcomparison"
         ]

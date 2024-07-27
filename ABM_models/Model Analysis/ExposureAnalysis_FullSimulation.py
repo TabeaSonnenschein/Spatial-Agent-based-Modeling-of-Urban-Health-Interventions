@@ -685,8 +685,8 @@ nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 os.chdir(path_data)
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
@@ -706,13 +706,13 @@ print(modelruns, popsamples)
 
 
 viztasks = [
-            # "Exposure preparation",
+            "Exposure preparation",
             # "Exposure descriptives",
             # "Exposure stratification",
-            # "Aggregate exposure df",
+            "Aggregate exposure df",
             # "Exposure Time Circle plot",
             # "Exposure Circle plot strat",
-            # "spatial Exposure mapping",
+            "spatial Exposure mapping",
             # "Comparative plots",
             "Mean across runs aggregate exposure df",
             "Mean across runs exposure circle plot",
@@ -742,6 +742,7 @@ fullnamedict = {
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 for count, modelrun in enumerate(modelruns):
+    print(f"Model run {modelrun}")
     if "Exposure preparation" in viztasks:
         # read exposure data
         os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelrun}/ExposureViz")

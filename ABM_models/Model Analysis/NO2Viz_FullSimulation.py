@@ -19,7 +19,7 @@ os.chdir(path_data)
 
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-modelruns = [modelrun for modelrun in modelruns if not(modelrun in [481658,708658])]
+# modelruns = [modelrun for modelrun in modelruns if not(modelrun in [481658,708658])]
 # modelruns = [708658]
 
 os.chdir(path_data)

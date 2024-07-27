@@ -186,6 +186,8 @@ class Humans(Agent):
             self.Residence = Residences["geometry"].sample(1).values[0].coords[0]
         else:
             pass
+        if self.model.scenario == "15mCityWithDestination":  
+            self.radius15min = self.Residence.buffer(1275)
         if self.current_edu == "high":
             self.University = Universities["geometry"].sample(1).values[0].coords[0]
             self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
@@ -193,13 +195,21 @@ class Humans(Agent):
             self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][0]
             self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
         if 3 in list(np.concatenate(self.WeekSchedules).flat):
-            self.Workplace = Profess["geometry"].sample(1).values[0].coords[0]
+            if self.model.scenario == "15mCityWithDestination":  
+                nearProff = Profess["geometry"].intersection(self.radius15min)
+                self.Workplace = nearProff[~nearProff.is_empty].sample(1).values[0].coords[0]
+            else:
+                self.Workplace = Profess["geometry"].sample(1).values[0].coords[0]
             self.homeTOwork_geometry, self.workTOhome_geometry = None, None
         
         if 8 in list(np.concatenate(self.WeekSchedules).flat):
             self.Park = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), greenspace["geometry"].unary_union)][0]
         if 13 in list(np.concatenate(self.WeekSchedules).flat):
-            self.Kindergarden = Kindergardens["geometry"].sample(1).values[0].coords[0]
+            if self.model.scenario == "15mCityWithDestination":  
+                nearkindergardens = Kindergardens["geometry"].intersection(self.radius15min)
+                self.Kindergarden = nearkindergardens[~nearkindergardens.is_empty].sample(1).values[0].coords[0]
+            else:
+                self.Kindergarden = Kindergardens["geometry"].sample(1).values[0].coords[0]
             self.homeTOkinderga_geometry, self.kindergaTOhome_geometry = None, None
         if 9 in list(np.concatenate(self.WeekSchedules).flat):
             self.Supermarket = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Supermarkets["geometry"].unary_union)][0]
@@ -266,7 +276,11 @@ class Humans(Agent):
               self.modalchoice = self.homeTOsuperm_mode
               self.path_memory = 1
           else:
-            self.destination_activity = ShopsnServ["geometry"].sample(1).values[0].coords[0]
+            if self.model.scenario == "15mCityWithDestination":  
+                nearShops = ShopsnServ["geometry"].intersection(self.radius15min)
+                self.destination_activity = nearShops[~nearShops.is_empty].sample(1).values[0].coords[0]
+            else:
+                self.destination_activity = ShopsnServ["geometry"].sample(1).values[0].coords[0]
             
 
         elif self.current_activity == 13: # 3= kindergarden
@@ -307,7 +321,11 @@ class Humans(Agent):
 
         elif self.current_activity == 11: # entertainment / culture
           leisure = 1
-          self.destination_activity = Entertainment["geometry"].sample(1).values[0].coords[0]
+          if self.model.scenario == "15mCityWithDestination":  
+                nearEntertain = Entertainment["geometry"].intersection(self.radius15min)
+                self.destination_activity = nearEntertain[~nearEntertain.is_empty].sample(1).values[0].coords[0]
+          else:
+              self.destination_activity = Entertainment["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity == 2:  # 2 = eating
           if self.WeekLocations[self.weekday][self.activitystep] == 0:
@@ -324,7 +342,11 @@ class Humans(Agent):
           if self.WeekLocations[self.weekday][self.activitystep] == 0:
             self.destination_activity = self.pos
           else:
-            self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
+            if self.model.scenario == "15mCityWithDestination":  
+                nearFriends = Residences["geometry"].intersection(self.radius15min)
+                self.destination_activity = nearFriends[~nearFriends.is_empty].sample(1).values[0].coords[0]
+            else:
+                self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
         elif self.current_activity == 8: # 8 = sports/ outdoor activity
           self.destination_activity = self.Park
@@ -615,10 +637,11 @@ class TransportAirPollutionExposureModel(Model):
         
         # modal NO2 filters
         # self.NO2filters = {"drive": 1, "bike": 1, "walk": 1, "transit": 1}
+        self.scenario = modelname
         
         self.hourlyext = 0
-        self.onroadcells = (AirPollGrid["ON_ROAD"] == 1)
-        
+        self.onroadcells = list(AirPollGrid["ON_ROAD"] == 1)
+        print("onroadcells: ", self.onroadcells.value_counts())
         # Create the agents
         print("Creating Agents")
         st = time.time()
@@ -722,7 +745,6 @@ class TransportAirPollutionExposureModel(Model):
         if len(HourlyTraffic) > 0: 
           if len(HourlyTraffic) > 15:
             counts = pool.starmap(TraffSpatialJoint, [(tracks, 0) for tracks in np.array_split(HourlyTraffic, n)], chunksize=1)
-            print("Max", np.max(np.array(counts).sum(axis=0)), "Mean", np.mean(np.array(counts).sum(axis=0)), "Median", np.median(np.array(counts).sum(axis=0)))
             self.TraffGrid = AirPollGrid.loc[:,["int_id", "geometry", "ON_ROAD", "baseline_NO2", self.TraffVcolumn]]
             self.TraffGrid['count'] = np.array(counts).sum(axis=0)
           else:
@@ -743,7 +765,9 @@ class TransportAirPollutionExposureModel(Model):
         
         if TraffStage == "Remainder":
           self.TrafficRemainderCalc(HourlyTraffic)
-          
+        
+        print("Max Count", np.max(self.TraffGrid["count"]), "Mean Count", np.mean(self.TraffGrid["count"]), "Median Count", np.median(self.TraffGrid["count"]))
+        
         if TraffStage in ["PredictionNoR2","PredictionR2"]:
           self.TotalTraffCalc(HourlyTraffic)     
           self.TraffGrid["TraffIntens"] = np.array(self.TraffGrid["TraffV"]) * streetLength
@@ -880,6 +904,7 @@ if __name__ == "__main__":
     modelname = "StatusQuo" 
     # modelname = "PrkPriceInterv"
     # modelname = "15mCity"
+    # modelname = "15mCityWithDestination"
     
     # cellsize of the Airpollution and Traffic grid
     cellsize = 50    # 50m x 50m
@@ -978,16 +1003,16 @@ if __name__ == "__main__":
     carroads = gpd.read_feather(path_data+"SpatialData/carroads.feather")
     Universities = gpd.read_feather(path_data+"SpatialData/Universities.feather")
     
-    if modelname == "15mCity":
-      greenspace = gpd.read_feather(path_data+f"SpatialData/Greenspace{modelname}.feather")
-      Schools = gpd.read_feather(path_data+f"SpatialData/Schools{modelname}.feather")
-      Supermarkets = gpd.read_feather(path_data+f"SpatialData/Supermarkets{modelname}.feather")
-      Kindergardens = gpd.read_feather(path_data+f"SpatialData/Kindergardens{modelname}.feather")
-      Restaurants = gpd.read_feather(path_data+f"SpatialData/Restaurants{modelname}.feather")
-      Entertainment = gpd.read_feather(path_data+f"SpatialData/Entertainment{modelname}.feather")
-      ShopsnServ = gpd.read_feather(path_data+f"SpatialData/ShopsnServ{modelname}.feather")
-      Nightlife = gpd.read_feather(path_data+f"SpatialData/Nightlife{modelname}.feather")
-      Profess = gpd.read_feather(path_data+f"SpatialData/Profess{modelname}.feather")
+    if modelname in ["15mCity", "15mCityWithDestination"]:
+      greenspace = gpd.read_feather(path_data+f"SpatialData/Greenspace15mCity.feather")
+      Schools = gpd.read_feather(path_data+f"SpatialData/Schools15mCity.feather")
+      Supermarkets = gpd.read_feather(path_data+f"SpatialData/Supermarkets15mCity.feather")
+      Kindergardens = gpd.read_feather(path_data+f"SpatialData/Kindergardens15mCity.feather")
+      Restaurants = gpd.read_feather(path_data+f"SpatialData/Restaurants15mCity.feather")
+      Entertainment = gpd.read_feather(path_data+f"SpatialData/Entertainment15mCity.feather")
+      ShopsnServ = gpd.read_feather(path_data+f"SpatialData/ShopsnServ15mCity.feather")
+      Nightlife = gpd.read_feather(path_data+f"SpatialData/Nightlife15mCity.feather")
+      Profess = gpd.read_feather(path_data+f"SpatialData/Profess15mCity.feather")
     else:
       greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
       Schools = gpd.read_feather(path_data+"SpatialData/Schools.feather")
@@ -1005,13 +1030,14 @@ if __name__ == "__main__":
       EnvBehavDeterms = gpd.read_feather(path_data+"SpatialData/EnvBehavDeterminants.feather")
       if modelname == "PrkPriceInterv":
         EnvBehavDeterms["PrkPricPre"] = EnvBehavDeterms["PrkPricPos"]
+    if modelname in ["15mCity", "15mCityWithDestination"]:
+      EnvBehavDeterms = gpd.read_feather(path_data+f"SpatialData/EnvBehavDeterminants15mCity.feather")
+      EnvBehavDeterms['retaiDns'] = EnvBehavDeterms['retaiDns15']
+      EnvBehavDeterms['greenCovr'] = EnvBehavDeterms['grenCovr15']
+      EnvBehavDeterms['retailDiv'] = EnvBehavDeterms['retDiv15']
     # other Interventions
     else:
       EnvBehavDeterms = gpd.read_feather(path_data+f"SpatialData/EnvBehavDeterminants{modelname}.feather")
-      if modelname == "15mCity":
-        EnvBehavDeterms['retaiDns'] = EnvBehavDeterms['retaiDns15']
-        EnvBehavDeterms['greenCovr'] = EnvBehavDeterms['grenCovr15']
-        EnvBehavDeterms['retailDiv'] = EnvBehavDeterms['retDiv15']
 
  
     # Read the Environmental Stressor Data and Model
