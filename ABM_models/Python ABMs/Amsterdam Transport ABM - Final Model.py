@@ -135,6 +135,10 @@ def RetrieveRoutes(thishourmode, thishourtrack):
    if "drive" in thishourmode:
       return([thishourtrack[count] for count, value in enumerate(thishourmode) if value == "drive"])
 
+def RetrieveNoEVRoutes(thishourmode, thishourtrack, evaccess):
+   if (evaccess == 0) & ("drive" in thishourmode):
+      return([thishourtrack[count] for count, value in enumerate(thishourmode) if value == "drive"])
+
 def RetrieveExposure(agents, dum):
     return [[agent.unique_id, agent.hourlyNO2, agent.hourlyMET]  for agent in agents]
   
@@ -178,6 +182,11 @@ class Humans(Agent):
         self.weekday = self.model.weekday
         self.activitystep=self.model.activitystep
         
+        if self.model.scenario == "NoEmissionZone2025":
+          self.eletriccaraccess = vector.iloc[27]
+        if self.model.scenario == "NoEmissionZone2030":
+          self.eletriccaraccess = vector.iloc[28]
+
         # regular destinations
         try:
             self.Residence = Residences.loc[Residences["nghb_cd"] == self.Neighborhood, "geometry"].sample(1).values[0].coords[0]
@@ -187,7 +196,7 @@ class Humans(Agent):
         else:
             pass
         if self.model.scenario == "15mCityWithDestination":  
-            self.radius15min = self.Residence.buffer(1275)
+            self.radius15min = Point(self.Residence).buffer(1275)
         if self.current_edu == "high":
             self.University = Universities["geometry"].sample(1).values[0].coords[0]
             self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
@@ -197,7 +206,10 @@ class Humans(Agent):
         if 3 in list(np.concatenate(self.WeekSchedules).flat):
             if self.model.scenario == "15mCityWithDestination":  
                 nearProff = Profess["geometry"].intersection(self.radius15min)
-                self.Workplace = nearProff[~nearProff.is_empty].sample(1).values[0].coords[0]
+                if len(nearProff[~nearProff.is_empty]) == 0:
+                  self.Workplace = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Profess["geometry"].unary_union)][0]
+                else:
+                  self.Workplace = nearProff[~nearProff.is_empty].sample(1).values[0].coords[0]
             else:
                 self.Workplace = Profess["geometry"].sample(1).values[0].coords[0]
             self.homeTOwork_geometry, self.workTOhome_geometry = None, None
@@ -207,7 +219,10 @@ class Humans(Agent):
         if 13 in list(np.concatenate(self.WeekSchedules).flat):
             if self.model.scenario == "15mCityWithDestination":  
                 nearkindergardens = Kindergardens["geometry"].intersection(self.radius15min)
-                self.Kindergarden = nearkindergardens[~nearkindergardens.is_empty].sample(1).values[0].coords[0]
+                if len(nearkindergardens[~nearkindergardens.is_empty]) == 0:
+                  self.Kindergarden = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Kindergardens["geometry"].unary_union)][0]
+                else:
+                  self.Kindergarden = nearkindergardens[~nearkindergardens.is_empty].sample(1).values[0].coords[0]
             else:
                 self.Kindergarden = Kindergardens["geometry"].sample(1).values[0].coords[0]
             self.homeTOkinderga_geometry, self.kindergaTOhome_geometry = None, None
@@ -278,7 +293,10 @@ class Humans(Agent):
           else:
             if self.model.scenario == "15mCityWithDestination":  
                 nearShops = ShopsnServ["geometry"].intersection(self.radius15min)
-                self.destination_activity = nearShops[~nearShops.is_empty].sample(1).values[0].coords[0]
+                if len(nearShops[~nearShops.is_empty]) == 0:
+                  self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), ShopsnServ["geometry"].unary_union)][0]
+                else:
+                  self.destination_activity = nearShops[~nearShops.is_empty].sample(1).values[0].coords[0]
             else:
                 self.destination_activity = ShopsnServ["geometry"].sample(1).values[0].coords[0]
             
@@ -323,7 +341,10 @@ class Humans(Agent):
           leisure = 1
           if self.model.scenario == "15mCityWithDestination":  
                 nearEntertain = Entertainment["geometry"].intersection(self.radius15min)
-                self.destination_activity = nearEntertain[~nearEntertain.is_empty].sample(1).values[0].coords[0]
+                if len(nearEntertain[~nearEntertain.is_empty]) == 0:
+                  self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Entertainment["geometry"].unary_union)][0]
+                else:
+                  self.destination_activity = nearEntertain[~nearEntertain.is_empty].sample(1).values[0].coords[0]
           else:
               self.destination_activity = Entertainment["geometry"].sample(1).values[0].coords[0]
 
@@ -344,7 +365,10 @@ class Humans(Agent):
           else:
             if self.model.scenario == "15mCityWithDestination":  
                 nearFriends = Residences["geometry"].intersection(self.radius15min)
-                self.destination_activity = nearFriends[~nearFriends.is_empty].sample(1).values[0].coords[0]
+                if len(nearFriends[~nearFriends.is_empty]) == 0:
+                  self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Residences["geometry"].unary_union)][0]
+                else:
+                  self.destination_activity = nearFriends[~nearFriends.is_empty].sample(1).values[0].coords[0]
             else:
                 self.destination_activity = Residences["geometry"].sample(1).values[0].coords[0]
 
@@ -386,7 +410,12 @@ class Humans(Agent):
       pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, self.IndModalPreds, [self.trip_distance],self.TripVars, WeatherVars), axis=None).reshape(1, -1), 
                                 columns=colvars).fillna(0)
       # predicting modechoice
-      self.modechoice = ModalChoiceModel.predict(pred_df[OrderPredVars])[0]
+      if (self.model.scenario == "NoEmissionZone2030") & (self.eletriccaraccess == 0):
+        modechoice_probs = ModalChoiceModel.predict_proba(pred_df[OrderPredVars])
+        modechoice_probs[0][1] = 0
+        self.modechoice = np.argmax(modechoice_probs) + 1
+      else:
+        self.modechoice = ModalChoiceModel.predict(pred_df[OrderPredVars])[0]
       self.modechoice = ["bike", "drive", "transit", "walk"][self.modechoice-1]
 
     # OSRM Routing Machine
@@ -641,7 +670,6 @@ class TransportAirPollutionExposureModel(Model):
         
         self.hourlyext = 0
         self.onroadcells = list(AirPollGrid["ON_ROAD"] == 1)
-        print("onroadcells: ", self.onroadcells.value_counts())
         # Create the agents
         print("Creating Agents")
         st = time.time()
@@ -666,7 +694,9 @@ class TransportAirPollutionExposureModel(Model):
 
         print(self.weightsmatrix)
         
-        
+        if modelname == "NoEmissionZone2030":
+            self.TraffGrid = AirPollGrid.loc[:,["int_id", "geometry", "ON_ROAD", "baseline_NO2"]]
+            self.TraffGrid["NO2"] = self.TraffGrid["baseline_NO2"]
         
     def DetermineWeather(self):
         self.WeatherVars = list(self.monthly_weather_df[["Temperature","Rain","Windspeed","Winddirection"]].loc[self.monthly_weather_df["month"]== self.current_datetime.month].values[0])
@@ -734,7 +764,10 @@ class TransportAirPollutionExposureModel(Model):
 
     def TrafficAssignment(self):
         global streetLength
-        HourlyTraffic = pool.starmap(RetrieveRoutes, [(Human.thishourmode, Human.thishourtrack) for Human in self.Humans], chunksize = 500)
+        if modelname == "NoEmissionZone2025":
+          HourlyTraffic = pool.starmap(RetrieveNoEVRoutes, [(Human.thishourmode, Human.thishourtrack, Human.eletriccaraccess) for Human in self.Humans], chunksize = 500)
+        else:
+          HourlyTraffic = pool.starmap(RetrieveRoutes, [(Human.thishourmode, Human.thishourtrack) for Human in self.Humans], chunksize = 500)
         HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, HourlyTraffic))))
         # gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs).to_file(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/TrafficTracks/TrafficTracks_A{nb_humans}_H{self.hour-1}.shp')
         print("Nr of hourly traffic tracks: ", len(HourlyTraffic))
@@ -834,18 +867,20 @@ class TransportAirPollutionExposureModel(Model):
             # print("Current time: ", self.current_datetime)
             self.hour = self.current_datetime.hour
             st = time.time()
-            self.TrafficAssignment()
-            print("Traffic Assignment time: ", time.time() - st, "Seconds")
-            st = time.time()
-            if TraffStage in ["PredictionNoR2", "PredictionR2"]:
-              self.OnRoadEmission()
-              self.OffRoadDispersion()
-              print("Hybrid Dispersion Model: ", time.time() - st, "Seconds")
-              # self.PlotAirPoll()
-            if self.current_datetime.hour == 0: # new day
-                self.weekday = self.current_datetime.weekday()
-                if TraffStage in ["PredictionNoR2", "PredictionR2"]:
-                    self.SaveAirPollTraffic()
+            if modelname != "NoEmissionZone2030":
+              self.TrafficAssignment()
+              print("Traffic Assignment time: ", time.time() - st, "Seconds")
+              st = time.time()
+              if TraffStage in ["PredictionNoR2", "PredictionR2"]:
+                self.OnRoadEmission()
+                self.OffRoadDispersion()
+                print("Hybrid Dispersion Model: ", time.time() - st, "Seconds")
+                # self.PlotAirPoll()
+              if self.current_datetime.hour == 0: # new day
+                  self.weekday = self.current_datetime.weekday()
+                  if TraffStage in ["PredictionNoR2", "PredictionR2"]:
+                      self.SaveAirPollTraffic()
+
 
         self.activitystep = int((self.hour * 6) + (self.minute / 10))
 
@@ -901,10 +936,12 @@ if __name__ == "__main__":
     starting_date = datetime(2019, 1, 1, 0, 0, 0)
     
     # Type of scenario
-    modelname = "StatusQuo" 
+    # modelname = "StatusQuo" 
     # modelname = "PrkPriceInterv"
     # modelname = "15mCity"
     # modelname = "15mCityWithDestination"
+    modelname = "NoEmissionZone2025"
+    # modelname = "NoEmissionZone2030"
     
     # cellsize of the Airpollution and Traffic grid
     cellsize = 50    # 50m x 50m
@@ -913,7 +950,7 @@ if __name__ == "__main__":
     profile = False
     
     # Stage of the Traffic Model
-    TraffStage = "PredictionR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
+    TraffStage = "PredictionNoR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
     
     
     # Traffic Model
@@ -966,16 +1003,20 @@ if __name__ == "__main__":
     
     # Synthetic Population
     print("Reading Population Data")
-    if newpop:
-      pop_df = pd.read_csv(path_data+"Population/Agent_pop_clean.csv")
-      random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
-      random_subset.to_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}.csv", index=False)
+    if modelname in ["NoEmissionZone2025", "NoEmissionZone2030"]:
+      popsuffix = "ElectricCarOwnership"
     else:
-      random_subset = pd.read_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}_{subsetnr}.csv")
+      popsuffix = ""
+    if newpop:
+      pop_df = pd.read_csv(path_data+f"Population/Agent_pop_clean{popsuffix}.csv")
+      random_subset = pd.DataFrame(pop_df.sample(n=nb_humans))
+      random_subset.to_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}{popsuffix}.csv", index=False)
+    else:
+      random_subset = pd.read_csv(path_data+f"Population/Amsterdam_population_subset{nb_humans}_{subsetnr}{popsuffix}.csv")
 
     random_subset["student"] = 0
     random_subset.loc[random_subset["current_education"] == "high", "student"] = 1
-    random_subset.to_csv(path_data+"ModelRuns/"+modelname+"/" + str(nb_humans)+ f"Agents/Amsterdam_population_subset{nb_humans}_{randomID}_{subsetnr}.csv", index=False)
+    random_subset.to_csv(path_data+"ModelRuns/"+modelname+"/" + str(nb_humans)+ f"Agents/Amsterdam_population_subset{nb_humans}_{randomID}_{subsetnr}{popsuffix}.csv", index=False)
     
     # Activity Schedules
     print("Reading Activity Schedules")
@@ -1024,13 +1065,16 @@ if __name__ == "__main__":
       Nightlife = gpd.read_feather(path_data+"SpatialData/Nightlife.feather")
       Profess = gpd.read_feather(path_data+"SpatialData/Profess.feather")
 
+    # if modelname in ["NoEmissionZone2025", "NoEmissionZone2030"]:
+    #   NoEmissionZone = gpd.read_feather(path_data+f"SpatialData/{modelname}.feather")
+
     # Load Intervention Environment
     # Status Quo
-    if modelname in ["StatusQuo","PrkPriceInterv"]:
+    if modelname in ["StatusQuo","PrkPriceInterv", "NoEmissionZone2025", "NoEmissionZone2030"]:
       EnvBehavDeterms = gpd.read_feather(path_data+"SpatialData/EnvBehavDeterminants.feather")
       if modelname == "PrkPriceInterv":
         EnvBehavDeterms["PrkPricPre"] = EnvBehavDeterms["PrkPricPos"]
-    if modelname in ["15mCity", "15mCityWithDestination"]:
+    elif modelname in ["15mCity", "15mCityWithDestination"]:
       EnvBehavDeterms = gpd.read_feather(path_data+f"SpatialData/EnvBehavDeterminants15mCity.feather")
       EnvBehavDeterms['retaiDns'] = EnvBehavDeterms['retaiDns15']
       EnvBehavDeterms['greenCovr'] = EnvBehavDeterms['grenCovr15']
@@ -1080,7 +1124,10 @@ if __name__ == "__main__":
     # AirPollGrid = AirPollGrid.merge(TraffDat[['int_id','StreetIntersectDensity', 'MaxSpeedLimit', 'MinSpeedLimit', 'MeanSpeedLimit']], how = "left", on = "int_id")
 
     if TraffStage in ["PredictionNoR2", "PredictionR2"]:
-      TraffVrest = pd.read_csv(path_data+f"TrafficRemainder/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
+      if modelname == "NoEmissionZone2025":
+        TraffVrest = pd.read_csv(path_data+f"TrafficRemainder/AirPollGrid_HourlyTraffRemainder_{nb_humans}_{modelname}.csv")
+      else:
+        TraffVrest = pd.read_csv(path_data+f"TrafficRemainder/AirPollGrid_HourlyTraffRemainder_{nb_humans}.csv")
       AirPollGrid = AirPollGrid.merge(TraffVrest, how = "left", on = "int_id")
         
     # Looking at Data

@@ -11,28 +11,16 @@ from shapely import Point
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 
-# scenario = "SpeedInterv"
-scenario = "StatusQuo"
-# scenario = "PedStrWidth"
-# scenario = "RetaiDnsDiv"
-# scenario = "LenBikRout"
-# scenario = "PedStrWidthOutskirt"
-# scenario = "PedStrWidthCenter"
-# scenario = "AmenityDnsExistingAmenityPlaces"
-# scenario  = "AmenityDnsDivExistingAmenityPlaces"
-# scenario = "StatusQuoAllVars"
-# scenario = "PedStrLen"
-# scenario ="PedStrWidthOutskirt"
-# scenario ="PedStrWidthCenter"
-# scenario = "PedStrLenCenter"
-# scenario = "PedStrLenOutskirt"
+# scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
+# scenario = "15mCity"
+# scenario = "15mCityWithDestination"
+scenario = "NoEmissionZone2025"
 
 cellsize = 50
 
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-modelruns = [modelrun for modelrun in modelruns if not(modelrun in [481658])]
 
 os.chdir(path_data)
 
@@ -40,12 +28,6 @@ days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 monthsnames = ["January",  "February",  "March",  "April",  "May",  "June",  
                "July",  "August",  "September",  "October",  "November",  "December"]
 
-
-viztype = [
-        "singleIntervention", 
-        # "statusquocomparison", 
-        # "multipleRunComparison"
-        ]
 
 if not os.path.exists(path_data+f"/{scenario}/{nb_agents}Agents/Traffic/TraffViz"):
       # Create the directory

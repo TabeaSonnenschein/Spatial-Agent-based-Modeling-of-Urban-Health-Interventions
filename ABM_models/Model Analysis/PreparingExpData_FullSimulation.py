@@ -7,22 +7,28 @@ os.chdir(path_data)
 
 # scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
-scenario = "15mCity"
+# scenario = "15mCity"
+# scenario = "15mCityWithDestination"
+scenario = "NoEmissionZone2025"
+
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-# modelruns = [modelrun for modelrun in modelruns if not(modelrun in [708658,481658])]
-print(modelruns)
+# modelruns = [modelrun for modelrun in modelruns if not(modelrun in [669169,509190])]
+# print(modelruns)
 # bestStatusQuo = 481658
 # modelruns = [708658, 481658]
-# modelruns = [24766]
+# modelruns = [669169]
+# modelruns = [715113]
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 for modelrun in modelruns:
     # read exposure data
     os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelrun}")
     listOfFiles = os.listdir(path=os.getcwd())
+    if "ExposureViz" in listOfFiles:
+        listOfFiles.remove("ExposureViz")
     print(listOfFiles)
     for count, file in enumerate(listOfFiles):
         exposure_df = pd.read_csv(file)

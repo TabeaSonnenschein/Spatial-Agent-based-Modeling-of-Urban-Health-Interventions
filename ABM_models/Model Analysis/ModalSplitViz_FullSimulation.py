@@ -216,37 +216,25 @@ nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 os.chdir(path_data)
 
-# scenario = "SpeedInterv"
-scenario = "StatusQuo"
-# scenario = "PedStrWidth"
-# scenario = "RetaiDnsDiv"
-# scenario = "LenBikRout"
-# scenario = "PedStrWidthOutskirt"
-# scenario = "PedStrWidthCenter"
-# scenario = "AmenityDnsExistingAmenityPlaces"
-# scenario  = "AmenityDnsDivExistingAmenityPlaces"
-# scenario = "StatusQuoAllVars"
-# scenario = "PedStrLen"
-# scenario ="PedStrWidthOutskirt"
-# scenario ="PedStrWidthCenter"
-# scenario = "PedStrLenCenter"
-# scenario = "PedStrLenOutskirt"
+# scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
+# scenario = "15mCity"
+scenario = "15mCityWithDestination"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 # bestStatusQuo = 481658
-modelruns = [759390, 580030, 2479, 393279, 376271]
+# modelruns = [12365, 364241, 441245, 510849, 976383, 992330]
 modelruns = ["MeanAcrossRuns"]
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 viztype = [
         # "singleIntervention", 
-        # "CirclePlot",
+        "CirclePlot",
         # "statusquocomparison", 
-        "multipleRunComparison",
+        # "multipleRunComparison",
         # "extentvisualization",
         # "extentcomparison"
         ]

@@ -12,12 +12,55 @@ from shapely.geometry.point import Point
 from itertools import chain
 ####################################################
 
+def calc_min_max(df, column, timeunit_contains, round_val = 1, hardzero = True):
+            origmin_val = np.min([df.loc[df["timeunit"].str.contains(timeunit_contains), column].min()])
+            origmax_val = np.max([df.loc[df["timeunit"].str.contains(timeunit_contains), column].max()])
+            print("original min", origmin_val, "original max", origmax_val)
+            step = ((origmax_val - origmin_val)/7).round(round_val)
+            min_val = (origmin_val - step).round(round_val)  
+            if hardzero:
+                if min_val < 0:
+                    min_val = 0
+            max_val = (origmax_val + step).round(round_val)
+            step = ((max_val - min_val)/5).round(round_val)
+            while step == 0:
+                round_val += 1
+                min_val = np.min([df.loc[df["timeunit"].str.contains(timeunit_contains), column].min()]).round(round_val)
+                max_val = np.max([df.loc[df["timeunit"].str.contains(timeunit_contains),column].max()]).round(round_val)      
+                step = ((max_val - min_val)/4).round(round_val)    
+                min_val = (min_val - step).round(round_val)  
+                if hardzero:
+                    if min_val < 0:
+                        min_val = 0
+                max_val = (max_val + step).round(round_val)
+                step = ((max_val - min_val)/4).round(round_val)
+            if round_val == 0:
+                min_val = int(min_val)
+                max_val = int(max_val)
+                step = int(step)
+            print("Finalmin", min_val, "max", max_val, "step", step)
+            return min_val, max_val, step
 
+def create_NO2Traffmaxminparamdict(df, hardzero = True):
+    NO2hourmin, NO2hourmax, NO2hourstep = calc_min_max(df, column= "NO2", timeunit_contains = "hour", round_val = 1, hardzero = hardzero)
+    NO2monthmin, NO2monthmax, NO2monthstep = calc_min_max(df, column= "NO2", timeunit_contains = "month", round_val = 2, hardzero = hardzero)
+    NO2weekdaymin, NO2weekdaymax, NO2weekdaystep = calc_min_max(df, column= "NO2", timeunit_contains = "weekday", round_val = 2, hardzero = hardzero)
+    if NO2weekdaymin < NO2monthmin:
+        NO2monthmin = NO2weekdaymin
+    if NO2weekdaymax > NO2monthmax:
+        NO2monthmax = NO2weekdaymax
+    Traffhourmin, Traffhourmax, Traffhourstep = calc_min_max(df, column= "Traffic", timeunit_contains = "hour", round_val = 0, hardzero = hardzero)
+    Traffmonthmin, Traffmonthmax, Traffmonthstep = calc_min_max(df, column= "Traffic", timeunit_contains = "weekday", round_val = 0, hardzero = hardzero)
+    minmaxparams = {"NO2monthmin": NO2monthmin, "NO2monthmax": NO2monthmax, "NO2monthstep": NO2monthstep,
+            "NO2hourmin": NO2hourmin, "NO2hourmax": NO2hourmax, "NO2hourstep": NO2hourstep,
+            "Traffmonthmin": Traffmonthmin, "Traffmonthmax": Traffmonthmax, "Traffmonthstep": Traffmonthstep,
+            "Traffhourmin": Traffhourmin, "Traffhourmax": Traffhourmax, "Traffhourstep": Traffhourstep}        
+    return minmaxparams
 
 def plotCircosNO2Traff_Timeunits(aggexposure, colourdict,
-                                NO2monthmin = 19.9, NO2monthmax = 20.1, NO2monthstep = 0.2,
-                                NO2hourmin=18, NO2hourmax = 23, NO2hourstep=1, 
-                                Traffmonthmin = 279, Traffmonthmax = 286, Traffmonthstep = 2,
+                                NO2monthmin = 19.9, NO2monthmax = 21, NO2monthstep = 0.2,
+                                NO2hourmin=18, NO2hourmax = 24, NO2hourstep=1, 
+                                Traffmonthmin = 265, Traffmonthmax = 286, Traffmonthstep = 2,
                                 Traffhourmin = 20, Traffhourmax = 320 , Traffhourstep = 50,
                                 suffix = None):
         outerringdict = {"Hours": 23, "Weekdays": 6, "Timeunits": 1,"Months": 3, 
@@ -140,33 +183,40 @@ def plotCircosNO2Traff_Timeunits(aggexposure, colourdict,
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData"
 
-# scenario = "SpeedInterv"
-scenario = "StatusQuo"
-# scenario = "PedStrWidth"
-# scenario = "RetaiDnsDiv"
-# scenario = "LenBikRout"
-# scenario = "PedStrWidthOutskirt"
-# scenario = "PedStrWidthCenter"
-# scenario = "AmenityDnsExistingAmenityPlaces"
-# scenario  = "AmenityDnsDivExistingAmenityPlaces"
-# scenario = "StatusQuoAllVars"
-# scenario = "PedStrLen"
-# scenario ="PedStrWidthOutskirt"
-# scenario ="PedStrWidthCenter"
-# scenario = "PedStrLenCenter"
-# scenario = "PedStrLenOutskirt"
+# scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
+# scenario = "15mCityWithDestination"
+# scenario = "15mCity"
+scenario = "NoEmissionZone2025"
 
 cellsize = 50
 
-needCompAggdf = False
+needCompAggdf = True
+
+viztype = [
+        "singleIntervention",
+        "statusquocomparison",
+]
+
+AmsterdamCityExtent = True
+if AmsterdamCityExtent:
+    suffix = "AmsterdamCityExtent"
+else:
+    suffix = "FullSpatialExtent"
+
+
 
 if needCompAggdf:
     Traff_df = pd.read_csv(path_data + f"/ModelRuns/{scenario}/{nb_agents}Agents/Traffic/TraffViz/TraffMeans_{scenario}_MeanAcrossRuns.csv")
     NO2_df =  pd.read_csv(path_data +f"/ModelRuns/{scenario}/{nb_agents}Agents/NO2/NO2Viz/NO2Means_{scenario}_MeanAcrossRuns.csv")
-
+    BackgroundNO2 = pd.read_csv(r"D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\AirPollutionModelData\Pred_50mTrV_TrI_noTrA.csv")
+    BackgroundNO2 = BackgroundNO2[["int_id", "baseline_NO2"]]
+    
     AirPollGrid = gpd.read_feather("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/"+f"SpatialData/AirPollgrid{cellsize}m.feather")
-    spatial_extent = gpd.read_feather(path_data+"/SpatialData/SpatialExtent.feather")
+    if AmsterdamCityExtent:
+        spatial_extent = gpd.read_feather("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/"+f"SpatialData/NoEmissionZone2030.feather")
+    else:
+        spatial_extent = gpd.read_feather(path_data+"/SpatialData/SpatialExtent.feather")
 
     Intids = gpd.sjoin(AirPollGrid,spatial_extent, how="inner", predicate='intersects')["int_id"].values
 
@@ -181,9 +231,18 @@ if needCompAggdf:
     Traff_df = Traff_df.loc[(Traff_df["int_id"].isin(Intids)) & (Traff_df["mean_prTraff"] != 0), ["int_id"]+Traffcolnames]
     print(Traff_df.head())
 
+    BackgroundNO2 = BackgroundNO2.loc[BackgroundNO2["int_id"].isin(Intids),["int_id", "baseline_NO2"]]
+    BackgroundNO2.loc[BackgroundNO2["int_id"].isin(Intids),"baseline_NO2"].mean()
+    print(f"MeanBackgroundNO2 for {suffix}", BackgroundNO2["baseline_NO2"].mean())
+    
     NO2_means = NO2_df[NO2colnames].mean(axis=0).values
     Traff_means = Traff_df[Traffcolnames].mean(axis=0).values
 
+    TraffNO2 =  NO2_df.copy()   
+    for col in NO2colnames:
+        TraffNO2[col] = TraffNO2[col] - BackgroundNO2["baseline_NO2"].values
+    TraffNO2_means = TraffNO2[NO2colnames].mean(axis=0).values
+    
     print(NO2_means)
     print(Traff_means)
 
@@ -208,14 +267,27 @@ if needCompAggdf:
 
     timeunits = sectorrows["Total"] + sectorrows["Months"] + sectorrows["Hours"] + sectorrows["Weekdays"]
 
-    timeNO2Traff_df = pd.DataFrame({"timeunit": timeunits, "NO2": NO2_means, "Traffic": Traff_means})
+    timeNO2Traff_df = pd.DataFrame({"timeunit": timeunits, "NO2": NO2_means, "Traffic": Traff_means, "TraffNO2": TraffNO2_means})
     os.chdir(path_data +f"/ModelRuns/{scenario}/{nb_agents}Agents/NO2/NO2Viz/")
 
-    timeNO2Traff_df.to_csv(f"NO2TraffMeansTime_{scenario}_MeanAcrossRuns.csv", index=False)
-
+    timeNO2Traff_df.to_csv(f"NO2TraffMeansTime_{scenario}_MeanAcrossRuns_{suffix}.csv", index=False)
+    
 else:
     os.chdir(path_data +f"/ModelRuns/{scenario}/{nb_agents}Agents/NO2/NO2Viz/")
-    timeNO2Traff_df = pd.read_csv(f"NO2TraffMeansTime_{scenario}_MeanAcrossRuns.csv")
+    timeNO2Traff_df = pd.read_csv(f"NO2TraffMeansTime_{scenario}_MeanAcrossRuns_{suffix}.csv")
 
 colourdict = {"NO2": "red", "Traffic": "blue"}
-plotCircosNO2Traff_Timeunits(timeNO2Traff_df, colourdict, suffix = f"{scenario}_TraffNO2Timeunits")
+
+if "singleIntervention" in viztype:
+    minmaxparams = create_NO2Traffmaxminparamdict(timeNO2Traff_df)
+    plotCircosNO2Traff_Timeunits(timeNO2Traff_df, colourdict, **minmaxparams, suffix = f"{scenario}_TraffNO2Timeunits_{suffix}")
+
+if "statusquocomparison" in viztype:
+    statustimeNO2Traff_df = pd.read_csv(path_data +f"/ModelRuns/StatusQuo/{nb_agents}Agents/NO2/NO2Viz/NO2TraffMeansTime_StatusQuo_MeanAcrossRuns.csv")
+    timeNO2Traff_diff_df = timeNO2Traff_df.copy()
+    timeNO2Traff_diff_df["NO2"] = timeNO2Traff_df["NO2"] - statustimeNO2Traff_df["NO2"]
+    timeNO2Traff_diff_df["Traffic"] = timeNO2Traff_df["Traffic"] - statustimeNO2Traff_df["Traffic"]
+    timeNO2Traff_diff_df.to_csv(f"NO2TraffMeansTime_{scenario}_DiffStatusQuo.csv", index=False)
+
+    minmaxparams = create_NO2Traffmaxminparamdict(timeNO2Traff_diff_df, hardzero= False )
+    plotCircosNO2Traff_Timeunits(timeNO2Traff_diff_df, colourdict, **minmaxparams,suffix = f"{scenario}_TraffNO2Timeunits _{suffix}")

@@ -686,40 +686,37 @@ path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 os.chdir(path_data)
 
 # scenario = "StatusQuo"
-scenario = "PrkPriceInterv"
+# scenario = "PrkPriceInterv"
+scenario = "15mCity"
+# scenario = "15mCityWithDestination"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
-experimentoverview = experimentoverview[~np.isnan(experimentoverview["Population Sample"])]
+# experimentoverview = experimentoverview[~np.isnan(experimentoverview["Population Sample"])]
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-# bestStatusQuo = 708658
-# modelruns = [modelrun for modelrun in modelruns if not(modelrun in [708658, 481658, 381609, 783341])]
-modelruns = [modelrun for modelrun in modelruns if not(modelrun in [481658])]
+# modelruns = [modelrun for modelrun in modelruns if not(modelrun in [669169,509190])]
 popsamples = [int(experimentoverview.loc[experimentoverview["Model Run"]== modelrun, "Population Sample"].values[0]) for modelrun in modelruns]
 print(modelruns, popsamples)
 # modelruns = [783341]
 # popsamples = [5]
-# modelruns = [381609]
-# modelruns = [105114]
-# popsamples = [4]
 
 
 
 viztasks = [
-            "Exposure preparation",
+            # "Exposure preparation",
             # "Exposure descriptives",
             # "Exposure stratification",
-            "Aggregate exposure df",
+            # "Aggregate exposure df",
             # "Exposure Time Circle plot",
             # "Exposure Circle plot strat",
-            "spatial Exposure mapping",
+            # "spatial Exposure mapping",
             # "Comparative plots",
             "Mean across runs aggregate exposure df",
             "Mean across runs exposure circle plot",
             "Mean across runs and Neighborhoods",
-            # "Mean across runs aggregate exposure diff df",
-            # "Mean across runs exposure diff circle plot",
-            # "Mean across runs and Neighborhoods diff"
+            "Mean across runs aggregate exposure diff df",
+            "Mean across runs exposure diff circle plot",
+            "Mean across runs and Neighborhoods diff"
             ]
             
 categoricalstratvars = ["sex", "migr_bck", "income_class", "age_group", "HH_size"]
@@ -1019,25 +1016,26 @@ if "Mean across runs exposure circle plot" in viztasks:
         subgroups = {stratgroup:subgroups_Meta[stratgroup]}
         subgroupcolors = {stratgroup: subgroupcolorpalette[:len(subgroups[stratgroup])]}
         if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"NO2_{val}"].min() < 23.5 else False for val in subgroups[stratgroup]]):
-            NO2monthmin = 23
+            NO2monthmin = 9
         else:
-            NO2monthmin = 23.5
+            NO2monthmin = 9
         if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"MET_{val}"].min() < 0.75 else False for val in subgroups[stratgroup]]):
-            METmonthmin = 0.5
+            METmonthmin = 0
         else:
-            METmonthmin = 0.75
-        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].max() > 30 else False for val in subgroups[stratgroup]]):
-            NO2hourmax = 32
+            METmonthmin = 0
+        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].max() > 17 else False for val in subgroups[stratgroup]]):
+            NO2hourmax = 17
         else:
-            NO2hourmax = 30
-        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].min() <25 else False for val in subgroups[stratgroup]]):
-            NO2hourmin = 18
+            NO2hourmax = 17
+        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].min() <9 else False for val in subgroups[stratgroup]]):
+            NO2hourmin = 9
         else:
-            NO2hourmin = 20
+            NO2hourmin = 9
         
         plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,  
-                                    NO2monthmin = NO2monthmin, METmonthmin= METmonthmin, 
-                                    NO2hourmax=NO2hourmax, NO2hourmin=NO2hourmin,
+                                   NO2monthmax=14, NO2hourmax=17, NO2hourmin=9, NO2monthmin=12, NO2hourstep=1, NO2monthstep=0.5,
+                                   METmonthmax=0.3, METmonthstep=0.1, METhourmax=0.5, METhourstep=0.1,
+                                    METhourmin=0, METmonthmin=0.1,
                                     suffix = f"_{scenario}_MeanAcrossRuns_{stratgroup}")   
                       
 
@@ -1080,7 +1078,7 @@ if "Mean across runs and Neighborhoods" in viztasks:
     neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
 
     showplots = False
-    maxvals = {"NO2": 30, "MET": 1.5}
+    maxvals = {"NO2": 20, "MET": 0.5}
     for outcomvar in outcomevars:
         PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun="MeanAcrossRuns", 
                             spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
@@ -1093,7 +1091,7 @@ if "Mean across runs aggregate exposure diff df" in viztasks:
     with open(f"D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\IntervRunDict_{scenario}.txt", "r") as f:
         IntervRunDict = eval(f.read())
 
-    IntervRunDict.pop(0.0)    
+    # IntervRunDict.pop(0.0)    
     print(IntervRunDict)
     keys = list(IntervRunDict)
     print(keys)
