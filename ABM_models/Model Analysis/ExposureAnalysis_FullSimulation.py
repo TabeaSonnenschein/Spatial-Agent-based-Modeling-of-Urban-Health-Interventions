@@ -10,7 +10,44 @@ import contextily as cx
 from matplotlib_scalebar.scalebar import ScaleBar
 from shapely.geometry.point import Point
 from itertools import chain
+
 ####################################################
+
+
+def calc_min_max(df, column, timeunit_contains, round_val = 1, hardzero = True, stratvals = None):
+        if stratvals is not None:
+            origmin_val = np.min([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column}_{val}"].min() for val in stratvals])
+            origmax_val = np.max([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column}_{val}"].max() for val in stratvals])
+        else:
+            origmin_val = np.min([df.loc[df["timeunit"].str.contains(timeunit_contains), column].min()])
+            origmax_val = np.max([df.loc[df["timeunit"].str.contains(timeunit_contains), column].max()])
+        print(timeunit_contains, column, ": original min",origmin_val, "; original max", origmax_val)
+        step = ((origmax_val - origmin_val)/7).round(round_val)
+        min_val = (origmin_val - step).round(round_val)  
+        if hardzero:
+            if min_val < 0:
+                min_val = 0
+        max_val = (origmax_val + step).round(round_val)
+        step = ((max_val - min_val)/5).round(round_val)
+        while step == 0:
+            round_val += 1
+            min_val = np.min([df.loc[df["timeunit"].str.contains(timeunit_contains), column].min()]).round(round_val)
+            max_val = np.max([df.loc[df["timeunit"].str.contains(timeunit_contains),column].max()]).round(round_val)      
+            step = ((max_val - min_val)/4).round(round_val)    
+            min_val = (min_val - step).round(round_val)  
+            if hardzero:
+                if min_val < 0:
+                    min_val = 0
+            max_val = (max_val + step).round(round_val)
+            step = ((max_val - min_val)/4).round(round_val)
+        if round_val == 0:
+            min_val = int(min_val)
+            max_val = int(max_val)
+            step = int(step)
+        print(timeunit_contains, column, ": Finalmin",  min_val, ", max", max_val, ", step", step)
+        return min_val, max_val, step
+
+
 
 
 def ScatterOverTimeColCategory(timevar, outcomvar, colcategory, showplots, modelrun, df, ylabel = None, collabel = None):
@@ -197,11 +234,11 @@ def MeanComparisonWithoutTime(outcomvar, stratifier , showplots, modelrun, df, y
 
 
 def plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors, 
-                               NO2monthmin = 23.5, NO2monthmax = 25, NO2monthstep = 0.5,
-                               NO2hourmin=20, NO2hourmax = 30, NO2hourstep = 2,
-                               METmonthmin = 0.75, METmonthmax = 1.25, METmonthstep = 0.25,
-                               METhourmin = 0, METhourmax = 2 , METhourstep = 0.5,
-                               suffix = None):
+                               NO2monthmin = 23.5, NO2monthmax = 25, NO2monthstep = 0.5, NO2monthround=1,
+                               NO2hourmin=20, NO2hourmax = 30, NO2hourstep = 2, NO2hourround=0,
+                               METmonthmin = 0.75, METmonthmax = 1.25, METmonthstep = 0.25, METmonthround=2,
+                               METhourmin = 0, METhourmax = 2 , METhourstep = 0.5, METhourround=1,
+                               suffix = "", hardzero = True):
         outerringdict = {"Hours": 23, "Weekdays": 6, "Timeunits": 1,"Months": 3, 
                         "Total": 0.4
                         }
@@ -246,9 +283,15 @@ def plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
                 sector.text(f"{sector.name}", r=125, size=14)
                 sectorrows_df = aggexposure.loc[aggexposure["timeunit"].isin(sectorrows[sector.name])]
                 print(sectorrows_df)
+                METcols = [col for col in sectorrows_df.columns if "MET" in col]
+                NO2cols = [col for col in sectorrows_df.columns if "NO2" in col]
+                METmin_tot = sectorrows_df[METcols].min().min()
+                METmax_tot = sectorrows_df[METcols].max().max()
+                NO2min_tot = sectorrows_df[NO2cols].min().min()
+                NO2max_tot = sectorrows_df[NO2cols].max().max()
+                print("METmin_tot", METmin_tot, "METmax_tot", METmax_tot, "NO2min_tot", NO2min_tot, "NO2max_tot", NO2max_tot)  
                 # Create x positions & randomized y values for data plotting
                 x = outerringdict_xvalues[sector.name]
-                print(sectorrows_df["NO2"].values)
                 NO2 = sectorrows_df["NO2"].values
                 MET =  sectorrows_df["MET"].values
                 NO2persubgroup= {}
@@ -263,15 +306,33 @@ def plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
                 NO2_track = sector.add_track((65, 100), r_pad_ratio=0.1)
                 NO2_track.axis(ec = axiscol)
                 if sector.name == "Hours":
-                    NO2max = NO2hourmax
+                    NO2max = NO2hourmax + NO2hourstep
                     NO2min = NO2hourmin
-                    rangeNO2 =list(np.arange(start=NO2min, stop = NO2max + NO2hourstep, step = NO2hourstep))
+                    NO2step = NO2hourstep
+                    NO2round = NO2hourround
                 else:
-                    NO2max = NO2monthmax
+                    NO2max = NO2monthmax + NO2monthstep
                     NO2min = NO2monthmin
-                    rangeNO2 =list(np.arange(start=NO2min, stop = NO2max + NO2monthstep, step = NO2monthstep))
-                
-                NO2max = rangeNO2[-1]
+                    NO2step = NO2monthstep
+                    NO2round = NO2monthround
+                while NO2min > NO2min_tot:
+                    NO2min = NO2min - NO2step
+                    if hardzero:
+                        if NO2min < 0:
+                            NO2min = 0
+                while NO2max < NO2max_tot:
+                    NO2max = NO2max + NO2step
+                rangeNO2 =list(np.arange(start=NO2min, stop = NO2max, step = NO2step))
+                rangeNO2 = [round(val, NO2round) for val in rangeNO2]
+                rangeNO2 = list(dict.fromkeys(rangeNO2))
+                while len(rangeNO2) >= 10:
+                    rangeNO2 = rangeNO2[::2]
+                while rangeNO2[-1] < NO2max:
+                    NO2diff = rangeNO2[-1] - rangeNO2[-2]
+                    rangeNO2.append((rangeNO2[-1]+NO2diff).round(NO2round))
+                NO2max = rangeNO2[-1]    
+                NO2min = rangeNO2[0]
+                print(rangeNO2)
                 NO2_track.yticks(y=rangeNO2, labels=rangeNO2,vmin=NO2min, vmax=NO2max, side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
                 for NO2val in rangeNO2:
                     NO2_track.line([NO2_track.start, NO2_track.end], [NO2val, NO2val], vmin=NO2min, vmax=NO2max, lw=1, ls="dotted", color = gridcol)
@@ -298,15 +359,34 @@ def plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
                 MET_track = sector.add_track((25, 60), r_pad_ratio=0.1)
                 MET_track.axis(ec = axiscol)
                 if sector.name == "Hours":
-                    METmax = METhourmax
+                    METmax = METhourmax + METhourstep
                     METmin = METhourmin
-                    rangeMET =list(np.arange(start=METmin, stop = METmax + METhourstep, step = METhourstep))
+                    METstep = METhourstep
+                    METround = METhourround
                 else:
-                    METmax = METmonthmax
+                    METmax = METmonthmax + METmonthstep
                     METmin = METmonthmin
-                    rangeMET =list(np.arange(start=METmin, stop = METmax + METmonthstep, step = METmonthstep))
+                    METstep = METmonthstep
+                    METround = METmonthround
                 
+                while METmin > METmin_tot:
+                    METmin = METmin - METstep
+                    if hardzero:
+                        if METmin < 0:
+                            METmin = 0
+                while METmax < METmax_tot:
+                    METmax = METmax + METstep
+                rangeMET =list(np.arange(start=METmin, stop = METmax , step = METstep))
+                rangeMET = [round(val, METround) for val in rangeMET]
+                rangeMET = list(dict.fromkeys(rangeMET))
+                while len(rangeMET) >= 10:
+                    rangeMET = rangeMET[::2]
+                print(rangeMET, METstep, METmax)
+                while rangeMET[-1] < METmax:
+                    METdiff = rangeMET[-1] - rangeMET[-2]
+                    rangeMET.append((rangeMET[-1]+METdiff).round(METround))
                 METmax = rangeMET[-1]
+                METmin = rangeMET[0]
                 MET_track.yticks(y=rangeMET, labels=rangeMET,vmin=METmin, vmax=METmax,  side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
                 for METval in rangeMET:
                     MET_track.line([MET_track.start, MET_track.end], [METval, METval], vmin=METmin, vmax=METmax,  lw=1, ls="dotted", color = gridcol)
@@ -336,169 +416,201 @@ def plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
         figure.legend(handles=legend_elements, loc='lower right', ncol=1, title = "Subgroups")
         figure.savefig(f"CirclePlot_with_Legend{suffix}.png", dpi=600)
 
-def plotCircosMeanStrat(aggexposure, subgroups, subgroupcolors, outcomevar, roundval, suffix = None):
+def plotCircosMeanStrat(stratexposure_df, subgroups, subgroupcolors, outcomevar, meanval, roundval, centertext, redlinelabel = "Mean Exposure", rangeval = None, suffix = None):
         outerringdict = {}
         outerringdict_xvalues = {}
+        outerringdict["Mean"] = 0.3
+        outerringdict_xvalues["Mean"] = [0]
         for subgroup in subgroups:
             outerringdict[subgroup] = len(subgroups[subgroup])-0.5
             outerringdict_xvalues[subgroup]= list(range(len(subgroups[subgroup])))
-        outerringdict_labels = subgroups
-        print([f"{outcomevar}_{val}" for subgroup in subgroups for val in subgroups[subgroup]])
-        aggexposure_subs = aggexposure.loc[aggexposure["timeunit"]=="total",[f"{outcomevar}_{val}" for subgroup in subgroups for val in subgroups[subgroup]]]
-        minval = np.min(aggexposure_subs.min(axis=1))
-        maxval = np.max(aggexposure_subs.max(axis=1))
-        step = ((maxval - minval)/5).round(roundval)
-        print("minval", minval, "maxval", maxval, "step", step)
-        rangeval =list(np.arange(start=minval, stop = maxval + step, step = step))
-        rangeval = [round(val, roundval) for val in rangeval]
-        maxval = rangeval[-1]
-        minval = rangeval[0]
-        print("rangeval", rangeval, "minval", minval, "maxval", maxval, "step", step)
         
+        outerringdict_labels = subgroups
+        outerringdict_labels["Mean"] = ["", ""]
+        if rangeval == None:
+            if "NO2" in outcomevar:
+                minval = -0.5
+                maxval = 0.5
+                rangeval = [-0.5, -0.25, 0, 0.25, 0.5]
+            elif "MET" in outcomevar:
+                minval = -0.05
+                maxval = 0.05
+                rangeval = [-0.05, -0.025, 0, 0.025, 0.05]
+        else:
+            minval = rangeval[0]
+            maxval = rangeval[-1]
+        if meanval != 0:
+            meanval = meanval.round(roundval)
+            absoluterange = [(meanval + val).round(roundval) for val in rangeval]
+            absolutemin = absoluterange[0].round(roundval)
+            absolutemax = absoluterange[-1].round(roundval)
+        else:   
+            absoluterange = [(meanval + val) for val in rangeval]
+            absolutemin = absoluterange[0]
+            absolutemax = absoluterange[-1]
    
         axiscol = "white"
         gridcol = "lightgrey"
-        # Create Circos plot
-        circos = Circos(outerringdict, space=20)
+        circos = Circos(outerringdict, space=25)
 
-                 
         for sector in circos.sectors:
                 print(sector.name)
                 # Plot sector name
-                sector.text(f"{sector.name.capitalize().replace('_', ' ')}", r=125, size=14)
+                if sector.name == "Mean":
+                    sector.text(f"{redlinelabel}\n(red line)", r=120, size=14, color="red", adjust_rotation=False, orientation="horizontal")
+                else:
+                    sector.text(f"{sector.name.capitalize().replace('_', ' ').replace('Hh', 'Household')}", r=140, size=14)
                 # Create x positions & randomized y values for data plotting
                 x = outerringdict_xvalues[sector.name]
 
                 labeltrack = sector.add_track((98, 99), r_pad_ratio=0)
                 labeltrack.axis(ec = "none")
-                labeltrack.xticks_by_interval(
-                    1,
-                    label_size=8,
-                    label_orientation="vertical",
-                    label_formatter=lambda v: f"{outerringdict_labels[sector.name][v]}",
-                )
+                if sector.name != "Mean":
+                    labeltrack.xticks_by_interval(
+                        1,
+                        label_size=8,
+                        label_orientation="vertical",
+                        label_formatter=lambda v: f"{outerringdict_labels[sector.name][v]}",
+                    )
                 
-                Track = sector.add_track((30, 97), r_pad_ratio=0)
-                Track.axis(ec = axiscol)
-                # Track.yticks(y=rangeval, labels=rangeval,vmin=minval, vmax=maxval, side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
-                for yval in rangeval:
-                    Track.line([Track.start,Track.end], [yval, yval], vmin=minval, vmax=maxval, lw=1, ls="dotted", color = gridcol)
+                Track = sector.add_track((35, 98), r_pad_ratio=0)
+                if sector.name == "Mean":
+                    Track.axis(ec = axiscol, fc="none")
+                    for yval in absoluterange:
+                        Track.line([Track.start,Track.end], [yval, yval], vmin=absolutemin, vmax=absolutemax, lw=1, ls="dotted", color = gridcol)
+                    Track.line([Track.start,Track.end], [meanval,meanval], vmin=absolutemin, vmax=absolutemax, lw=2, color="red")
+                    Track.yticks(y=absoluterange, labels=absoluterange,vmin=absolutemin, vmax=absolutemax, side="left", tick_length=1, 
+                             label_size=8, label_margin=0.5, line_kws = {"color": gridcol}, text_kws={"color": "dimgray"})
                     
-                sectordata = list(aggexposure_subs[[f"{outcomevar}_{val}"for val in subgroups[sector.name]]].values[0])
-                print(x, sectordata, subgroupcolors[sector.name])
-                Track.bar(x=x, height = sectordata, vmin=minval, vmax = maxval , width=0.4, color=subgroupcolors[sector.name])
-                
+                else:
+                    Track.axis(ec = axiscol)
+                    for yval in rangeval:
+                        Track.line([Track.start,Track.end], [yval, yval], vmin=minval, vmax=maxval, lw=1, ls="dotted", color = gridcol)
+                    Track.line([Track.start,Track.end], [0,0], vmin=minval, vmax=maxval, lw=2, color="red")
+                    sectordata = list([stratexposure_df.loc[stratexposure_df["Label"] == val, outcomevar].values[0] for val in subgroups[sector.name]])
+                    print(x, sectordata, subgroupcolors[sector.name])
+                    Track.bar(x=x, height = sectordata, vmin=minval, vmax = maxval , align="edge", width=0.4, color=subgroupcolors[sector.name])
+                    # Track.yticks(y=rangeval, labels=rangeval,vmin=minval, vmax=maxval, side="left", tick_length=1, 
+                    #          label_size=8, label_margin=0.5, line_kws = {"color": gridcol}, text_kws={"color": "dimgray"})
+                if sector.name == "Mean":
+                    innerText = sector.add_track((0, 0), r_pad_ratio=0.1)
+                    innerText.axis(ec = "none")
+                    innerText.text(centertext, x = innerText.start, color="black", adjust_rotation=False, orientation="horizontal" ,size=14)
 
         figure = circos.plotfig(dpi=600)
         figure.savefig(f"CirclePlot_{outcomevar}_Subgroups_{suffix}.png", dpi=600)
 
-def get_label_rotation(angle, offset):
-    # Rotation must be specified in degrees :(
-    rotation = np.rad2deg(angle + offset)
-    if angle <= np.pi:
-        alignment = "right"
-        rotation = rotation + 180
-    else: 
-        alignment = "left"
-    return rotation, alignment
 
-def add_labels(angles, values, labels, offset, ax):
-    
-    # This is the space between the end of the bar and the label
-    padding = 4
-    
-    # Iterate over angles, values, and labels, to add all of them.
-    for angle, value, label, in zip(angles, values, labels):
-        angle = angle
+def plotCircosMeanStratRelativ(stratexposure_df, subgroups, subgroupcolors, outcomevar, meanvalStatQ,meanvalScenario, roundval, centertext, redlinelabel = "Mean Exposure", rangeval = None, suffix = None):
+        outerringdict = {}
+        outerringdict_xvalues = {}
+        outerringdict["Mean"] = 0.3
+        outerringdict_xvalues["Mean"] = [0]
+        for subgroup in subgroups:
+            outerringdict[subgroup] = len(subgroups[subgroup])-0.5
+            outerringdict_xvalues[subgroup]= list(range(len(subgroups[subgroup])))
         
-        # Obtain text rotation and alignment
-        rotation, alignment = get_label_rotation(angle, offset)
+        outerringdict_labels = subgroups
+        outerringdict_labels["Mean"] = ["", ""]
+        if rangeval == None:
+            if "NO2" in outcomevar:
+                minval = -0.5
+                maxval = 0.5
+                rangeval = [-0.5, -0.25, 0, 0.25, 0.5]
+            elif "MET" in outcomevar:
+                minval = -0.05
+                maxval = 0.05
+                rangeval = [-0.05, -0.025, 0, 0.025, 0.05]
+        else:
+            minval = rangeval[0]
+            maxval = rangeval[-1]
+        if meanvalStatQ != 0:
+            meanvalStatQ = meanvalStatQ.round(roundval)
+            absoluterange = [(meanvalStatQ + val).round(roundval) for val in rangeval]
+            absolutemin = absoluterange[0].round(roundval)
+            absolutemax = absoluterange[-1].round(roundval)
+        else:   
+            absoluterange = [(meanvalStatQ + val) for val in rangeval]
+            absolutemin = absoluterange[0]
+            absolutemax = absoluterange[-1]
+   
+        axiscol = "#FF000000"
+        gridcol = "lightgrey"
+        circos = Circos(outerringdict, space=24)
 
-        # And finally add the text
-        ax.text(
-            x=angle, 
-            y=value + padding, 
-            s=label, 
-            ha=alignment, 
-            va="center", 
-            rotation=rotation, 
-            rotation_mode="anchor"
-        ) 
-def CircleGraphStrat(stratexposure_df, outcomevar, suffix = None):
-        # rng = np.random.default_rng(123)
-        # minval = np.min(stratexposure_df[outcomevar].values)
-        # maxval = np.max(stratexposure_df[outcomevar].values)
-        # step = ((maxval - minval)/5).round(roundval)
-        # print("minval", minval, "maxval", maxval, "step", step)
-        # rangeval =list(np.arange(start=minval, stop = maxval + step, step = step))
-        # rangeval = [round(val, roundval) for val in rangeval]
-        # maxval = rangeval[-1]
-        # minval = rangeval[0]
-        # print("rangeval", rangeval, "minval", minval, "maxval", maxval, "step", step)
-        # All this part is like the code above
-        VALUES = stratexposure_df[outcomevar].values
-        LABELS = stratexposure_df["Label"].values
-        GROUP = stratexposure_df["Group"].values
-        
-        OFFSET = np.pi / 2
-        PAD = 3
-        ANGLES_N = len(VALUES) + PAD * len(np.unique(GROUP))
-        ANGLES = np.linspace(0, 2 * np.pi, num=ANGLES_N, endpoint=False)
-        WIDTH = (2 * np.pi) / len(ANGLES)
+        for sector in circos.sectors:
+                print(sector.name)
+                # Plot sector name
+                if sector.name == "Mean":
+                    sector.text("Population\nMean", r=140, size=14, color="black", adjust_rotation=False, orientation="horizontal")
+                else:
+                    sector.text(f"{sector.name.capitalize().replace('_', ' ').replace('Hh', 'Household')}", r=140, size=14)
+                # Create x positions & randomized y values for data plotting
+                x = outerringdict_xvalues[sector.name]
 
-        GROUPS_SIZE = [len(i[1]) for i in stratexposure_df.groupby("Group")]
+                labeltrack = sector.add_track((98, 99), r_pad_ratio=0)
+                labeltrack.axis(ec = "none")
+                if sector.name != "Mean":
+                    labeltrack.xticks_by_interval(
+                        1,
+                        label_size=8,
+                        label_orientation="vertical",
+                        label_formatter=lambda v: f"{outerringdict_labels[sector.name][v]}",
+                    )
+                
+                Track = sector.add_track((35, 98), r_pad_ratio=0)
+                if sector.name == "Mean":
+                    Track.axis(ec = axiscol, fc="none")
+                    for yval in absoluterange:
+                        Track.line([Track.start,Track.end], [yval, yval], vmin=absolutemin, vmax=absolutemax, lw=1, ls="dotted", color = gridcol)
+                    Track.scatter([Track.end], [meanvalStatQ], vmin=absolutemin, vmax=absolutemax, lw=2, color="red")
+                    Track.scatter([Track.end], [meanvalScenario], vmin=absolutemin, vmax=absolutemax, lw=2, color="black")
+                    # Track.line([Track.start,Track.end], [meanval,meanval], vmin=absolutemin, vmax=absolutemax, lw=2, color="red")
+                    Track.yticks(y=absoluterange, labels=absoluterange,vmin=absolutemin, vmax=absolutemax, side="left", tick_length=1, 
+                             label_size=8, label_margin=0.5, line_kws = {"color": gridcol}, text_kws={"color": "dimgray"})
+                    
+                else:
+                    Track.axis(ec = axiscol)
+                    for yval in rangeval:
+                        Track.line([Track.start,Track.end], [yval, yval], vmin=minval, vmax=maxval, lw=1, ls="dotted", color = gridcol)
+                    # Track.line([Track.start,Track.end], [0,0], vmin=minval, vmax=maxval, lw=1.5, color="red")
+                    sectordata_after = list([stratexposure_df.loc[stratexposure_df["Label"] == val, f"{outcomevar}_deviationStatQMean"].values[0] for val in subgroups[sector.name]])
+                    sectordata_before = list([stratexposure_df.loc[stratexposure_df["Label"] == val, f"{outcomevar}_StatQdevStatQMean"].values[0] for val in subgroups[sector.name]])
+                    bothbelow = [idx for idx in range(len(sectordata_after)) if ((sectordata_after[idx] < 0) and (sectordata_before[idx]<0))]
+                    bothabove = [idx for idx in range(len(sectordata_after)) if ((sectordata_after[idx] > 0) and (sectordata_before[idx]>0))]
+                    blank = [0 for x in range(len(sectordata_after))]
+                    for idx in bothbelow:
+                        if sectordata_after[idx] < sectordata_before[idx]:
+                            blank[idx] = sectordata_before[idx]
+                        else:
+                            blank[idx] = sectordata_after[idx]
+                    for idx in bothabove:
+                        if sectordata_after[idx] < sectordata_before[idx]:
+                            blank[idx] = sectordata_after[idx]
+                        else:
+                            blank[idx] = sectordata_before[idx]
+                    print(x, sectordata_after, sectordata_before, subgroupcolors[sector.name])
+                    Track.bar(x=x, height = sectordata_before, vmin=minval, vmax = maxval , align="center", width=0.4, color=subgroupcolors[sector.name], alpha=0.5)
+                    Track.bar(x=x, height = sectordata_after, vmin=minval, vmax = maxval , align="center", width=0.4, color=subgroupcolors[sector.name], alpha=0.5)
+                    Track.bar(x=x, height = blank, vmin=minval, vmax = maxval , align="center", width=0.5, color="white")
+                    Track.scatter(x, sectordata_before, vmin=minval, vmax=maxval,lw=2, color="red")
+                    Track.scatter(x, sectordata_after, vmin=minval, vmax=maxval,lw=2, color="black")
+                    # Track.yticks(y=rangeval, labels=rangeval,vmin=minval, vmax=maxval, side="left", tick_length=1, 
+                    #          label_size=8, label_margin=0.5, line_kws = {"color": gridcol}, text_kws={"color": "dimgray"})
+                if sector.name == "Mean":
+                    innerText = sector.add_track((0, 0), r_pad_ratio=0.1)
+                    innerText.axis(ec = "none")
+                    innerText.text(centertext, x = innerText.start, color="black", adjust_rotation=False, orientation="horizontal" ,size=14)
 
-        offset = 0
-        IDXS = []
-        for size in GROUPS_SIZE:
-            IDXS += list(range(offset + PAD, offset + size + PAD))
-            offset += size + PAD
+         # Create legend
+        legend_elements = []
+        legend_elements.append(Line2D([0], [0], color="red", marker='o', lw=0, label=f"Exposure Before Intervention"))
+        legend_elements.append(Line2D([0], [0], color="black", marker='o', lw=0, label=f"Exposure After Intervention"))
+        figure = circos.plotfig(dpi=600)
+        figure.legend(handles=legend_elements, loc='lower right', ncol=1, title = "Legend")
+        figure.savefig(f"CirclePlot_{outcomevar}_Subgroups_{suffix}.png", dpi=600)
 
-        fig, ax = plt.subplots(figsize=(20, 10), subplot_kw={"projection": "polar"})
-        ax.set_theta_offset(OFFSET)
-        ax.set_ylim(-100, 100)
-        ax.set_frame_on(False)
-        ax.xaxis.grid(False)
-        ax.yaxis.grid(False)
-        ax.set_xticks([])
-        ax.set_yticks([])
 
-        GROUPS_SIZE = [len(i[1]) for i in stratexposure_df.groupby("Group")]
-        COLORS = [f"C{i}" for i, size in enumerate(GROUPS_SIZE) for _ in range(size)]
-
-        ax.bar(
-            ANGLES[IDXS], VALUES, width=WIDTH, color=COLORS, 
-            edgecolor="white", linewidth=2
-        )
-
-        add_labels(ANGLES[IDXS], VALUES, LABELS, OFFSET, ax)
-
-        # Extra customization below here --------------------
-
-        # This iterates over the sizes of the groups adding reference
-        # lines and annotations.
-
-        offset = 0 
-        for group, size in zip(["A", "B", "C", "D"], GROUPS_SIZE):
-            # Add line below bars
-            x1 = np.linspace(ANGLES[offset + PAD], ANGLES[offset + size + PAD - 1], num=50)
-            ax.plot(x1, [-5] * 50, color="#333333")
-            
-            # Add text to indicate group
-            ax.text(
-                np.mean(x1), -20, group, color="#333333", fontsize=14, 
-                fontweight="bold", ha="center", va="center"
-            )
-            
-            # Add reference lines at 20, 40, 60, and 80
-            x2 = np.linspace(ANGLES[offset], ANGLES[offset + PAD - 1], num=50)
-            ax.plot(x2, [20] * 50, color="#bebebe", lw=0.8)
-            ax.plot(x2, [40] * 50, color="#bebebe", lw=0.8)
-            ax.plot(x2, [60] * 50, color="#bebebe", lw=0.8)
-            ax.plot(x2, [80] * 50, color="#bebebe", lw=0.8)
-            
-            offset += size + PAD
-        fig.savefig(f"CirclePlot_{outcomevar}_{suffix}.png", dpi=600)
 
 
 def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors, 
@@ -508,6 +620,7 @@ def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
                                    METmonthmin = -1, METmonthmax = 1, METmonthstep = 0.05,
                                    METhourmin = -1, METhourmax = 1, METhourstep = 0.05,
                                    METweekdaymin = -1, METweekdaymax = 1, METweekdaystep = 0.05,
+                                   NO2hourround=2, NO2monthround=2, METhourround=2, METmonthround=2,
                                    suffix = None):
         outerringdict = {"Hours": 23, "Weekdays": 6, "Timeunits": 1,"Months": 3, 
                         "Total": 0.4
@@ -535,8 +648,9 @@ def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
         gridcol = "lightgrey"
         # Create Circos plot
         circos = Circos(outerringdict, space=19)
-
+        print(f"Circos plot for {subgroups}")
         for sector in circos.sectors:
+
             print(sector.name)
             if sector.name == "Timeunits":
                 # Plot sector name
@@ -552,10 +666,8 @@ def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
                 # Plot sector name
                 sector.text(f"{sector.name}", r=125, size=14)
                 sectorrows_df = aggexposure.loc[aggexposure["timeunit"].isin(sectorrows[sector.name])]
-                print(sectorrows_df)
                 # Create x positions & randomized y values for data plotting
                 x = outerringdict_xvalues[sector.name]
-                print(sectorrows_df["NO2"].values)
                 NO2 = sectorrows_df["NO2"].values
                 MET =  sectorrows_df["MET"].values
                 NO2persubgroup= {}
@@ -564,30 +676,48 @@ def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
                     for value in subgroups[subgroup]:
                         NO2persubgroup[value] = sectorrows_df[[f"NO2_{value}"]].values
                         METpersubgroup[value] = sectorrows_df[[f"MET_{value}"]].values
-                        
-
+                NO2cols = ["NO2"] + [f"NO2_{value}" for subgroup in subgroups for value in subgroups[subgroup]]
+                METcols = ["MET"] + [f"MET_{value}" for subgroup in subgroups for value in subgroups[subgroup]]
+                METmin_tot = sectorrows_df[METcols].min().min()
+                METmax_tot = sectorrows_df[METcols].max().max()
+                NO2min_tot = sectorrows_df[NO2cols].min().min()
+                NO2max_tot = sectorrows_df[NO2cols].max().max()
+                print("METmin_tot", METmin_tot, "METmax_tot", METmax_tot, "NO2min_tot", NO2min_tot, "NO2max_tot", NO2max_tot)
                 # NO2 line
                 NO2_track = sector.add_track((65, 100), r_pad_ratio=0.1)
                 NO2_track.axis(ec = axiscol)
                 if sector.name == "Hours":
                     NO2max = NO2hourmax
                     NO2min = NO2hourmin
-                    rangeNO2 =list(np.arange(start=NO2min, stop = NO2max + NO2hourstep, step = NO2hourstep))
-                    rangeNO2 = [round(val, 2) for val in rangeNO2]
-                    NO2max = rangeNO2[-1]
+                    NO2step = NO2hourstep
+                    NO2round = NO2hourround
                 elif sector.name == "Weekdays":
                     NO2max = NO2weekdaymax
                     NO2min = NO2weekdaymin
-                    rangeNO2 =list(np.arange(start=NO2min, stop = NO2max + NO2weekdaystep, step = NO2weekdaystep))
-                    rangeNO2 = [round(val, 2) for val in rangeNO2]
-                    NO2max = rangeNO2[-1]
+                    NO2step = NO2weekdaystep
+                    NO2round = NO2monthround
                 else:
-                    NO2max = NO2monthmax
+                    NO2max = NO2monthmax 
                     NO2min = NO2monthmin
-                    rangeNO2 =list(np.arange(start=NO2min, stop = NO2max + NO2monthstep, step = NO2monthstep))
-                    rangeNO2 = [round(val, 2) for val in rangeNO2]
-                    NO2max = rangeNO2[-1]
-
+                    NO2step = NO2monthstep
+                    NO2round = NO2monthround
+                while NO2min > NO2min_tot:
+                    NO2min = NO2min - NO2step
+                while NO2max < NO2max_tot:
+                    NO2max = NO2max + NO2step
+                rangeNO2 =list(np.arange(start=NO2min, stop = NO2max, step = NO2step))
+                rangeNO2 = [round(val, NO2round) for val in rangeNO2]
+                rangeNO2 = list(dict.fromkeys(rangeNO2))
+                while len(rangeNO2) >= 10:
+                    rangeNO2 = rangeNO2[::2]
+                while rangeNO2[-1] < NO2max:
+                    NO2diff = rangeNO2[-1] - rangeNO2[-2]
+                    rangeNO2.append((rangeNO2[-1]+NO2diff).round(NO2round))
+                while rangeNO2[0] > NO2min:
+                    NO2diff = rangeNO2[1] - rangeNO2[0]
+                    rangeNO2.insert(0, (rangeNO2[0]-NO2diff).round(NO2round))
+                NO2max = rangeNO2[-1]
+                NO2min = rangeNO2[0]
                 print("rangeNO2", rangeNO2, "NO2min", NO2min, "NO2max", NO2max, "NO2hourstep", NO2hourstep, "NO2monthstep", NO2monthstep)
                 NO2_track.yticks(y=rangeNO2, labels=rangeNO2,vmin=NO2min, vmax=NO2max, side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
                 for NO2val in rangeNO2:
@@ -615,27 +745,38 @@ def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
                 MET_track = sector.add_track((25, 60), r_pad_ratio=0.1)
                 MET_track.axis(ec = axiscol)
                 if sector.name == "Hours":
-                    METmax = METhourmax
+                    METmax = METhourmax	
                     METmin = METhourmin
-                    rangeMET =list(np.arange(start=METmin, stop = METmax + METmonthstep, step = METmonthstep))
-                    rangeMET = [round(val, 4) for val in rangeMET]
-                    METmin = rangeMET[0]
-                    METmax = rangeMET[-1]
+                    METstep = METhourstep
+                    METround = METhourround
                 elif sector.name == "Weekdays":
                     METmax = METweekdaymax
                     METmin = METweekdaymin
-                    rangeMET =list(np.arange(start=METmin, stop = METmax + METweekdaystep, step = METweekdaystep))
-                    rangeMET = [round(val, 4) for val in rangeMET]
-                    METmin = rangeMET[0]
-                    METmax = rangeMET[-1]    
-                
+                    METstep = METweekdaystep
+                    METround = METmonthround
                 else:
                     METmax = METmonthmax
                     METmin = METmonthmin
-                    rangeMET =list(np.arange(start=METmin, stop = METmax + METhourstep, step = METhourstep))
-                    rangeMET = [round(val, 4) for val in rangeMET]
-                    METmin = rangeMET[0]
-                    METmax = rangeMET[-1]
+                    METstep = METmonthstep
+                    METround = METmonthround
+                while METmin > METmin_tot:
+                    METmin = METmin - METstep
+                while METmax < METmax_tot:
+                    METmax = METmax + METstep
+                    
+                rangeMET =list(np.arange(start=METmin, stop = METmax, step = METstep))
+                rangeMET = [round(val, METround) for val in rangeMET]
+                rangeMET = list(dict.fromkeys(rangeMET))
+                while len(rangeMET) >= 10:
+                    rangeMET = rangeMET[::2]
+                while rangeMET[-1] < METmax:
+                    METdiff = rangeMET[-1] - rangeMET[-2]
+                    rangeMET.append((rangeMET[-1]+METdiff).round(METround))
+                while rangeMET[0] > METmin:
+                    METdiff = rangeMET[1] - rangeMET[0]
+                    rangeMET.insert(0, (rangeMET[0]-METdiff).round(METround))
+                METmin = rangeMET[0]
+                METmax = rangeMET[-1]
                 print("rangeMET", rangeMET, "METmin", METmin, "METmax", METmax, "METhourstep", METhourstep, "METmonthstep", METmonthstep)
                        
                 MET_track.yticks(y=rangeMET, labels=rangeMET,vmin=METmin, vmax=METmax,  side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
@@ -665,10 +806,10 @@ def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
         figure.savefig(f"CirclePlot_with_Legend{suffix}.png", dpi=600)
 
 
-def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, distance_meters, vmax = None, outcomelabel = None):
+def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, distance_meters, vmax = None, vmin= None, outcomelabel = None):
     if outcomelabel is None:
         outcomelabel = outcomvar
-    ax = spatialdata.plot(outcomvar, antialiased=False, legend = True, vmax = vmax)
+    ax = spatialdata.plot(outcomvar, antialiased=False, legend = True, vmax = vmax, vmin = vmin)
     cx.add_basemap(ax, crs=spatialdata.crs, source=cx.providers.CartoDB.PositronNoLabels)
     scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
     ax.add_artist(scalebar)
@@ -687,18 +828,23 @@ os.chdir(path_data)
 
 # scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
-scenario = "15mCity"
-# scenario = "15mCityWithDestination"
+# scenario = "15mCity"
+scenario = "15mCityWithDestination"
+# scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2030"
+
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 # experimentoverview = experimentoverview[~np.isnan(experimentoverview["Population Sample"])]
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [669169,509190])]
-popsamples = [int(experimentoverview.loc[experimentoverview["Model Run"]== modelrun, "Population Sample"].values[0]) for modelrun in modelruns]
+# modelruns = [365800, 846897, 999180]
+# modelruns = [799701]
+# modelruns = [ 912787, 493519, 989597]
+
+popsamples = [experimentoverview.loc[experimentoverview["Model Run"]== modelrun, "Population Sample"].values[0] for modelrun in modelruns]
 print(modelruns, popsamples)
-# modelruns = [783341]
-# popsamples = [5]
 
 
 
@@ -711,15 +857,17 @@ viztasks = [
             # "Exposure Circle plot strat",
             # "spatial Exposure mapping",
             # "Comparative plots",
-            "Mean across runs aggregate exposure df",
-            "Mean across runs exposure circle plot",
-            "Mean across runs and Neighborhoods",
-            "Mean across runs aggregate exposure diff df",
-            "Mean across runs exposure diff circle plot",
-            "Mean across runs and Neighborhoods diff"
+            # "Mean across runs aggregate exposure df",
+            # "Mean across runs exposure circle plot",
+            # "Mean across runs strat exposure Circle plot",
+            # "Mean across runs and Neighborhoods",
+            # "Mean across runs aggregate exposure diff df",
+            # "Mean across runs exposure diff circle plot",
+            "Mean across runs strat exposure diff Circle plot",
+            # "Mean across runs and Neighborhoods diff"
             ]
             
-categoricalstratvars = ["sex", "migr_bck", "income_class", "age_group", "HH_size"]
+categoricalstratvars = ["sex", "migr_bck", "income_class", "age_group", "HH_size", "absolved_education", "HH_type", "student", "location"]
 plottypes = [ "line", "violin"] # "scatter"
 outcomevars = ["NO2", "MET"]
 timevars = ["hour", "weekday", "month"]
@@ -731,12 +879,37 @@ fullnamedict = {
     "income_class": "Income Group",
     "age_group": "Age Group",
     "HH_size": "Household Size",
+    "absolved_education": "Education Level",
+    "HH_type": "Household Type",
+    "student": "Student Status",
+    "location": "Location",
     "NO2": "NO2 (µg/m3)",
     "MET": "Metabolic Equivalent of Task (MET)",
     "NO2_diff": "NO2 Difference (µg/m3)",
     "MET_diff": "Metabolic Equivalent of Task (MET) Difference" }
 
+subgroups_Meta = {"income": ["Low", "Medium", "High"],
+            "sex": ["male", "female"], 
+            "migration_background": ["Dutch", "Western", "Non-Western"],
+            "age_group": ["Aged 0-29", "Aged 30-59", "Aged 60+"],
+            "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"],
+            "absolved_education": ["low", "middle", "high"],
+            "HH_type": ["Single Person", "Pair without children", "Pair with children", "Single Parent with children", "Other multiperson household"],
+            "student": ["Student", "Not Student"],
+            "location": ["inside ring", "outside ring"]
+            }
+
+
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+
+########### identify inner ring neighborhoods
+innerring = gpd.read_feather("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/SpatialData/NoEmissionZone2025.feather")
+neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
+innerringsneighborhoods = innerring.sjoin(neighborhoods, how="inner", predicate='intersects')
+innerringsneighborhoods = list(innerringsneighborhoods["buurtcode"].values)
+
+
 
 for count, modelrun in enumerate(modelruns):
     print(f"Model run {modelrun}")
@@ -766,14 +939,28 @@ for count, modelrun in enumerate(modelruns):
         exposure_df_vertical["income_class"]=exposure_df_vertical["income"].apply(lambda x: "Low" if x in range(1,5) else ("Medium" if x in range(5,9) else "High"))
         # 1 low # 10 high
         # restructuring age into groups
-        exposure_df_vertical["age_group"]=exposure_df_vertical["age"].apply(lambda x: "Aged 0-29y" if x in range(0,30) else ("Aged 30-59" if x in range(30,60) else "Aged 60+"))    
+        exposure_df_vertical["age_group"]=exposure_df_vertical["age"].apply(lambda x: "Aged 0-29" if x in range(0,30) else ("Aged 30-59" if x in range(30,60) else "Aged 60+"))    
+        # renaming binary student variable
+        exposure_df_vertical["student"] = exposure_df_vertical["student"].replace({1: "Student", 0: "Not Student"})
 
+        
+        # creating HH type from multiple hh variables
+        exposure_df_vertical["HH_type"] = ""
+        # exposure_df_vertical["Nrchildren"] = exposure_df_vertical["Nrchildren"].astype(int)
+        exposure_df_vertical["Nr_adults"] = exposure_df_vertical["HH_size"] - exposure_df_vertical["Nrchildren"]
+        exposure_df_vertical.loc[exposure_df_vertical["hh_single"]==1, "HH_type"] = "Single Person"
+        exposure_df_vertical.loc[(exposure_df_vertical["HH_size"]==2) & (exposure_df_vertical["havechild"] == 0), "HH_type"] = "Pair without children"
+        exposure_df_vertical.loc[(exposure_df_vertical["HH_size"]>2) & (exposure_df_vertical["havechild"] == 1), "HH_type"] = "Pair with children"
+        exposure_df_vertical.loc[(exposure_df_vertical["HH_size"]>=2) & (exposure_df_vertical["havechild"] == 1) & (exposure_df_vertical["Nr_adults"]==1), "HH_type"] = "Single Parent with children"
+        exposure_df_vertical.loc[(exposure_df_vertical["HH_size"]>=2) & (exposure_df_vertical["Nr_adults"]>2), "HH_type"] = "Other multiperson household"
+                
         # make hh_size into a categorical variable
         exposure_df_vertical["HH_size"] = [f"HH size {hhsize}" for hhsize in exposure_df_vertical["HH_size"]]
         continuousstratvars = ["income"]
         
-
-            
+        exposure_df_vertical["location"] = "outside ring"
+        exposure_df_vertical.loc[exposure_df_vertical["neighb_code"].isin(innerringsneighborhoods), "location"] = "inside ring"
+        
     if "Exposure descriptives" in viztasks:
         print("Analyzing the data")
         print(exposure_df_vertical.head())
@@ -840,34 +1027,18 @@ for count, modelrun in enumerate(modelruns):
         
         aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv")
 
-        subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "green","greenyellow",  "lightseagreen", "aquamarine","olive" ]
-            
-        subgroups_Meta = {"income": ["Low", "Medium", "High"],
-                    "sex": ["male", "female"], 
-                    "migration_background": ["Dutch", "Western", "Non-Western"],
-                    "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
-                    "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
+        subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "green","greenyellow",  "lightseagreen", "aquamarine","olive",  ]
         
         for stratgroup in subgroups_Meta:
             print(f"Plotting the exposure stratification for {stratgroup}")
             subgroups = {stratgroup:subgroups_Meta[stratgroup]}
             subgroupcolors = {stratgroup: subgroupcolorpalette[:len(subgroups[stratgroup])]}
-            if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"NO2_{val}"].min() < 23.5 else False for val in subgroups[stratgroup]]):
-                NO2monthmin = 23
-            else:
-                NO2monthmin = 23.5
-            if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"MET_{val}"].min() < 0.75 else False for val in subgroups[stratgroup]]):
-                METmonthmin = 0.5
-            else:
-                METmonthmin = 0.75
-            if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].max() > 30 else False for val in subgroups[stratgroup]]):
-                NO2hourmax = 32
-            else:
-                NO2hourmax = 30
-            if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].min() <25 else False for val in subgroups[stratgroup]]):
-                NO2hourmin = 18
-            else:
-                NO2hourmin = 20
+            NO2monthmin, NO2monthmax, NO2monthstep =  calc_min_max(df = aggexposure, column="NO2", timeunit_contains= "month", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+            NO2hourmin, NO2hourmax, NO2hourstep =  calc_min_max(df = aggexposure, column="NO2", timeunit_contains= "hour", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+            NO2weekdaymin, NO2weekdaymax, NO2weekdaystep =  calc_min_max(df = aggexposure, column="NO2", timeunit_contains= "weekday", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+            METmonthmin, METmonthmax, METmonthstep =  calc_min_max(df = aggexposure, column="MET", timeunit_contains= "month", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+            METhourmin, METhourmax, METhourstep =  calc_min_max(df = aggexposure, column="MET", timeunit_contains= "hour", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+            METweekdaymin, METweekdaymax, METweekdaystep =  calc_min_max(df = aggexposure, column="MET", timeunit_contains= "weekday", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
             
             plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,  
                                        NO2monthmin = NO2monthmin, METmonthmin= METmonthmin, 
@@ -888,9 +1059,8 @@ for count, modelrun in enumerate(modelruns):
 
         stratexposure_df.to_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate_strat.csv", index=False)
     
-        plotCircosMeanStrat(aggexposure, subgroups= subgroups_Meta, subgroupcolors = subgroupcolors, outcomevar = "NO2", roundval = 1, suffix = None)
+        plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, subgroupcolors = subgroupcolors, outcomevar = "NO2", roundval = 1, suffix = None)
 
-        CircleGraphStrat(stratexposure_df, outcomevar = "NO2", suffix = f"_{scenario}_{modelrun}")
         
     if "spatial Exposure mapping" in viztasks:
         ###########################################
@@ -940,27 +1110,7 @@ for count, modelrun in enumerate(modelruns):
         aggexposure[outcomecols] = aggexposurediff[differencecols]
         
         subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "lightseagreen", "aquamarine", "greenyellow", "green", "olive" ]
-            
-        subgroups_Meta = {"income": ["Low", "Medium", "High"],
-                    "sex": ["male", "female"], 
-                    "migration_background": ["Dutch", "Western", "Non-Western"],
-                    "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
-                    "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
-        def calc_min_max(column_prefix, timeunit_contains, stratvals):
-            min_val = np.min([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].min() for val in stratvals]).round(2)
-            max_val = np.max([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].max() for val in stratvals]).round(2)
-            step = ((max_val - min_val)/5).round(2)
-            min_val = (min_val - step).round(2)  
-            max_val = (max_val + step).round(2)
-            step = ((max_val - min_val)/5).round(2)
-            if step == 0:
-                min_val = np.min([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].min() for val in stratvals]).round(4)
-                max_val = np.max([aggexposure.loc[aggexposure["timeunit"].str.contains(timeunit_contains), f"{column_prefix}_{val}"].max() for val in stratvals]).round(4)      
-                step = ((max_val - min_val)/4).round(4)    
-                min_val = (min_val - step).round(4)  
-                max_val = (max_val + step).round(4)
-                step = ((max_val - min_val)/4).round(4)
-            return min_val, max_val, step
+
         
         for stratgroup in subgroups_Meta:
             print(f"Plotting the exposure stratification for {stratgroup}")
@@ -1005,39 +1155,67 @@ if "Mean across runs exposure circle plot" in viztasks:
     aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_aggregate.csv")
     subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "green","greenyellow",  "lightseagreen", "aquamarine","olive" ]
             
-    subgroups_Meta = {"income": ["Low", "Medium", "High"],
-                "sex": ["male", "female"], 
-                "migration_background": ["Dutch", "Western", "Non-Western"],
-                "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
-                "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
-    
     for stratgroup in subgroups_Meta:
         print(f"Plotting the exposure stratification for {stratgroup}")
         subgroups = {stratgroup:subgroups_Meta[stratgroup]}
         subgroupcolors = {stratgroup: subgroupcolorpalette[:len(subgroups[stratgroup])]}
-        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"NO2_{val}"].min() < 23.5 else False for val in subgroups[stratgroup]]):
-            NO2monthmin = 9
-        else:
-            NO2monthmin = 9
-        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("weekday").index,f"MET_{val}"].min() < 0.75 else False for val in subgroups[stratgroup]]):
-            METmonthmin = 0
-        else:
-            METmonthmin = 0
-        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].max() > 17 else False for val in subgroups[stratgroup]]):
-            NO2hourmax = 17
-        else:
-            NO2hourmax = 17
-        if any([True if aggexposure.loc[aggexposure["timeunit"].str.contains("hour").index,f"NO2_{val}"].min() <9 else False for val in subgroups[stratgroup]]):
-            NO2hourmin = 9
-        else:
-            NO2hourmin = 9
-        
+        NO2monthmin, NO2monthmax, NO2monthstep =  calc_min_max(df = aggexposure, column="NO2", timeunit_contains= "month", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+        NO2hourmin, NO2hourmax, NO2hourstep =  calc_min_max(df = aggexposure, column="NO2", timeunit_contains= "hour", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+        NO2weekdaymin, NO2weekdaymax, NO2weekdaystep =  calc_min_max(df = aggexposure, column="NO2", timeunit_contains= "weekday", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+        METmonthmin, METmonthmax, METmonthstep =  calc_min_max(df = aggexposure, column="MET", timeunit_contains= "month", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+        METhourmin, METhourmax, METhourstep =  calc_min_max(df = aggexposure, column="MET", timeunit_contains= "hour", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+        METweekdaymin, METweekdaymax, METweekdaystep =  calc_min_max(df = aggexposure, column="MET", timeunit_contains= "weekday", round_val = 2, hardzero = True, stratvals = subgroups[stratgroup])
+ 
         plotCircosNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,  
-                                   NO2monthmax=14, NO2hourmax=17, NO2hourmin=9, NO2monthmin=12, NO2hourstep=1, NO2monthstep=0.5,
-                                   METmonthmax=0.3, METmonthstep=0.1, METhourmax=0.5, METhourstep=0.1,
-                                    METhourmin=0, METmonthmin=0.1,
+                                      NO2monthmax = NO2monthmax, METmonthmax= METmonthmax,
+                                        NO2hourmax=NO2hourmax, NO2hourmin=NO2hourmin,
+                                        NO2monthmin=NO2monthmin, NO2monthstep=NO2monthstep,
+                                        METhourmax=METhourmax, METhourmin=METhourmin,
+                                        METmonthmin=METmonthmin, METmonthstep=METmonthstep,
+                                        NO2hourstep=NO2hourstep,  NO2hourround=2, NO2monthround=2,
+                                        METhourstep=METhourstep,  METhourround=2, METmonthround=2,
                                     suffix = f"_{scenario}_MeanAcrossRuns_{stratgroup}")   
+
                       
+
+if "Mean across runs strat exposure Circle plot" in viztasks:
+    os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
+    aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_aggregate.csv")
+    
+    subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "olive","greenyellow",  "lightseagreen", "green", "aqua", "maroon", "blue"]
+    subgroupcolors = {stratgroup: subgroupcolorpalette[count] for count, stratgroup in enumerate(subgroups_Meta)}
+    aggexposure_subs = aggexposure.loc[aggexposure["timeunit"]=="total",[f"{outcomevar}_{val}" for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup] for outcomevar in outcomevars]]
+    stratexposure_df = pd.DataFrame({f"{outcomevar}": [aggexposure_subs[f"{outcomevar}_{val}"].values for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]] for outcomevar in outcomevars})
+    stratexposure_df["Label"] = [val for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+    stratexposure_df["Group"] = [subgroup for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+    for outcomevar in outcomevars:
+        stratexposure_df[outcomevar] = [x[0] for x in stratexposure_df[outcomevar]]
+        stratexposure_df[f"{outcomevar}_deviation"] = stratexposure_df[f"{outcomevar}"] - aggexposure.loc[aggexposure["timeunit"]=="total", outcomevar].values[0]
+    print(stratexposure_df.head(20))
+    stratexposure_df.to_csv(f"Exposure_A{nb_agents}_{scenario}_aggregate_strat.csv", index=False)
+
+    subgroups_Meta["HH_type"] = ["Single Person", "Pair without\nchildren","Pair with\nchild(ren)", "Single Parent\nwith child(ren)", "Other\nmultiperson HH"]
+    stratexposure_df["Label"] = stratexposure_df["Label"].replace({"Pair without children": "Pair without\nchildren",
+                                                                   "Pair with children": "Pair with\nchild(ren)", 
+                                                                   "Single Parent with children": "Single Parent\nwith child(ren)",
+                                                                   "Other multiperson household": "Other\nmultiperson HH"})
+
+    # drop the HH size stratification
+    subgroups_Meta.pop("HH_size")
+    
+    if scenario == "StatusQuo":
+        labelprefix = "Status Quo"
+    else:
+        labelprefix = "Scenario"
+    # 
+    plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel=f"{labelprefix} Mean Exposure\nacross population",  rangeval=[-1.5, -0.75, 0, 0.75, 1.5],
+                        subgroupcolors = subgroupcolors, meanval= aggexposure.loc[aggexposure["timeunit"]=="total", "NO2"].values[0],
+                        outcomevar = "NO2_deviation", roundval = 2, centertext=f"NO2 (µg/m3)\nDeviation\nfrom Mean", suffix = "")
+
+
+    plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Scenario Mean Exposure\nacross population",
+                        subgroupcolors = subgroupcolors, meanval= aggexposure.loc[aggexposure["timeunit"]=="total", "MET"].values[0],
+                        outcomevar = "MET_deviation", roundval = 2, centertext=f"Transport MET\nDeviation\nfrom Mean", suffix = "")
 
 if "Mean across runs and Neighborhoods" in viztasks:
     os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
@@ -1064,6 +1242,14 @@ if "Mean across runs and Neighborhoods" in viztasks:
     exposure_neigh.to_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_neigh.csv", index=False)    
     exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
 
+    outcomecols = exposure_neigh.columns[1:]
+    observations = exposure_neigh[outcomecols[0:10]]
+    exposure_neigh["count"] = observations.count(axis=1)
+    print(exposure_neigh["count"].value_counts())
+
+    # deleting neighborhoods where below 5 observations are available
+    exposure_neigh = exposure_neigh.loc[exposure_neigh["count"]>6]
+    
     print("Plotting mean status quo scenario exposure per neighborhood")
 
     crs = 28992    
@@ -1077,12 +1263,14 @@ if "Mean across runs and Neighborhoods" in viztasks:
     print(neighborhoods.columns)
     neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
 
+    fullnamedict["MET"] = "Transport MET (MET/h)"
     showplots = False
-    maxvals = {"NO2": 20, "MET": 0.5}
+    maxvals = {"NO2": 16, "MET": 0.3}
+    minvals = {"NO2": None, "MET": 0.1}
     for outcomvar in outcomevars:
         PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun="MeanAcrossRuns", 
                             spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
-                            distance_meters=distance_meters, vmax=maxvals[outcomvar])
+                            distance_meters=distance_meters, vmax=maxvals[outcomvar], vmin = minvals[outcomvar])
 
 
 
@@ -1122,13 +1310,19 @@ if "Mean across runs aggregate exposure diff df" in viztasks:
 if "Mean across runs exposure diff circle plot" in viztasks:
     os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
     aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_aggregate_diff.csv")
-    subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "green","greenyellow",  "lightseagreen", "aquamarine","olive" ]
+    subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "olive","greenyellow",  "lightseagreen", "green", "aqua", "maroon", "blue"]
             
     subgroups_Meta = {"income": ["Low", "Medium", "High"],
-                "sex": ["male", "female"], 
-                "migration_background": ["Dutch", "Western", "Non-Western"],
-                "age_group": ["Aged 0-29y", "Aged 30-59", "Aged 60+"],
-                "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"]}
+            "sex": ["male", "female"], 
+            "migration_background": ["Dutch", "Western", "Non-Western"],
+            "age_group": ["Aged 0-29", "Aged 30-59", "Aged 60+"],
+            "HH_size": ["HH size 1", "HH size 2", "HH size 3", "HH size 4", "HH size 5", "HH size 6", "HH size 7"],
+            "absolved_education": ["low", "middle", "high"],
+            "HH_type": ["Single Person", "Pair without children", "Pair with children", "Single Parent with children", "Other multiperson household"],
+            "student": ["Student", "Not Student"],
+            "location": ["inside ring", "outside ring"]
+            }
+
     
     units = ["weekday", "hour", "month"]
     outcomevars = ["NO2", "MET"]
@@ -1137,70 +1331,136 @@ if "Mean across runs exposure diff circle plot" in viztasks:
         print(f"Plotting the exposure stratification for {stratgroup}")
         subgroups = {stratgroup:subgroups_Meta[stratgroup]}
         subgroupcolors = {stratgroup: subgroupcolorpalette[:len(subgroups[stratgroup])]}
-        maxes, mins, steps = {}, {}, {}
-        
-        for unit in units:
-            unitkey = aggexposure["timeunit"].str.contains(unit)
-            for count, outcomevar in enumerate(outcomevars):
-                maximum = np.max([aggexposure.loc[unitkey,f"{outcomevar}_{val}"].max() for val in subgroups[stratgroup]])
-                minimum = np.min([aggexposure.loc[unitkey,f"{outcomevar}_{val}"].min() for val in subgroups[stratgroup]])
-                step = 0.5/(10**roundvals[count])
-                maximum = (maximum + step).round(roundvals[count])
-                minimum = (minimum - step).round(roundvals[count])
-                step = ((maximum - minimum)/4).round(roundvals[count])   
-                print(f"{outcomevar}_{unit}", maximum, minimum, step)
-                if step == 0:
-                    maximum = np.max([aggexposure.loc[unitkey,f"{outcomevar}_{val}"].max() for val in subgroups[stratgroup]])
-                    minimum = np.min([aggexposure.loc[unitkey,f"{outcomevar}_{val}"].min() for val in subgroups[stratgroup]])
-                    step = 0.5/(10**roundvals[count])
-                    maximum = (maximum + step).round(roundvals[count]+1)
-                    minimum = (minimum - step).round(roundvals[count]+1)
-                    step = ((maximum - minimum)/4).round(roundvals[count]+1)  
-                maxes[f"{outcomevar}_{unit}"] = maximum
-                mins[f"{outcomevar}_{unit}"] = minimum
-                steps[f"{outcomevar}_{unit}"] = step
-        
-        print(maxes)
-        print(mins)
-        print(steps)
-               
+        NO2monthmin, NO2monthmax, NO2monthstep =  calc_min_max(df = aggexposure, column="NO2", timeunit_contains= "month", round_val = 2, hardzero = False, stratvals = subgroups[stratgroup])
+        NO2hourmin, NO2hourmax, NO2hourstep =  calc_min_max(df = aggexposure, column="NO2", timeunit_contains= "hour", round_val =2, hardzero = False, stratvals = subgroups[stratgroup])
+        NO2weekdaymin, NO2weekdaymax, NO2weekdaystep =  calc_min_max(df = aggexposure, column="NO2", timeunit_contains= "weekday", round_val =2, hardzero = False, stratvals = subgroups[stratgroup])
+        METmonthmin, METmonthmax, METmonthstep =  calc_min_max(df = aggexposure, column="MET", timeunit_contains= "month", round_val = 3, hardzero = False, stratvals = subgroups[stratgroup])
+        METhourmin, METhourmax, METhourstep =  calc_min_max(df = aggexposure, column="MET", timeunit_contains= "hour", round_val =3, hardzero = False, stratvals = subgroups[stratgroup])
+        METweekdaymin, METweekdaymax, METweekdaystep =  calc_min_max(df = aggexposure, column="MET", timeunit_contains= "weekday", round_val = 3, hardzero = False, stratvals = subgroups[stratgroup])
+ 
         plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,  
-                                    NO2weekdaymin = mins["NO2_weekday"], NO2weekdaymax= maxes["NO2_weekday"], NO2weekdaystep=steps["NO2_weekday"],
-                                    NO2monthmin = mins["NO2_month"], NO2monthmax= maxes["NO2_month"], NO2monthstep=steps["NO2_month"],
-                                    NO2hourmin= mins["NO2_hour"], NO2hourmax= maxes["NO2_hour"], NO2hourstep=steps["NO2_hour"],
-                                    METweekdaymin= mins["MET_weekday"], METweekdaymax = maxes["MET_weekday"], METweekdaystep=steps["MET_weekday"],
-                                    METmonthmin= mins["MET_month"], METmonthmax = maxes["MET_month"], METmonthstep=steps["MET_month"],
-                                    METhourmin=mins["MET_hour"], METhourmax=maxes["MET_hour"], METhourstep=steps["MET_hour"],
-                                    suffix = f"_{scenario}_MeanAcrossRuns_{stratgroup}")   
-                      
+                                      NO2monthmax = NO2monthmax, METmonthmax= METmonthmax,
+                                        NO2hourmax=NO2hourmax, NO2hourmin=NO2hourmin,
+                                        NO2monthmin=NO2monthmin, NO2monthstep=NO2monthstep,
+                                        NO2weekdaymax=NO2weekdaymax, NO2weekdaymin=NO2weekdaymin, NO2weekdaystep=NO2weekdaystep,
+                                        METhourmax=METhourmax, METhourmin=METhourmin,
+                                        METmonthmin=METmonthmin, METmonthstep=METmonthstep,
+                                        METweekdaymin=METweekdaymin, METweekdaymax=METweekdaymax, METweekdaystep=METweekdaystep,
+                                        NO2hourstep=NO2hourstep,  METhourstep=METhourstep,  
+                                        NO2hourround=3, NO2monthround=3, METhourround=3, METmonthround=4, 
+                                    suffix = f"_{scenario}_MeanDiffAcrossRuns_{stratgroup}")   
+        
+
+if "Mean across runs strat exposure diff Circle plot" in viztasks:
+    os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
+    aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_aggregate.csv")
+    aggexposureStatusQ = pd.read_csv(f"Exposure_A{nb_agents}_Mean_StatusQuo_{scenario}_aggregate.csv")
+        
+    subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "olive","greenyellow",  "lightseagreen", "green", "aqua", "maroon", "blue"]
+    subgroupcolors = {stratgroup: subgroupcolorpalette[count] for count, stratgroup in enumerate(subgroups_Meta)}
+    aggexposure_subs = aggexposure.loc[aggexposure["timeunit"]=="total",[f"{outcomevar}_{val}" for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup] for outcomevar in outcomevars]]
+    stratexposure_df = pd.DataFrame({f"{outcomevar}": [aggexposure_subs[f"{outcomevar}_{val}"].values for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]] for outcomevar in outcomevars})
+    stratexposure_df["Label"] = [val for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+    stratexposure_df["Group"] = [subgroup for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+    aggexposure_StatQsubs = aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total",[f"{outcomevar}_{val}" for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup] for outcomevar in outcomevars]]
+    for outcomevar in outcomevars:
+        stratexposure_df[outcomevar] = [x[0] for x in stratexposure_df[outcomevar]]
+        stratexposure_df[f"{outcomevar}_deviationStatQMean"] = stratexposure_df[f"{outcomevar}"] - aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", outcomevar].values[0]
+        stratexposure_df[f"{outcomevar}_StatQ"] =[aggexposure_StatQsubs[f"{outcomevar}_{val}"].values[0] for subgroup in subgroups_Meta for val in subgroups_Meta[subgroup]]
+        stratexposure_df[f"{outcomevar}_diffStatQ"] = stratexposure_df[f"{outcomevar}"] - stratexposure_df[f"{outcomevar}_StatQ"]
+        stratexposure_df[f"{outcomevar}_StatQdevStatQMean"] = stratexposure_df[f"{outcomevar}_StatQ"]- aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", outcomevar].values[0]
+    print(stratexposure_df.head(20))
+    stratexposure_df.to_csv(f"Exposure_A{nb_agents}_{scenario}_aggregate_diff_strat.csv", index=False)
+
+
+    
+    subgroups_Meta["HH_type"] = ["Single Person", "Pair without\nchildren","Pair with\nchild(ren)", "Single Parent\nwith child(ren)", "Other\nmultiperson HH"]
+    stratexposure_df["Label"] = stratexposure_df["Label"].replace({"Pair without children": "Pair without\nchildren",
+                                                                   "Pair with children": "Pair with\nchild(ren)", 
+                                                                   "Single Parent with children": "Single Parent\nwith child(ren)",
+                                                                   "Other multiperson household": "Other\nmultiperson HH"})
+    subgroups_Meta.pop("HH_size")
+    # NO2range = [-3,-2,-1,0,1]
+    # NO2range = [-4,-3,-2,-1,0]
+    # NO2range = [-5,-2.5, 0,2.5]
+    
+    # NO2range = None
+    # NO2range = [-3, -2, -1, 0, 1, 2]
+    NO2range = [-2, -1.5, -1, -0.5, 0, 0.5, 1]
+    # NO2range = [-1.5, -1, -0.5, 0, 0.5,1]
+    # NO2range = [-0.04, -0.02, 0, 0.02, 0.04]
+    # NO2range = [-1.5, -0.75, 0, 0.75, 1.5]
+    # NO2range = [-0.7, -0.35, 0, 0.35, 0.7]
+    # METrange = [-0.01, -0.005, 0, 0.005, 0.01]
+    # METrange = [-0.002, -0.001, 0, 0.001, 0.002]
+    # METrange = None
+    # METrange = [-0.1, -0.05, 0, 0.05, 0.1]
+    METrange = [-0.08, -0.04, 0, 0.04, 0.08]
+    # plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Status Quo Mean\nacross popoulation", rangeval = NO2range,
+    #                     subgroupcolors = subgroupcolors, meanval= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", "NO2"].values[0],
+    #                     outcomevar = "NO2_deviationStatQMean", roundval = 2, centertext=f"NO2 (µg/m3)\nDeviation to\nStatus Quo Mean", suffix = "diff_StatQMean")
+
+
+    # plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Status Quo Mean\nacross popoulation", 
+    #                     subgroupcolors = subgroupcolors, meanval= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", "MET"].values[0],
+    #                     outcomevar = "MET_deviationStatQMean", roundval = 2, centertext=f"Transport MET\nDeviation to\nStatus Quo Mean", suffix = "diff_StatQMean")
+
+
+    # plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, rangeval= [-0.07, -0.035, 0, 0.035, 0.07],
+    #                     subgroupcolors = subgroupcolors, meanval= 0, redlinelabel="Status Quo Mean\nof respective subgroup",
+    #                     outcomevar = "NO2_diffStatQ", roundval = 2, centertext=f"NO2 (µg/m3)\nDifference to\nStatus Quo Mean", suffix = "diff_StatQ")
+
+
+    # plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, rangeval = METrange,
+    #                     subgroupcolors = subgroupcolors, meanval= 0, redlinelabel="Status Quo Mean\nof respective subgroup",
+    #                     outcomevar = "MET_diffStatQ", roundval = 2, centertext=f"Transport MET\nDifference to\nStatus Quo Mean", suffix = "diff_StatQ")
+
+    subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "olive","blue", "green", "aqua", "maroon", "blue"]
+    subgroupcolors = {stratgroup: subgroupcolorpalette[count] for count, stratgroup in enumerate(subgroups_Meta)}
+
+    plotCircosMeanStratRelativ(stratexposure_df, subgroups= subgroups_Meta, rangeval = NO2range,
+                        subgroupcolors = subgroupcolors, 
+                        meanvalStatQ= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", "NO2"].values[0], 
+                        meanvalScenario= aggexposure.loc[aggexposure["timeunit"]=="total", "NO2"].values[0],
+                        redlinelabel="Mean across \n popoulation",
+                        outcomevar = "NO2", roundval = 2, centertext=f"NO2 (µg/m3)\nChange from\nStatus Quo", suffix = "diff_beforeafterStatQ")
+
+    plotCircosMeanStratRelativ(stratexposure_df, subgroups= subgroups_Meta, rangeval = METrange,
+                        subgroupcolors = subgroupcolors, 
+                        meanvalStatQ= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", "MET"].values[0], 
+                        meanvalScenario= aggexposure.loc[aggexposure["timeunit"]=="total", "MET"].values[0],
+                        redlinelabel="Mean across \n popoulation",
+                        outcomevar = "MET", roundval = 3, centertext=f"Transport MET\nChange from\nStatus Quo", suffix = "diff_beforeafterStatQ")
+
+
 
 if "Mean across runs and Neighborhoods diff" in viztasks:
     os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
     print("Creating an aggregate neighborhood exposure dataset")
     print(modelruns, popsamples)
 
-    exposure_neigh = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelruns[0]}/ExposureViz/Exposure_A{nb_agents}_{modelruns[0]}_neigh.csv")
-    exposure_neigh.sort_values("neighb_code", inplace=True)
-    # rename columns with modelrun suffix
-    exposure_neigh.columns = [exposure_neigh.columns.values[0]]+[f"{col}_4" for col in exposure_neigh.columns.values[1:]]    
-    for count, modelrun in enumerate(modelruns[1:]):
-        print(f"Adding data from modelrun {modelrun}")
-        exposure_neigh2 = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelrun}/ExposureViz/Exposure_A{nb_agents}_{modelrun}_neigh.csv")
-        exposure_neigh2.sort_values("neighb_code", inplace=True)
-        exposure_neigh2.columns = [exposure_neigh2.columns.values[0]]+[f"{col}_{count}" for col in exposure_neigh2.columns.values[1:]]   
-        exposure_neigh = exposure_neigh.merge(exposure_neigh2, on="neighb_code", how="outer")
-
-        print(exposure_neigh.tail(30))
-
-    for outcomevar in outcomevars:
-        exposure_neigh[outcomevar] = exposure_neigh[[f"{outcomevar}_{count}" for count in range(len(modelruns))]].mean(axis=1)
-    
-    print(exposure_neigh.head(20))
-    exposure_neigh.to_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_neigh.csv", index=False)    
+    exposure_neigh = pd.read_csv(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz/Exposure_A{nb_agents}_Mean_{scenario}_neigh.csv")
     exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
+    
+    exposure_neighStatusQ = pd.read_csv(path_data+f"/StatusQuo/{nb_agents}Agents/AgentExposure/MeanExposureViz/Exposure_A{nb_agents}_Mean_StatusQuo_neigh.csv")
+    exposure_neighStatusQ.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
 
-    print("Plotting mean status quo scenario exposure per neighborhood")
+    exposure_neighDiff = exposure_neigh.copy()
+    outcomecols = exposure_neigh.columns[1:]
+    for outcomvar in outcomevars:
+        exposure_neighDiff[f"{outcomvar}_diff"] = exposure_neigh[f"{outcomvar}"] - exposure_neighStatusQ[f"{outcomvar}"]
+    
+    exposure_neighDiff.to_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_neigh_diff.csv", index=False)
+    
+    observations = exposure_neigh[outcomecols[0:10]]
+    exposure_neighDiff["count"] = observations.count(axis=1)
+    print(exposure_neighDiff["count"].value_counts())
 
+    # deleting neighborhoods where below 5 observations are available
+    exposure_neighDiff = exposure_neighDiff.loc[exposure_neighDiff["count"]>6]
+
+    
+    print("Plotting mean diff to status quo scenario exposure per neighborhood")
     crs = 28992    
     points = gpd.GeoSeries(
         [Point(485000, 120000), Point(485001, 120000)], crs=crs
@@ -1210,82 +1470,19 @@ if "Mean across runs and Neighborhoods diff" in viztasks:
     print(distance_meters)
     neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
     print(neighborhoods.columns)
-    neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
+    neighborhoods = neighborhoods.merge(exposure_neighDiff, on="buurtcode", how="left")
 
+    diffoutcomevars = [f"{outcomvar}_diff" for outcomvar in outcomevars]
+    fullnamedict = {"NO2_diff": "Difference in NO2 (µg/m3)", "MET_diff": "Difference in Transport MET (MET/h)"}
     showplots = False
-    maxvals = {"NO2": 30, "MET": 1.5}
-    for outcomvar in outcomevars:
+    maxvals = {"NO2_diff": 0.2, "MET_diff": 0.02}
+    minvals = {"NO2_diff": -0.75, "MET_diff": -0.02}
+
+    for outcomvar in diffoutcomevars:
         PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun="MeanAcrossRuns", 
                             spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
-                            distance_meters=distance_meters, vmax=maxvals[outcomvar])
+                            distance_meters=distance_meters, vmax=maxvals[outcomvar], vmin = minvals[outcomvar])
 
 
 
 
-
-# print("Plotting Comparison to Status Quo over Time")
-# # read exposure data
-# modelrun_stat = "StatusQuo"
-# exposure_df_statusq = pd.read_csv(path_data + 'AgentExposure/' + modelrun_stat + f"/AgentExposure_A{nb_agents}_M1_{modelrun_stat}_hourAsRowsMerged.csv")
-# suffixes = ("_interv", "_statusq")
-# exposure_comp = pd.merge(exposure_df_vertical, exposure_df_statusq, on=["agent_ID", "hour"], how="left", suffixes=suffixes)
-
-# for outcomvar in outcomevars:
-#     CompareAverageExposure2Scenarios(outcomvar, ["_interv", "_statusq"], showplots, modelrun, scenariolabels=[ "After Intervention", "Before Intervention"],ylabel =  fullnamedict[outcomvar])
-
-# print("Plotting the difference between intervention and status quo scenario")
-
-# # plot the difference between intervention and status quo scenario
-# exposure_comp["NO2_diff"] = exposure_comp["NO2_interv"] -exposure_comp["NO2_statusq"]
-# exposure_comp["MET_diff"] = exposure_comp["MET_interv"] - exposure_comp["MET_statusq"]
-# exposure_comp = exposure_comp.rename(columns={"sex"+suffixes[1]: "sex", "migr_bck"+suffixes[1]: "migr_bck", "neighb_code"+suffixes[1]: "neighb_code"})
-
-# print(exposure_comp[["NO2_diff", "MET_diff"]].describe())
-# PlotVarsInLists(plottypes=plottypes, outcomevars=["NO2_diff", "MET_diff"], continuousstratvars=continuousstratvars,
-#                 categoricalstratvars=categoricalstratvars,showplots= showplots, modelrun=modelrun,
-#                 df=exposure_comp, fullnamedict=fullnamedict)
-
-# #ploting the difference between intervention and status quo scenario on average over the day
-# print("Plotting the difference between intervention and status quo scenario on average over the day")
-
-# print(exposure_comp.columns)
-# # restructuring the data to have the hour as a column
-# exposure_day = exposure_comp[["agent_ID", "sex", "migr_bck", "income_class", "income", "NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]].groupby(["agent_ID", "sex", "migr_bck", "income_class", "income"],  as_index=False).mean()
-# print(exposure_day.describe())
-
-
-# outcomevars = ["NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]
-
-# fullnamedict2 = {"NO2_diff": "NO2 Difference (µg/m3)",
-#                 "NO2_interv": "NO2 Intervention (µg/m3)",
-#                 "NO2_statusq": "NO2 Status Quo (µg/m3)",
-#                 "MET_diff": "MET Difference",
-#                 "MET_interv": "MET Intervention",
-#                 "MET_statusq": "MET Status Quo"}
-
-
-# for outcomvar in outcomevars:
-#     for stratifiers in categoricalstratvars:
-#         MeanComparisonWithoutTime(outcomvar=outcomvar, stratifier=stratifiers, showplots=showplots, modelrun=modelrun, df=exposure_day, ylabel=fullnamedict2[outcomvar], xlabel=fullnamedict[stratifiers])
-        
-# ### map the change in exposure per neighborhood
-# print("Plotting the difference between intervention and status quo scenario per neighborhood")
-# neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
-# print(neighborhoods.columns)
-# exposure_neigh = exposure_comp[["neighb_code", "NO2_diff", "NO2_interv", "NO2_statusq", "MET_diff", "MET_interv", "MET_statusq"]].groupby(["neighb_code"],  as_index=False).mean()
-# exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
-# print(exposure_neigh.head())
-# neighborhoods = neighborhoods.merge(exposure_neigh, on="buurtcode", how="left")
-
-# def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, outcomelabel = None):
-#     if outcomelabel is None:
-#         outcomelabel = outcomvar
-#     spatialdata.plot(outcomvar, antialiased=False, legend = True)
-#     plt.title(f"{outcomelabel} Per Neighborhood")
-#     plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.pdf', dpi = 300)
-#     if showplots:
-#         plt.show()
-#     plt.close()
-
-# for outcomvar in outcomevars:
-#     PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun=modelrun, spatialdata=neighborhoods, outcomelabel=fullnamedict2[outcomvar])

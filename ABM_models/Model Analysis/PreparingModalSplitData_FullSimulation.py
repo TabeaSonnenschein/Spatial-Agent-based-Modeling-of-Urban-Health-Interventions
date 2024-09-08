@@ -12,8 +12,10 @@ path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 
 # scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
-# scenario = "15mCity"
+scenario = "15mCity"
 scenario = "15mCityWithDestination"
+# scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2030"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")

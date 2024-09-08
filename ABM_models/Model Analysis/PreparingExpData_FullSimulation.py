@@ -8,8 +8,9 @@ os.chdir(path_data)
 # scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
 # scenario = "15mCity"
-# scenario = "15mCityWithDestination"
-scenario = "NoEmissionZone2025"
+scenario = "15mCityWithDestination"
+# scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2030"
 
 
 # identify model run for scenario
@@ -19,8 +20,10 @@ modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario,
 # print(modelruns)
 # bestStatusQuo = 481658
 # modelruns = [708658, 481658]
-# modelruns = [669169]
-# modelruns = [715113]
+# modelruns = [819838]
+# modelruns = [ 912787, 493519, 989597]
+modelruns = [ 989597]
+
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 for modelrun in modelruns:

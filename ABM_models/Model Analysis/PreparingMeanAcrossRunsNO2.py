@@ -13,9 +13,10 @@ path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 
 # scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
-# scenario = "15mCityWithDestination"
+scenario = "15mCityWithDestination"
 # scenario = "15mCity"
-scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2030"
 
 cellsize = 50
 
@@ -33,7 +34,7 @@ monthsnames = ["January",  "February",  "March",  "April",  "May",  "June",
 
 viztype = [
         "preparingData",
-        # "mappingInterventionNO2", 
+        "mappingInterventionNO2", 
         "statusquocomparison",
         ]
 

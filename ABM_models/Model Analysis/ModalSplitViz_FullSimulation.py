@@ -45,7 +45,7 @@ def stackedBarChart(data, stratvar, y, xlabel, filesuffix = "", nrdecimal = 2, i
 def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax, MSperc_hourstep,
                                    MSperc_monthmin, MSperc_monthmax, MSperc_monthstep,
                                    MSabs_hourmin, MSabs_hourmax, MSabs_hourstep,
-                                   MSabs_monthmin, MSabs_monthmax, MSabs_monthstep,
+                                   MSabs_monthmin, MSabs_monthmax, MSabs_monthstep, thickzero = False, roundval = 1,
                                    suffix = None, abs = "line", perc = "line"):
         outerringdict = {"Hours": 23.4, "Weekdays": 6.4, "Timeunits": 1,"Months": 3.4, 
                         "Total": 0.6
@@ -112,13 +112,15 @@ def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax
                     MS_perc_max = MSperc_monthmax
                     rangeMSperc =list(np.arange(start=MS_perc_min, stop = MS_perc_max + MSperc_monthstep, step = MSperc_monthstep))
                 
-                rangeMSperc = [round(val, 1) for val in rangeMSperc]
+                rangeMSperc = [round(val, roundval) for val in rangeMSperc]
                 MS_perc_max = rangeMSperc[-1]
                 print(MS_perc_min, MS_perc_max, MSperc_hourstep, MSperc_monthstep, rangeMSperc)
                 MS_perc.yticks(y=rangeMSperc, labels=rangeMSperc,vmin=MS_perc_min, vmax=MS_perc_max, side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
                 for MSpercval in rangeMSperc[1:-1]:
                     MS_perc.line([MS_perc.start, MS_perc.end], [MSpercval, MSpercval], vmin=MS_perc_min, vmax=MS_perc_max, lw=1, ls="dotted", color = gridcol)
                 
+                if thickzero:
+                    MS_perc.line([MS_perc.start, MS_perc.end], [0, 0], vmin=MS_perc_min, vmax=MS_perc_max, lw=2, ls="dotted", color = axiscol)
                 # MS_perc.line([MS_perc.start, MS_perc.end], [rangeMSperc[0], rangeMSperc[0]], vmin=MS_perc_min, vmax=MS_perc_max, lw=1.5, color = axiscol)
                 # MS_perc.line([MS_perc.start, MS_perc.end], [rangeMSperc[-1], rangeMSperc[-1]], vmin=MS_perc_min, vmax=MS_perc_max, lw=1.5, color = axiscol)
                 if perc == "line":
@@ -164,7 +166,9 @@ def plotCircosModalSplit_Timeunits(aggmodalsplit, MSperc_hourmin, MSperc_hourmax
                 MS_abs.yticks(y=rangeMSabs, labels=rangeMSabs,vmin=MS_abs_min, vmax=MS_abs_max,  side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
                 for MSabsval in rangeMSabs[1:-1]:
                     MS_abs.line([MS_abs.start, MS_abs.end], [MSabsval, MSabsval], vmin=MS_abs_min, vmax=MS_abs_max,  lw=1, ls="dotted", color = gridcol)
-                
+                if thickzero:
+                    MS_abs.line([MS_abs.start, MS_abs.end], [0, 0], vmin=MS_abs_min, vmax=MS_abs_max, lw=2, ls="dotted",color = axiscol)
+
                 #MS_abs.line([MS_abs.start, MS_abs.end], [rangeMSabs[0], rangeMSabs[0]], vmin=MS_abs_min, vmax=MS_abs_max, lw=1.5, color = axiscol)
                 #MS_abs.line([MS_abs.start, MS_abs.end], [rangeMSabs[-1], rangeMSabs[-1]], vmin=MS_abs_min, vmax=MS_abs_max, lw=1.5, color = axiscol)
                 if abs == "line":
@@ -216,10 +220,12 @@ nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 os.chdir(path_data)
 
-# scenario = "StatusQuo"
+scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
 # scenario = "15mCity"
-scenario = "15mCityWithDestination"
+# scenario = "15mCityWithDestination"
+# scenario = "NoEmissionZone2025"
+scenario = "NoEmissionZone2030"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
@@ -232,15 +238,12 @@ days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 viztype = [
         # "singleIntervention", 
-        "CirclePlot",
-        # "statusquocomparison", 
-        # "multipleRunComparison",
-        # "extentvisualization",
-        # "extentcomparison"
+        # "CirclePlot",
+        "statusquocomparison"
         ]
 
-extentname = "parkingprice_interventionextent"
-
+# extentname = "parkingprice_interventionextent"
+extentname = ""
 if not os.path.exists(path_data+f"/{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitViz"):
       # Create the directory
       os.mkdir(path_data+f"/{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitViz")
@@ -375,110 +378,63 @@ if "CirclePlot" in viztype:
     
 if "statusquocomparison" in viztype:
     for modelrun in modelruns:
-        modalsplit_df =  pd.read_csv(f"{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitLog{nb_agents}_{scenario}_{modelrun}.csv")
-        modalsplit_df.drop(columns=['date', "day"], inplace=True)
-        modalsplit_df['weekday'] = pd.Categorical(modalsplit_df['weekday'], categories=days_order, ordered=True)
-        melted_interv = pd.melt(modalsplit_df, id_vars=['hour', 'weekday', 'month'], var_name='mode_of_transport', value_name='counts').reset_index()
-        melted_interv['counts'].fillna(0, inplace=True)
-        mean_per_day_interv = melted_interv.groupby(['weekday', 'hour', 'mode_of_transport'])['counts'].mean().reset_index()
-        mean_per_month_interv = melted_interv.groupby(['month', 'hour', 'mode_of_transport'])['counts'].mean().reset_index()
+        print("Creating Circos plot for difference to Status Quo")
+        os.chdir(destination)
+        aggmodalsplit = pd.read_csv(f"ModalSplit_A{nb_agents}_{scenario}_{modelrun}_aggregate.csv")
+        aggmodalsplit["totaltrips"] = aggmodalsplit["bike"] + aggmodalsplit["drive"] + aggmodalsplit["transit"] + aggmodalsplit["walk"]
+        aggmodalsplit_status =  pd.read_csv(path_data+f"/StatusQuo/{nb_agents}Agents/ModalSplit/ModalSplitViz/ModalSplit_A{nb_agents}_StatusQuo_MeanAcrossRuns_aggregate.csv")
+        aggmodalsplit_status["totaltrips"] = aggmodalsplit_status["bike"] + aggmodalsplit_status["drive"] + aggmodalsplit_status["transit"] + aggmodalsplit_status["walk"]
+        aggmodalsplit_diff = aggmodalsplit.copy()
+        aggmodalsplit_diff["bikefraction"] = aggmodalsplit["bikefraction"] - aggmodalsplit_status["bikefraction"]
+        aggmodalsplit_diff["drivefraction"] = aggmodalsplit["drivefraction"] - aggmodalsplit_status["drivefraction"]
+        aggmodalsplit_diff["transitfraction"] = aggmodalsplit["transitfraction"] - aggmodalsplit_status["transitfraction"]
+        aggmodalsplit_diff["walkfraction"] = aggmodalsplit["walkfraction"] - aggmodalsplit_status["walkfraction"]
+        aggmodalsplit_diff["totaltrips"] = aggmodalsplit["totaltrips"] - aggmodalsplit_status["totaltrips"]
+        aggmodalsplit_diff["walk"] = aggmodalsplit["walk"] - aggmodalsplit_status["walk"]
+        aggmodalsplit_diff["bike"] = aggmodalsplit["bike"] - aggmodalsplit_status["bike"]
+        aggmodalsplit_diff["drive"] = aggmodalsplit["drive"] - aggmodalsplit_status["drive"]
+        aggmodalsplit_diff["transit"] = aggmodalsplit["transit"] - aggmodalsplit_status["transit"]
+        aggmodalsplit_diff.to_csv(f"ModalSplit_A{nb_agents}_{scenario}_{modelrun}_diff.csv", index=False)
+        print(aggmodalsplit_diff.head(20))
+        timeunits = ["hour", "weekday", "month"]
+        outcomevars = ["bike", "drive", "transit", "walk"] 
 
-        statQuo_df = pd.read_csv(f"StatusQuo/{nb_agents}Agents/ModalSplit/ModalSplitLog{nb_agents}_StatusQuo_{bestStatusQuo}.csv")
-        statQuo_df.drop(columns=['date', "day"], inplace=True)
-        statQuo_df['weekday'] = pd.Categorical(statQuo_df['weekday'], categories=days_order, ordered=True)
-        melted_statquo = pd.melt(statQuo_df, id_vars=['hour', 'weekday', 'month'], var_name='mode_of_transport', value_name='counts').reset_index()
-        melted_statquo['counts'].fillna(0, inplace=True)
-        mean_per_day_statquo = melted_statquo.groupby(['weekday', 'hour', 'mode_of_transport'])['counts'].mean().reset_index()
-        mean_per_month_statquo = melted_statquo.groupby(['month', 'hour', 'mode_of_transport'])['counts'].mean().reset_index()
+        modes = ["bike", "drive", "transit", "walk"]
+        # # 15minCityWithDestination
+        # MSperc_monthmin, MSperc_monthmax, MSperc_monthstep = -0.2, 0.25, 0.1
+        # MSperc_hourmin, MSperc_hourmax, MSperc_hourstep = -0.2, 0.25, 0.1
+        # MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = -1000, 1500, 500
+        # MSabs_hourmin, MSabs_hourmax, MSabs_hourstep = -1000, 1500, 500
+        
+        # # NoEmissionZone2025, 15minCity, PrkPriceInterv
+        # MSperc_monthmin, MSperc_monthmax, MSperc_monthstep = -0.05, 0.05, 0.025
+        # MSperc_hourmin, MSperc_hourmax, MSperc_hourstep =  -0.05, 0.05, 0.025
+        # MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = -100, 100, 50
+        # MSabs_hourmin, MSabs_hourmax, MSabs_hourstep =  -100, 100, 50
+        
+        # NoEmissionZone2030
+        MSperc_monthmin, MSperc_monthmax, MSperc_monthstep = -0.2, 0.2, 0.1
+        MSperc_hourmin, MSperc_hourmax, MSperc_hourstep =  -0.2, 0.2, 0.1
+        MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = -1000, 1000, 500
+        MSabs_hourmin, MSabs_hourmax, MSabs_hourstep =  -1000, 1000, 500
+        
+        print(MSperc_monthmin, MSperc_monthmax, MSperc_monthstep)
+        print(MSperc_hourmin, MSperc_hourmax, MSperc_hourstep)
+        print(MSabs_monthmin, MSabs_monthmax, MSabs_monthstep)
+        print(MSabs_hourmin, MSabs_hourmax, MSabs_hourstep)                                                                       
+                                                       
 
-        # # Plot hourly modal split per day of the week
-        # sns.set(style="whitegrid")
-        # g = sns.FacetGrid(mean_per_day_combined, col="weekday", hue="mode_of_transport", col_wrap=4, height=4, palette="tab10")
-        # g.map_dataframe(sns.lineplot, x="hour", y="counts", style="type", dashes={'Intervention': '', 'Status Quo': (2, 2)}, markers=False)        
-        # g.map(sns.lineplot, "hour", "counts").add_legend()
-        # g.set_axis_labels("Hour", "Counts")
-        # g.set_titles("{col_name}")
-        # plt.savefig(path_data+f"/{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitViz/"+f"{scenario}_StatusQuo_hourly_modal_split_per_day_{modelrun}.png", dpi=600)
+        # MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = calc_min_max(aggmodalsplit_diff,  timeunit_contains = "weekday", stratvals = ["totaltrips"],
+        #                                                                 roundval=-2)
+        # MSabs_hourmax = np.max([aggmodalsplit.loc[aggmodalsplit["timeunit"].str.contains("hour"), "totaltrips"].max()])
+        
 
-        # # Plot hourly modal split per day of the week with overlay
-        # sns.set(style="whitegrid")
-        # palette = sns.color_palette("tab10")
-        # g = sns.FacetGrid(mean_per_day_statquo, col="weekday", hue="mode_of_transport", col_wrap=4, height=4, palette=palette)
-        # g.map(sns.lineplot, "hour", "counts", linestyle='--', linewidth=2)
-        # g.add_legend()
-        # g.set_axis_labels("Hour", "Counts")
-        # g.set_titles("{col_name}")
+        plotCircosModalSplit_Timeunits(aggmodalsplit_diff, MSperc_hourmin = MSperc_hourmin, MSperc_hourmax = MSperc_hourmax, MSperc_hourstep=MSperc_hourstep,
+                                       MSperc_monthmin = MSperc_monthmin, MSperc_monthmax = MSperc_monthmax,MSperc_monthstep=MSperc_monthstep,
+                                       MSabs_hourmin = MSabs_hourmin, MSabs_hourmax =MSabs_hourmax,MSabs_hourstep=MSabs_hourstep,
+                                       MSabs_monthmin = MSabs_monthmin, MSabs_monthmax = MSabs_monthmax,MSabs_monthstep=MSabs_monthstep, thickzero=True,
+                                       roundval=3,suffix = f"_{scenario}_{modelrun}_Diff", abs = "line")
 
-        # # for ax in g.axes.flat:
-        # #     weekday = ax.get_title().split('=')[-1].strip()
-        # #     data_interv = mean_per_day_interv[mean_per_day_interv['weekday'] == weekday]
-        # #     for mode in data_interv['mode_of_transport'].unique():
-        # #         sns.lineplot(data=data_interv[data_interv['mode_of_transport'] == mode], x="hour", y="counts", ax=ax, linestyle='--', linewidth=2, label=mode)
-
-        # plt.savefig(path_data+f"/{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitViz/"+f"{scenario}_StatusQuo_hourly_modal_split_per_day_{modelrun}.png", dpi=600)
-        # plt.close()  
-
-        # Plot hourly modal split per day of the week with overlay
-        sns.set(style="whitegrid")
-        palette = sns.color_palette("tab10")
-
-        g = sns.FacetGrid(mean_per_day_interv, col="weekday", hue="mode_of_transport", col_wrap=4, height=4, palette=palette)
-        g.map(sns.lineplot, "hour", "counts", linestyle='-', linewidth=2)
-        g.set_axis_labels("Hour", "Counts")
-        g.set_titles("{col_name}")
-
-        for ax in g.axes.flat:
-            weekday = ax.get_title().split('=')[-1].strip()
-            data_statquo = mean_per_day_statquo[mean_per_day_statquo['weekday'] == weekday]
-            for mode in data_statquo['mode_of_transport'].unique():
-                sns.lineplot(data=data_statquo[data_statquo['mode_of_transport'] == mode], x="hour", y="counts", ax=ax, linestyle='--', linewidth=2)
-
-        # Create a single legend for both intervention and status quo
-        handles, labels = ax.get_legend_handles_labels()
-        intervention_handles = [h for h, l in zip(handles, labels) if 'Intervention' in l]
-        status_quo_handles = [h for h, l in zip(handles, labels) if 'Status Quo' in l]
-        plt.savefig(path_data+f"/{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitViz/"+f"{scenario}_StatusQuo_hourly_modal_split_per_day_{modelrun}.png", dpi=600)
-
-
-        # # Plot hourly modal split per month
-        # g = sns.FacetGrid(mean_per_month_interv, col="month", hue="mode_of_transport", col_wrap=4, height=4)
-        # g.map(sns.lineplot, "hour", "counts").add_legend()
-        # g.set_axis_labels("Hour", "Counts")
-        # g.set_titles("{col_name} Month")
-        # plt.savefig(path_data+f"/{scenario}/{nb_agents}Agents/ModalSplit/ModalSplitViz/"+f"{scenario}_hourly_modal_split_per_month_{modelrun}.png", dpi=600)
-    
-        # melted_interv = melted_interv.sort_values(by='mode_of_transport')
-        # melted_statquo = melted_statquo.sort_values(by='mode_of_transport')
-
-        # melted_interv["hour"] = [int(x[0:2]) for x in  melted_interv["hour"]]
-        # melted_interv["counts"] = [float(x) for x in  melted_interv["counts"]]
-
-        # melted_statquo["hour"] = [int(x[0:2]) for x in  melted_statquo["hour"]]
-        # melted_statquo["counts"] = [float(x) for x in  melted_statquo["counts"]]
-
-        # # combined_melted = pd.concat([melted_scenario1, melted_scenario2], keys=['Scenario 1', 'Scenario 2'])
-        # # combined_melted["hour"] = [int(x[0:2]) for x in  combined_melted["hour"]]
-        # # combined_melted["counts"] = [float(x) for x in  combined_melted["counts"]]
-
-        # sns.set(style="whitegrid")
-        # plt.figure(figsize=(10, 6))
-        # sns.lineplot(x='hour', y='counts', hue='mode_of_transport', style='mode_of_transport', dashes=[(2, 2), (2, 2), (2,2), (2,2)], data=melted_statquo, alpha=0.5, legend=False)
-
-
-        # # Line plot for intervention with continuous lines
-        # sns.lineplot(x='hour', y='counts', hue='mode_of_transport', style='mode_of_transport', data=melted_interv, dashes=False, markers=False)
-
-        # plt.plot([], [], ' ', label="dashed lines = status quo")
-
-
-        # # Adjust layout and display the plot
-        # # Customize plot
-        # plt.xlabel("Hour")
-        # plt.ylabel("Count")
-        # plt.title(f"Mode of Transport split of the {scenario} scenario over time")
-        # plt.legend(title="Mode of Transport")
-        # plt.savefig(f"ModalSplitLog{nb_agents}_{scenario}.png", dpi=600)
-        # plt.show()
 
 
 if "extentvisualization" in viztype:

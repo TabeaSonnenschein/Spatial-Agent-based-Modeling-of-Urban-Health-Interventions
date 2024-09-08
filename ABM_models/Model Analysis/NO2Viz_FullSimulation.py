@@ -12,9 +12,9 @@ path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 
 # scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
-# scenario = "15mCityWithDestination"
+scenario = "15mCityWithDestination"
 # scenario = "15mCity"
-scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2025"
 
 cellsize = 50
 os.chdir(path_data)
@@ -29,6 +29,9 @@ experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/AB
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [481658,708658])]
 # modelruns = [715113]
+# modelruns = [ 799701]
+# modelruns = [ 497507, 672874, 759145, 806323]
+# modelruns = [ 912787, 493519, 989597]
 
 os.chdir(path_data)
 

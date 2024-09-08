@@ -10,13 +10,14 @@ import contextily as cx
 from matplotlib_scalebar.scalebar import ScaleBar
 from shapely.geometry.point import Point
 from itertools import chain
+import decimal
 ####################################################
 
 def calc_min_max(df, column, timeunit_contains, round_val = 1, hardzero = True):
             origmin_val = np.min([df.loc[df["timeunit"].str.contains(timeunit_contains), column].min()])
             origmax_val = np.max([df.loc[df["timeunit"].str.contains(timeunit_contains), column].max()])
-            print("original min", origmin_val, "original max", origmax_val)
-            step = ((origmax_val - origmin_val)/7).round(round_val)
+            print(timeunit_contains, column, ": original min",origmin_val, "; original max", origmax_val)
+            step = ((origmax_val - origmin_val)/5).round(round_val)
             min_val = (origmin_val - step).round(round_val)  
             if hardzero:
                 if min_val < 0:
@@ -38,7 +39,7 @@ def calc_min_max(df, column, timeunit_contains, round_val = 1, hardzero = True):
                 min_val = int(min_val)
                 max_val = int(max_val)
                 step = int(step)
-            print("Finalmin", min_val, "max", max_val, "step", step)
+            print(timeunit_contains, column, ": Finalmin",  min_val, ", max", max_val, ", step", step)
             return min_val, max_val, step
 
 def create_NO2Traffmaxminparamdict(df, hardzero = True):
@@ -50,7 +51,12 @@ def create_NO2Traffmaxminparamdict(df, hardzero = True):
     if NO2weekdaymax > NO2monthmax:
         NO2monthmax = NO2weekdaymax
     Traffhourmin, Traffhourmax, Traffhourstep = calc_min_max(df, column= "Traffic", timeunit_contains = "hour", round_val = 0, hardzero = hardzero)
-    Traffmonthmin, Traffmonthmax, Traffmonthstep = calc_min_max(df, column= "Traffic", timeunit_contains = "weekday", round_val = 0, hardzero = hardzero)
+    Traffmonthmin, Traffmonthmax, Traffmonthstep = calc_min_max(df, column= "Traffic", timeunit_contains = "month", round_val = 0, hardzero = hardzero)
+    Traffweekdaymin, Traffweekdaymax, Traffweekdaystep = calc_min_max(df, column= "Traffic", timeunit_contains = "weekday", round_val = 0, hardzero = hardzero)
+    if Traffweekdaymin < Traffmonthmin:
+        Traffmonthmin = Traffweekdaymin
+    if Traffweekdaymax > Traffmonthmax:
+        Traffmonthmax = Traffweekdaymax
     minmaxparams = {"NO2monthmin": NO2monthmin, "NO2monthmax": NO2monthmax, "NO2monthstep": NO2monthstep,
             "NO2hourmin": NO2hourmin, "NO2hourmax": NO2hourmax, "NO2hourstep": NO2hourstep,
             "Traffmonthmin": Traffmonthmin, "Traffmonthmax": Traffmonthmax, "Traffmonthstep": Traffmonthstep,
@@ -58,11 +64,11 @@ def create_NO2Traffmaxminparamdict(df, hardzero = True):
     return minmaxparams
 
 def plotCircosNO2Traff_Timeunits(aggexposure, colourdict,
-                                NO2monthmin = 19.9, NO2monthmax = 21, NO2monthstep = 0.2,
-                                NO2hourmin=18, NO2hourmax = 24, NO2hourstep=1, 
-                                Traffmonthmin = 265, Traffmonthmax = 286, Traffmonthstep = 2,
-                                Traffhourmin = 20, Traffhourmax = 320 , Traffhourstep = 50,
-                                suffix = None):
+                                NO2monthmin = 19.9, NO2monthmax = 21, NO2monthstep = 0.2, NO2monthround = 2,
+                                NO2hourmin=18, NO2hourmax = 24, NO2hourstep=1, NO2hourround = 1,
+                                Traffmonthmin = 265, Traffmonthmax = 286, Traffmonthstep = 2, Traffhourround = 0,
+                                Traffhourmin = 20, Traffhourmax = 320 , Traffhourstep = 50, Traffmonthround = 1,
+                                labelprefix = "", suffix = None):
         outerringdict = {"Hours": 23, "Weekdays": 6, "Timeunits": 1,"Months": 3, 
                         "Total": 0.4
                         }
@@ -90,7 +96,7 @@ def plotCircosNO2Traff_Timeunits(aggexposure, colourdict,
         gridcol = "lightgrey"
         axiswidth = 1.3 
         # Create Circos plot
-        circos = Circos(outerringdict, space=20)
+        circos = Circos(outerringdict, space=22)
 
         for sector in circos.sectors:
             print(sector.name)
@@ -119,16 +125,23 @@ def plotCircosNO2Traff_Timeunits(aggexposure, colourdict,
                 NO2_track = sector.add_track((65, 100), r_pad_ratio=0.1)
                 NO2_track.axis(ec = axiscol)
                 if sector.name == "Hours":
-                    NO2max = NO2hourmax
+                    NO2max = NO2hourmax + NO2hourstep
                     NO2min = NO2hourmin
-                    rangeNO2 =list(np.arange(start=NO2min, stop = NO2max + NO2hourstep, step = NO2hourstep))
+                    NO2step = NO2hourstep
+                    NO2round = NO2hourround
                 else:
-                    NO2max = NO2monthmax
+                    NO2max = NO2monthmax + NO2monthstep
                     NO2min = NO2monthmin
-                    rangeNO2 =list(np.arange(start=NO2min, stop = NO2max + NO2monthstep, step = NO2monthstep))
-                
-                rangeNO2 = [round(val, 2) for val in rangeNO2]
+                    NO2step = NO2monthstep
+                    NO2round = NO2monthround
+                rangeNO2 =list(np.arange(start=NO2min, stop = NO2max, step = NO2step))
+                rangeNO2 = [round(val, NO2round) for val in rangeNO2]
+                rangeNO2 = list(dict.fromkeys(rangeNO2))
+                while len(rangeNO2) >= 10:
+                    rangeNO2 = rangeNO2[::2]
+                print(rangeNO2)
                 NO2max = rangeNO2[-1]    
+                NO2min = rangeNO2[0]
                 NO2_track.yticks(y=rangeNO2, labels=rangeNO2,vmin=NO2min, vmax=NO2max, side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
                 for NO2val in rangeNO2:
                     NO2_track.line([NO2_track.start, NO2_track.end], [NO2val, NO2val], vmin=NO2min, vmax=NO2max, lw=1, ls="dotted", color = gridcol)
@@ -149,15 +162,26 @@ def plotCircosNO2Traff_Timeunits(aggexposure, colourdict,
                 Traff_track = sector.add_track((20, 55), r_pad_ratio=0.1)
                 Traff_track.axis(ec = axiscol)
                 if sector.name == "Hours":
-                    Traffmax = Traffhourmax
+                    Traffmax = Traffhourmax + Traffhourstep
                     Traffmin = Traffhourmin
-                    rangeTraff =list(np.arange(start=Traffmin, stop = Traffmax +Traffhourstep, step = Traffhourstep))
+                    Traffstep = Traffhourstep
+                    Traffround= Traffhourround
                 else:
-                    Traffmax = Traffmonthmax
+                    Traffmax = Traffmonthmax +Traffmonthstep
                     Traffmin = Traffmonthmin
-                    rangeTraff =list(np.arange(start=Traffmin, stop = Traffmax + Traffmonthstep, step = Traffmonthstep))
-        
-                    Traffmax = rangeTraff[-1]    
+                    Traffstep = Traffmonthstep
+                    Traffround= Traffmonthround
+                rangeTraff =list(np.arange(start=Traffmin, stop = Traffmax , step = Traffstep))
+                if Traffround != 0:
+                    rangeTraff = [round(val, Traffround) for val in rangeTraff]
+                else:
+                    rangeTraff = [int(val) for val in rangeTraff]
+                rangeTraff = list(dict.fromkeys(rangeTraff))
+                while len(rangeTraff) >= 10:
+                    rangeTraff = rangeTraff[::2]
+                print(rangeTraff)
+                Traffmin = rangeTraff[0]
+                Traffmax = rangeTraff[-1]    
                 Traff_track.yticks(y=rangeTraff, labels=rangeTraff,vmin=Traffmin, vmax=Traffmax,  side="left", tick_length=1, label_size=8, label_margin=0.5, line_kws = {"color": axiscol}, text_kws={"color": axiscol})
                 for Traffval in rangeTraff:
                     Traff_track.line([Traff_track.start, Traff_track.end], [Traffval, Traffval], vmin=Traffmin, vmax=Traffmax,  lw=1, ls="dotted", color = gridcol)
@@ -171,8 +195,8 @@ def plotCircosNO2Traff_Timeunits(aggexposure, colourdict,
 
         # Create legend
         legend_elements = []
-        legend_elements.append(Line2D([0], [0], color=colourdict["NO2"], lw=2, label="Mean NO2"))
-        legend_elements.append(Line2D([0], [0], color=colourdict["Traffic"], lw=2, label="Mean Traffic Volume"))
+        legend_elements.append(Line2D([0], [0], color=colourdict["NO2"], lw=2, label=f"{labelprefix}Mean NO2"))
+        legend_elements.append(Line2D([0], [0], color=colourdict["Traffic"], lw=2, label=f"{labelprefix}Mean Traffic Volume"))
         figure = circos.plotfig(dpi=600)
         figure.legend(handles=legend_elements, loc='lower right', ncol=1, title = "Legend")
         figure.savefig(f"CirclePlot_with_Legend{suffix}.png", dpi=600)
@@ -187,14 +211,15 @@ path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData"
 # scenario = "PrkPriceInterv"
 # scenario = "15mCityWithDestination"
 # scenario = "15mCity"
-scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2025"
+scenario = "NoEmissionZone2030"
 
 cellsize = 50
 
-needCompAggdf = True
+needCompAggdf = False
 
 viztype = [
-        "singleIntervention",
+        # "singleIntervention",
         "statusquocomparison",
 ]
 
@@ -283,11 +308,13 @@ if "singleIntervention" in viztype:
     plotCircosNO2Traff_Timeunits(timeNO2Traff_df, colourdict, **minmaxparams, suffix = f"{scenario}_TraffNO2Timeunits_{suffix}")
 
 if "statusquocomparison" in viztype:
-    statustimeNO2Traff_df = pd.read_csv(path_data +f"/ModelRuns/StatusQuo/{nb_agents}Agents/NO2/NO2Viz/NO2TraffMeansTime_StatusQuo_MeanAcrossRuns.csv")
+    statustimeNO2Traff_df = pd.read_csv(path_data +f"/ModelRuns/StatusQuo/{nb_agents}Agents/NO2/NO2Viz/NO2TraffMeansTime_StatusQuo_MeanAcrossRuns_{suffix}.csv")
     timeNO2Traff_diff_df = timeNO2Traff_df.copy()
     timeNO2Traff_diff_df["NO2"] = timeNO2Traff_df["NO2"] - statustimeNO2Traff_df["NO2"]
     timeNO2Traff_diff_df["Traffic"] = timeNO2Traff_df["Traffic"] - statustimeNO2Traff_df["Traffic"]
     timeNO2Traff_diff_df.to_csv(f"NO2TraffMeansTime_{scenario}_DiffStatusQuo.csv", index=False)
 
     minmaxparams = create_NO2Traffmaxminparamdict(timeNO2Traff_diff_df, hardzero= False )
-    plotCircosNO2Traff_Timeunits(timeNO2Traff_diff_df, colourdict, **minmaxparams,suffix = f"{scenario}_TraffNO2Timeunits _{suffix}")
+    plotCircosNO2Traff_Timeunits(timeNO2Traff_diff_df, colourdict, **minmaxparams, Traffmonthround=2, Traffhourround=2, NO2hourround=3, NO2monthround=4,
+                                 labelprefix="Change in ",
+                                 suffix = f"{scenario}_TraffNO2ChangeTimeunits_{suffix}")

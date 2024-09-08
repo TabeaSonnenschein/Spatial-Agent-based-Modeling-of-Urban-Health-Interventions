@@ -13,6 +13,7 @@ scenario = "StatusQuo"
 # scenario = "15mCity"
 scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2030"
 
 interanalysissuffix = "_parkingprice_interventionextent_trackintersect"
 maketable = True
@@ -20,6 +21,7 @@ vizintervention = True
 
 experimentoverview = pd.read_csv("ExperimentOverview.csv")
 experimentoverview = experimentoverview.loc[experimentoverview["fullrun"] == True]
+experimentoverview["Population Sample"] = [x[0] for x in experimentoverview["Population Sample"]]
 popsamples = experimentoverview["Population Sample"].unique()
 popsamples = [x for x in popsamples if str(x) != 'nan']	
 popsamples.sort()

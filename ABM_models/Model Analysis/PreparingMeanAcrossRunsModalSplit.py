@@ -13,8 +13,12 @@ path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 
 # scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
-# scenario = "15mCity"
+scenario = "15mCity"
 scenario = "15mCityWithDestination"
+# scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2030"
+
+enriched = False
 
 os.chdir(os.path.join(path_data,scenario, f"{nb_agents}Agents/ModalSplit"))
 
@@ -25,11 +29,36 @@ modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario,
 modes = ["bike","drive", "transit","walk"]
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 timerefs = ["month", "weekday",  "hour"]
-modalsplit_df =  pd.read_csv(f"ModalSplitLog{nb_agents}_{scenario}_{modelruns[0]}.csv")
+
+if enriched:
+    modalsplit_df =  pd.read_csv(f"ModalSplitEnriched_{scenario}_{modelruns[0]}.csv")
+    modalsplit_df["date"] = [f"2019-{modalsplit_df['Month'].iloc[x]}-{modalsplit_df['Day'].iloc[x]}" for x in range(len(modalsplit_df))]
+    try:
+        modalsplit_df['date'] = pd.to_datetime(modalsplit_df['date'], format='%Y-%m-%d', errors='coerce')
+    except Exception as e:
+        print("Error converting dates:", e)
+    modalsplit_df["weekday"] = modalsplit_df['date'].dt.day_name()
+    modes = modes + ["duration"]
+    # rename the columns
+    modalsplit_df = modalsplit_df.rename(columns={"Month": "month", "Hour": "hour"})
+    print(modalsplit_df.head())
+else:
+    modalsplit_df =  pd.read_csv(f"ModalSplitLog{nb_agents}_{scenario}_{modelruns[0]}.csv")
+
 modalsplit_df = modalsplit_df[timerefs+modes]
 
 for count, modelrun in enumerate(modelruns[1:]):
-    modalsplit_df2 =  pd.read_csv(f"ModalSplitLog{nb_agents}_{scenario}_{modelrun}.csv")
+    if enriched:
+        modalsplit_df2 =  pd.read_csv(f"ModalSplitEnriched_{scenario}_{modelruns[0]}.csv")
+        modalsplit_df2["date"] = [f"2019-{modalsplit_df2['Month'].iloc[x]}-{modalsplit_df2['Day'].iloc[x]}" for x in range(len(modalsplit_df2))]
+        try:
+            modalsplit_df2['date'] = pd.to_datetime(modalsplit_df2['date'], format='%Y-%m-%d', errors='coerce')
+        except Exception as e:
+            print("Error converting dates:", e)
+        modalsplit_df2["weekday"] = modalsplit_df2['date'].dt.day_name()
+        modalsplit_df2 = modalsplit_df2.rename(columns={"Month": "month", "Hour": "hour"})
+    else:
+        modalsplit_df2 =  pd.read_csv(f"ModalSplitLog{nb_agents}_{scenario}_{modelrun}.csv")
     modalsplit_df2 = modalsplit_df2[timerefs+modes]
     modalsplit_df = modalsplit_df.merge(modalsplit_df2, on=timerefs, how="outer",suffixes=("",f"_{count+1}"))
 

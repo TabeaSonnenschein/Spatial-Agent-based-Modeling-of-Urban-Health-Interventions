@@ -655,4 +655,35 @@ from collections import Counter
 # Experimentpredictions_df = pd.DataFrame(Experimentpredictions)
 # Experimentpredictions_df.to_csv(r"D:\PhD EXPANSE\Written Paper\04- Case study 1 - Transport Interventions\interventiondocs\mileuzonen\ModalChoiceModel\ExperimentOverview.csv", index=True)
 
-    
+# ###########################################
+# ### set Traffic to 0 and NO2 to baseline in results
+# ############################################
+
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
+
+# if not os.path.exists(path_data+f"/NoEmissionZone2030/21750Agents/Traffic/TraffViz"):
+#       # Create the directory
+#       os.mkdir(path_data+f"/NoEmissionZone2030/21750Agents/Traffic/TraffViz")
+      
+# if not os.path.exists(path_data+f"/NoEmissionZone2030/21750Agents/NO2/NO2Viz"):
+#       # Create the directory
+#       os.mkdir(path_data+f"/NoEmissionZone2030/21750Agents/NO2/NO2Viz")
+      
+# Traffdest = path_data+f"/NoEmissionZone2030/21750Agents/Traffic/TraffViz"
+# NO2dest = path_data+f"/NoEmissionZone2030/21750Agents/NO2/NO2Viz"
+
+# # set emitting traffic to 0
+# Traffic_df =  pd.read_csv(path_data+f"/StatusQuo/21750Agents/Traffic/TraffViz/TraffMeans_StatusQuo_MeanAcrossRuns.csv")
+# columns = Traffic_df.columns
+# Traffic_df[columns[1:]] = 0
+# Traffic_df.to_csv(Traffdest+"/TraffMeans_NoEmissionZone2030_MeanAcrossRuns.csv", index=False)
+
+
+# # read baseline NO2
+# AirPollPred = pd.read_csv(f"D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/AirPollutionModelData/Pred_50mTrV_TrI_noTrA.csv")
+# baselineNO2 = AirPollPred["baseline_NO2"]
+# NO2_df =  pd.read_csv(path_data+f"/StatusQuo/21750Agents/NO2/NO2Viz/NO2Means_StatusQuo_MeanAcrossRuns.csv")
+# columns = NO2_df.columns
+# for col in columns[1:]:
+#     NO2_df[col] = baselineNO2
+# NO2_df.to_csv(NO2dest+"/NO2Means_NoEmissionZone2030_MeanAcrossRuns.csv", index=False)
