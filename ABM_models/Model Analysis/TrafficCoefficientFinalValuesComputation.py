@@ -11,8 +11,8 @@ nb_humans = 43500
 # modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 # modelruns = [300390, 364558, 254724, 90988, 529699, 602810]
 # subsetnr = [0, 5, 1, 2, 6, 4]
-modelruns = [4668, 408696, 819297, 38705, 110469, 973820, 163533, 566814, 167714]
-subsetnr = [0,1,2,3,4,5,6,7,9]
+modelruns = [4668, 408696, 819297, 38705, 110469, 973820, 163533, 566814, 167714, 705197]
+subsetnr = [0,1,2,3,4,5,6,7,9, 8]
 meancoeffs = []
 
 traffassignfilespath = f"{path_data}TrafficRemainder/TraffCoefficient/"

@@ -8,12 +8,13 @@ from shapely import LineString, Point
 from shapely.wkt import loads
 from matplotlib.collections import LineCollection
 import matplotlib.colors as mcolors
-from shapely.ops import snap, split
+from shapely.ops import snap, split, nearest_points
 import matplotlib.patches as mpatches
 from matplotlib_scalebar.scalebar import ScaleBar
 import matplotlib.gridspec as gridspec
 import warnings
 import contextily as cx
+
 
 warnings.filterwarnings("ignore", message="invalid value encountered in line_locate_point")
 
@@ -176,17 +177,17 @@ samplerun = [modelruns[count] for count, popsample in enumerate(popsamples) if p
 samplerun = 879534
 
 
-hour = 8
+hour = 12
 month = 1
-day = 1
+day = 6
 timestep = hour*6
-print(timestep)
 date = f"0{day}-0{month}-2019"
-weekday = pd.to_datetime(date).weekday()
+weekday = pd.to_datetime(date, format="%d-%m-%Y").weekday()
 weekday = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][weekday]
 
 
 scheduledf = pd.read_csv(path_data+f"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_{weekday}.csv")
+
 
 
 # sampleTracks  = pd.read_csv(f"F:/ModelRuns/PrkPriceInterv/21750Agents/Tracks/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour}_{scenario}.csv")
@@ -214,6 +215,8 @@ buildings = gpd.read_feather(path_data+"SpatialData/Buildings.feather")
 streets = gpd.read_feather(path_data+"SpatialData/Streets.feather")
 greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
 
+
+
 Residences = gpd.read_feather(path_data+"SpatialData/Residences.feather")
 Supermarkets = gpd.read_feather(path_data+f"SpatialData/Supermarkets15mCity.feather")
 Kindergardens = gpd.read_feather(path_data+f"SpatialData/Kindergardens15mCity.feather")
@@ -231,7 +234,31 @@ allpoints = allpoints[["geometry"]]
 activitydict = {1: "sleep/rest", 2: "eating out", 3: "work", 4: "attending classes/lectures", 5: "at home", 6: "cooking", 7: "gardening", 8: "sports/ outdoor activity", 9: "shopping/services", 10: "social life", 11: "entertainment/culture", 13: "kindergarden"}
 activitylocationdict = {1: "home", 2: "restaurant", 3: "office", 4: "school/university", 5: "home", 6: "home", 7: "home", 8: "park", 9: "shops/services", 10: "another person's home", 11: "arts & culture venue", 13: "kindergarden"}
 
+sampleResidence = Residences["geometry"].sample(1).iloc[0]
+separate_parks = greenspace.explode(index_parts=True).reset_index(drop=True)
+separate_parks['centroid'] = separate_parks['geometry'].centroid
+separate_parkcentroids = gpd.GeoDataFrame(separate_parks['centroid'], crs=crs, geometry='centroid')
+print("separareparkcentroids",separate_parkcentroids)
+print(sampleResidence)
+# Park = nearest_points(sampleResidence, separate_parkcentroids.unary_union)[0]
+Park = [(p.x, p.y) for p in nearest_points(sampleResidence, separate_parks["centroid"].unary_union)][1]
+Park = [(p.x, p.y) for p in nearest_points(sampleResidence, greenspace["geometry"].unary_union)][1]
 
+print("park",Park)
+# plot the residence, the greenspace and the nearest point
+fig, ax = plt.subplots(figsize=(10, 10))
+greenspace.plot(ax=ax, color="green", label="Green Spaces", alpha=0.2,  zorder= 1)
+buildings.plot(ax=ax, color="grey", label="Buildings", alpha=0.55, zorder= 1)
+streets.plot(ax=ax, color="lightgrey", linewidth=1, label="Streets", zorder= 2)
+# Plot the sampled residence
+gpd.GeoSeries(sampleResidence).plot(ax=ax, color="blue", label="Residence", markersize=100, zorder=3)
+
+# Plot the nearest greenspace
+gpd.GeoSeries([Point(Park)]).plot(ax=ax, color="green", label="Nearest Greenspace", markersize=100, zorder=3)
+
+# Add labels and show plot
+plt.legend()
+plt.show()
 
 plotvideo = False
 nr_plots = 20
@@ -281,8 +308,14 @@ else:
     
         if len(unique_activities) > 1:
             trackorder = tracksample["trackorder"].iloc[0]
-            previousactivity = unique_activities[locationchange[trackorder]]
-            nextactivity = unique_activities[locationchange[trackorder]+1]
+            try:
+                previousactivity = unique_activities[locationchange[trackorder]]
+                nextactivity = unique_activities[locationchange[trackorder]+1]
+            except:
+                previousactivity = unique_activities[locationchange[trackorder-1]]
+                nextactivity = unique_activities[locationchange[trackorder-1]+1]
+            else:
+                pass
             # scheduletext = f"\\textbf{{Activity Schedule}}\nPrevious activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
             # triptext = f"\\textbf{{Trip}}\nMode: {tracksample['mode'].iloc[0]}\nDuration: {round(float(tracksample['duration'].iloc[0]), 2)} min\nDistance: {round(tracksample['geometry'].iloc[0].length, 2)}m\nDeparture Time: {tracksample['start_hour'].iloc[0]}:{tracksample['start_minute'].iloc[0]:02d}\nArrival Time: {tracksample['end_hour'].iloc[0]}:{tracksample['end_minute'].iloc[0]:02d}"
             scheduletext = f"Previous activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
@@ -303,11 +336,11 @@ else:
 
             # Plot the data
             greenspace.plot(ax=ax_map, color="green", label="Green Spaces", alpha=0.2,  zorder= 1)
-            buildings.plot(ax=ax_map, color="grey", label="Buildings", alpha=0.6, zorder= 1)
+            buildings.plot(ax=ax_map, color="grey", label="Buildings", alpha=0.55, zorder= 1)
             streets.plot(ax=ax_map, color="lightgrey", linewidth=1, label="Streets", zorder= 2)
 
             # plot the missing agents locations
-            staticagents.plot(ax=ax_map, color="forestgreen", alpha = 0.5, markersize=7, label="Agents Performing Activities")
+            staticagents.plot(ax=ax_map, color="forestgreen", alpha = 0.5, markersize=7, label="Agents Performing Activities", zorder = 3)
 
             # plot otheroverlappingtracks but color based on modecolorlib
             for mode, color in modecolorlib.items():
@@ -333,8 +366,8 @@ else:
                     end_point =  Point(loads(tracksample["visitedplaces"].iloc[0][trackorder+1]))
                 except:
                     # take the start and end coordinates of the track
-                    end_point =  Point(loads(tracksample["geometry"].iloc[0][-1]))
-                    start_point =  Point(loads(tracksample["geometry"].iloc[0][0]))
+                    end_point =  Point(tracksample["geometry"].iloc[0].coords[-1])
+                    start_point =  Point(tracksample["geometry"].iloc[0].coords[0])
                 else:
                     pass
             else:
@@ -370,13 +403,13 @@ else:
             ax_text.text(0, 0.97, datetime_text, fontsize=10, color="black", ha="left", va="top")
             
             ax_text.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
-            ax_text.text(0, 0.88, triptext, fontsize=10, color="black", ha="left", va="top")
+            ax_text.text(0, 0.87, triptext, fontsize=10, color="black", ha="left", va="top")
 
-            ax_text.text(0.5, 0.78, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
-            ax_text.text(0, 0.76, scheduletext, fontsize=10, color="black", ha="left", va="top")
+            ax_text.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text.text(0, 0.70, scheduletext, fontsize=10, color="black", ha="left", va="top")
 
-            ax_text.text(0.5, 0.60, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
-            ax_text.text(0, 0.58, agent_text, fontsize=10, color="black", ha="left", va="top")
+            ax_text.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text.text(0, 0.55, agent_text, fontsize=10, color="black", ha="left", va="top")
 
             
             # ax_text.text(0, 0.99, fulltext, fontsize=10, color="black",
@@ -384,7 +417,7 @@ else:
 
             legend_elements = [
                 mpatches.Patch(facecolor='green', alpha = 0.2, edgecolor='green', label='Green Spaces'),
-                mpatches.Patch(facecolor='grey', edgecolor='grey', label='Buildings'),
+                mpatches.Patch(facecolor='grey', edgecolor='grey', label='Buildings', alpha = 0.55),
                 plt.Line2D([0], [0], color='lightgrey', lw=1, label='Roads'),
                 plt.Line2D([0], [0], color='red', marker='o', lw=0, markersize=10, label='Destination'),
                 plt.Line2D([0], [0], color='blue', marker='o',  lw=0,  markersize=10, label='Origin'),

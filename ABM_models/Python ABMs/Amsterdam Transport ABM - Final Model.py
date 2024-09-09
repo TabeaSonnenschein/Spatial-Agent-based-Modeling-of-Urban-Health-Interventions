@@ -201,13 +201,13 @@ class Humans(Agent):
             self.University = Universities["geometry"].sample(1).values[0].coords[0]
             self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
         elif (self.current_edu != "no_current_edu") or (4 in list(np.concatenate(self.WeekSchedules).flat)):
-            self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][0]
+            self.School = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Schools["geometry"].unary_union)][1]
             self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
         if 3 in list(np.concatenate(self.WeekSchedules).flat):
             if self.model.scenario == "15mCityWithDestination":  
                 nearProff = Profess["geometry"].intersection(self.radius15min)
                 if len(nearProff[~nearProff.is_empty]) == 0:
-                  self.Workplace = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Profess["geometry"].unary_union)][0]
+                  self.Workplace = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Profess["geometry"].unary_union)][1]
                 else:
                   self.Workplace = nearProff[~nearProff.is_empty].sample(1).values[0].coords[0]
             else:
@@ -215,19 +215,19 @@ class Humans(Agent):
             self.homeTOwork_geometry, self.workTOhome_geometry = None, None
         
         if 8 in list(np.concatenate(self.WeekSchedules).flat):
-            self.Park = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), greenspace["geometry"].unary_union)][0]
+            self.Park = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), greenspace["geometry"].unary_union)][1]
         if 13 in list(np.concatenate(self.WeekSchedules).flat):
             if self.model.scenario == "15mCityWithDestination":  
                 nearkindergardens = Kindergardens["geometry"].intersection(self.radius15min)
                 if len(nearkindergardens[~nearkindergardens.is_empty]) == 0:
-                  self.Kindergarden = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Kindergardens["geometry"].unary_union)][0]
+                  self.Kindergarden = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Kindergardens["geometry"].unary_union)][1]
                 else:
                   self.Kindergarden = nearkindergardens[~nearkindergardens.is_empty].sample(1).values[0].coords[0]
             else:
                 self.Kindergarden = Kindergardens["geometry"].sample(1).values[0].coords[0]
             self.homeTOkinderga_geometry, self.kindergaTOhome_geometry = None, None
         if 9 in list(np.concatenate(self.WeekSchedules).flat):
-            self.Supermarket = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Supermarkets["geometry"].unary_union)][0]
+            self.Supermarket = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Supermarkets["geometry"].unary_union)][1]
             self.homeTOsuperm_geometry, self.supermTOhome_geometry = None, None
         
         self.TripVars = [0,0,0,0,0]  #"purpose_commute", 'purpose_leisure','purpose_groceries_shopping','purpose_education', 'purpose_bring_person'
@@ -294,14 +294,14 @@ class Humans(Agent):
             if self.model.scenario == "15mCityWithDestination":  
                 nearShops = ShopsnServ["geometry"].intersection(self.radius15min)
                 if len(nearShops[~nearShops.is_empty]) == 0:
-                  self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), ShopsnServ["geometry"].unary_union)][0]
+                  self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), ShopsnServ["geometry"].unary_union)][1]
                 else:
                   self.destination_activity = nearShops[~nearShops.is_empty].sample(1).values[0].coords[0]
             else:
                 self.destination_activity = ShopsnServ["geometry"].sample(1).values[0].coords[0]
             
 
-        elif self.current_activity == 13: # 3= kindergarden
+        elif self.current_activity == 13: # 13= kindergarden
           self.destination_activity = self.Kindergarden
           # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
           if (self.homeTOkinderga_geometry != None) and (self.former_activity in [5, 1, 6, 7]):
@@ -342,7 +342,7 @@ class Humans(Agent):
           if self.model.scenario == "15mCityWithDestination":  
                 nearEntertain = Entertainment["geometry"].intersection(self.radius15min)
                 if len(nearEntertain[~nearEntertain.is_empty]) == 0:
-                  self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Entertainment["geometry"].unary_union)][0]
+                  self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Entertainment["geometry"].unary_union)][1]
                 else:
                   self.destination_activity = nearEntertain[~nearEntertain.is_empty].sample(1).values[0].coords[0]
           else:
@@ -955,11 +955,11 @@ if __name__ == "__main__":
     
     # Traffic Model
     if nb_humans == 21750:
-      TraffVCoeff =  5.53923309648345     # 43500 = 1.93116625	21750 = 3.171920208	8700 = 7.214888208
+      TraffVCoeff =  5.53923309648345     # 43500 = 3.787805251680264	21750 =  5.53923309648345	8700 = 7.214888208
     elif nb_humans == 43500:
-      TraffVCoeff =  1.93116625      # 43500 = 1.93116625	21750 = 3.171920208	8700 = 7.214888208
+      TraffVCoeff =  3.787805251680264      # 43500 =3.787805251680264	21750 =  5.53923309648345	8700 = 7.214888208
     elif nb_humans == 8700:
-      TraffVCoeff =  7.214888208      # 43500 = 1.93116625	21750 = 3.171920208	8700 = 7.214888208
+      TraffVCoeff =  7.214888208      # 43500 = 3.787805251680264	21750 =  5.53923309648345	8700 = 7.214888208
     
     TraffVNO2Coeff = 0.02845   # Traffic Volume NO2 coefficient for 50m cellsize
     TraffIntensNO2Coeff = 0.0001072 # Traffic Intensity NO2 coefficient for 50m cellsize
