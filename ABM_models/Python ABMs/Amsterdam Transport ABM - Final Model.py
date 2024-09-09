@@ -366,7 +366,7 @@ class Humans(Agent):
             if self.model.scenario == "15mCityWithDestination":  
                 nearFriends = Residences["geometry"].intersection(self.radius15min)
                 if len(nearFriends[~nearFriends.is_empty]) == 0:
-                  self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Residences["geometry"].unary_union)][0]
+                  self.destination_activity = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), Residences["geometry"].unary_union)][1]
                 else:
                   self.destination_activity = nearFriends[~nearFriends.is_empty].sample(1).values[0].coords[0]
             else:
