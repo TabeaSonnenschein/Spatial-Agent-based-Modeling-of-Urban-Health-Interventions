@@ -600,7 +600,7 @@ class Humans(Agent):
         if 3 in list(np.concatenate(self.WeekSchedules).flat):
             self.homeTOwork_geometry, self.workTOhome_geometry = None, None
         if 8 in list(np.concatenate(self.WeekSchedules).flat):
-            self.Park = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), greenspace["geometry"].unary_union)][0]
+            self.Park = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), greenspace["geometry"].unary_union)][1]
         if 13 in list(np.concatenate(self.WeekSchedules).flat):
             self.homeTOkinderga_geometry, self.kindergaTOhome_geometry = None, None
         if 9 in list(np.concatenate(self.WeekSchedules).flat):

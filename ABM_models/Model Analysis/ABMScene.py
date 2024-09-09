@@ -234,31 +234,6 @@ allpoints = allpoints[["geometry"]]
 activitydict = {1: "sleep/rest", 2: "eating out", 3: "work", 4: "attending classes/lectures", 5: "at home", 6: "cooking", 7: "gardening", 8: "sports/ outdoor activity", 9: "shopping/services", 10: "social life", 11: "entertainment/culture", 13: "kindergarden"}
 activitylocationdict = {1: "home", 2: "restaurant", 3: "office", 4: "school/university", 5: "home", 6: "home", 7: "home", 8: "park", 9: "shops/services", 10: "another person's home", 11: "arts & culture venue", 13: "kindergarden"}
 
-sampleResidence = Residences["geometry"].sample(1).iloc[0]
-separate_parks = greenspace.explode(index_parts=True).reset_index(drop=True)
-separate_parks['centroid'] = separate_parks['geometry'].centroid
-separate_parkcentroids = gpd.GeoDataFrame(separate_parks['centroid'], crs=crs, geometry='centroid')
-print("separareparkcentroids",separate_parkcentroids)
-print(sampleResidence)
-# Park = nearest_points(sampleResidence, separate_parkcentroids.unary_union)[0]
-Park = [(p.x, p.y) for p in nearest_points(sampleResidence, separate_parks["centroid"].unary_union)][1]
-Park = [(p.x, p.y) for p in nearest_points(sampleResidence, greenspace["geometry"].unary_union)][1]
-
-print("park",Park)
-# plot the residence, the greenspace and the nearest point
-fig, ax = plt.subplots(figsize=(10, 10))
-greenspace.plot(ax=ax, color="green", label="Green Spaces", alpha=0.2,  zorder= 1)
-buildings.plot(ax=ax, color="grey", label="Buildings", alpha=0.55, zorder= 1)
-streets.plot(ax=ax, color="lightgrey", linewidth=1, label="Streets", zorder= 2)
-# Plot the sampled residence
-gpd.GeoSeries(sampleResidence).plot(ax=ax, color="blue", label="Residence", markersize=100, zorder=3)
-
-# Plot the nearest greenspace
-gpd.GeoSeries([Point(Park)]).plot(ax=ax, color="green", label="Nearest Greenspace", markersize=100, zorder=3)
-
-# Add labels and show plot
-plt.legend()
-plt.show()
 
 plotvideo = False
 nr_plots = 20
