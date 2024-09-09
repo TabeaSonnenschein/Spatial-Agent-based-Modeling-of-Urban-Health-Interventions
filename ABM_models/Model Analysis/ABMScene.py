@@ -351,6 +351,7 @@ else:
                 gdf_nexthour, staticagents_nexthour = prepareTrackData(nexthoursampleTracks)
                 nexthoursample = gdf_nexthour[gdf_nexthour["agent"] == tracksample["agent"].iloc[0]]
                 end_point =  Point(loads(nexthoursample["visitedplaces"].iloc[0][0]))
+                start_point =  Point(loads(tracksample["visitedplaces"].iloc[0][-1]))
                 
             tracksample.plot(ax=ax_map, color=modecolorlib[tracksample["mode"].iloc[0]], linewidth=3, label="Sample Track", zorder=5)
             gpd.GeoDataFrame(geometry=[start_point]).plot(ax=ax_map, color="blue", label="Origin", markersize=100, zorder=6)
