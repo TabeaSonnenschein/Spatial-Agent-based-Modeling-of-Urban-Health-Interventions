@@ -473,34 +473,38 @@ class Humans(Agent):
       if self.arrival_time.hour != self.hour:
           self.track_length = self.track_geometry.length
           # identifying the fraction of trip that is in the current hour
-          self.trip_segments = [((60 - self.minute)/self.track_duration)]
-          
-          #if the trip intersects more than two hour slots
-          if (self.track_duration-(60 - self.minute)) > 60: 
-            # repeat the fraction of trip in one hour for the remaining hours, the fractions should be less than 1 when summed
-            self.trip_segments.extend(list(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.minute))/60))))
-                    
-          # clip the geometry into segments per hour by splitting the geometry at the fraction of the trip that is in the current hour and all subsequent hours
-          self.segment_geometry = [self.track_geometry]
-          for x in self.trip_segments:
-            # we take take the last geometry in  the list and interpolate a at the length fraction of the trip of that segment
-            # snap corrects the interpolated point to the nearest point on the geometry, and then we split the geometry at that point
-            self.segment_geometry.extend(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 10), self.segment_geometry[-1].interpolate(x * self.track_length)).geoms)
-          
-          # we take the odd indexed geometries and the last geometry, because when it splits it add the  total remainig geometry and that one is split and added again (all but the last remaining geometry is redundant)
-          self.segment_geometry = [self.segment_geometry[x] for x in list(range(1, len(self.segment_geometry)-1,2))+[len(self.segment_geometry)-1]]
-          
-          # saving the first segment of the trip to be traveled in the current hour
-          self.thishourtrack.append(self.segment_geometry[0])
-          self.thishourmode.append(self.modechoice)
-          self.thishourduration.append(60 - self.minute)
-          
-          # saving the remaining segments of the trip to be traveled in the next hours
-          self.nexthourstracks = self.segment_geometry[1:]
-          self.nexthourduration = [(self.track_duration-(60 - self.minute))%60] #modulo of the remaining duration
-          if len(self.nexthourstracks)>1:
-            self.nexthourduration = list(it.repeat(60, len(self.nexthourstracks)-1)) + self.nexthourduration
-          self.nexthoursmodes = list(it.repeat(self.modechoice, len(self.nexthourstracks)))
+          if self.track_duration > 0:
+              self.trip_segments = [((60 - self.minute)/self.track_duration)]        
+              #if the trip intersects more than two hour slots
+              if (self.track_duration-(60 - self.minute)) > 60: 
+                # repeat the fraction of trip in one hour for the remaining hours, the fractions should be less than 1 when summed
+                self.trip_segments.extend(list(it.repeat(60/self.track_duration,int((self.track_duration-(60 - self.minute))/60))))
+                      
+              # clip the geometry into segments per hour by splitting the geometry at the fraction of the trip that is in the current hour and all subsequent hours
+              self.segment_geometry = [self.track_geometry]
+              for x in self.trip_segments:
+                # we take take the last geometry in  the list and interpolate a at the length fraction of the trip of that segment
+                # snap corrects the interpolated point to the nearest point on the geometry, and then we split the geometry at that point
+                self.segment_geometry.extend(split(snap(self.segment_geometry[-1],self.segment_geometry[-1].interpolate(x * self.track_length), 10), self.segment_geometry[-1].interpolate(x * self.track_length)).geoms)
+            
+              # we take the odd indexed geometries and the last geometry, because when it splits it add the  total remainig geometry and that one is split and added again (all but the last remaining geometry is redundant)
+              self.segment_geometry = [self.segment_geometry[x] for x in list(range(1, len(self.segment_geometry)-1,2))+[len(self.segment_geometry)-1]]
+            
+              # saving the first segment of the trip to be traveled in the current hour
+              self.thishourtrack.append(self.segment_geometry[0])
+              self.thishourmode.append(self.modechoice)
+              self.thishourduration.append(60 - self.minute)
+            
+              # saving the remaining segments of the trip to be traveled in the next hours
+              self.nexthourstracks = self.segment_geometry[1:]
+              self.nexthourduration = [(self.track_duration-(60 - self.minute))%60] #modulo of the remaining duration
+              if len(self.nexthourstracks)>1:
+                self.nexthourduration = list(it.repeat(60, len(self.nexthourstracks)-1)) + self.nexthourduration
+              self.nexthoursmodes = list(it.repeat(self.modechoice, len(self.nexthourstracks)))
+          else:
+            self.thishourtrack.append(self.track_geometry)
+            self.thishourmode.append(self.modechoice)
+            self.thishourduration.append(self.track_duration)
       else:
           self.thishourtrack.append(self.track_geometry)
           self.thishourmode.append(self.modechoice)

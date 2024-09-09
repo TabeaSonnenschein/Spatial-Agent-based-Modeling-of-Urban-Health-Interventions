@@ -174,12 +174,13 @@ experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/AB
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
 popsamples = [experimentoverview.loc[experimentoverview["Model Run"]== modelrun, "Population Sample"].values[0] for modelrun in modelruns]
 samplerun = [modelruns[count] for count, popsample in enumerate(popsamples) if popsample == '0'][0]
-samplerun = 879534
+
+samplerun = 670942
 
 
-hour = 12
+hour = 20
 month = 1
-day = 6
+day = 1
 timestep = hour*6
 date = f"0{day}-0{month}-2019"
 weekday = pd.to_datetime(date, format="%d-%m-%Y").weekday()
