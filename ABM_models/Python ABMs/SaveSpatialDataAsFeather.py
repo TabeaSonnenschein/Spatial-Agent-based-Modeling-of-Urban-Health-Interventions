@@ -21,6 +21,7 @@ shape_EnvBehavDeterminants = gpd.read_file(path_data+"Built Environment/Transpor
 shape_AirPollPreds = gpd.read_file(path_data+"Air Pollution Determinants/AirPollDeterm_grid50m_intTraff.shp")
 shape_file_carroads = gpd.read_file(path_data+"Built Environment/Transport Infrastructure/cars/Speedlimit_Amsterdam_RDnew.shp")
 
+
 shape_file_buildings.to_feather(path_data+"FeatherDataABM/Buildings.feather")
 shape_file_streets.to_feather(path_data+"FeatherDataABM/Streets.feather" )
 shape_file_greenspace.to_feather(path_data+"FeatherDataABM/Greenspace.feather" )
@@ -38,3 +39,11 @@ spatial_extent.to_feather(path_data+"FeatherDataABM/SpatialExtent.feather")
 shape_EnvBehavDeterminants.to_feather(path_data+"FeatherDataABM/EnvBehavDeterminants.feather")
 shape_AirPollPreds.to_feather(path_data+"FeatherDataABM/AirPollgrid50m.feather")
 shape_file_carroads[["fid", "geometry"]].to_feather(path_data+"FeatherDataABM/carroads.feather")
+
+
+shape_file_greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
+greenspace = shape_file_greenspace.explode(index_parts=True)
+greenspace_centroids = greenspace.copy()
+greenspace_centroids["geometry"] = greenspace_centroids["geometry"].centroid
+greenspace_centroids = greenspace_centroids.drop_duplicates(subset="geometry").reset_index(drop=True)
+greenspace_centroids.to_feather(path_data+"SpatialData/GreenspaceCentroids.feather")

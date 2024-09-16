@@ -21,7 +21,7 @@ scenario = "15mCityWithDestination"
 cellsize = 50
 
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
-modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
+modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [481658])]
 
 os.chdir(path_data)

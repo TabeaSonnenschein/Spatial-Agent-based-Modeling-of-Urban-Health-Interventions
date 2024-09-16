@@ -5,24 +5,24 @@ nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 os.chdir(path_data)
 
-# scenario = "StatusQuo"
+scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
 # scenario = "15mCity"
-scenario = "15mCityWithDestination"
+# scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
 # scenario = "NoEmissionZone2030"
 
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
-modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
+modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [669169,509190])]
 # print(modelruns)
 # bestStatusQuo = 481658
 # modelruns = [708658, 481658]
 # modelruns = [819838]
 # modelruns = [ 912787, 493519, 989597]
-modelruns = [ 989597]
+# modelruns = [ 989597]
 
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']

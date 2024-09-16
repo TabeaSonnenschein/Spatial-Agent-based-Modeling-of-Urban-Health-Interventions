@@ -837,7 +837,7 @@ scenario = "15mCityWithDestination"
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 # experimentoverview = experimentoverview[~np.isnan(experimentoverview["Population Sample"])]
-modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
+modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [669169,509190])]
 # modelruns = [365800, 846897, 999180]
 # modelruns = [799701]

@@ -385,9 +385,9 @@ class Humans(Agent):
               self.trip_distance = self.route_eucl_line.length
               self.TripVars = [commute,leisure,groceries,edu_trip,0]  #"purpose_commute", 'purpose_leisure','purpose_groceries_shopping','purpose_education', 'purpose_bring_person'
           else:
-              self.TripSegmentsPerHour()
               self.activity = "traveling"
               self.arrival_time = current_datetime + timedelta(minutes=self.track_duration)
+              self.TripSegmentsPerHour()
           self.path_memory = 0
           self.newplace = 1
         elif self.activity == "traveling":
@@ -410,10 +410,13 @@ class Humans(Agent):
       pred_df = pd.DataFrame(np.concatenate((RouteVars, OrigVars, DestVars, self.IndModalPreds, [self.trip_distance],self.TripVars, WeatherVars), axis=None).reshape(1, -1), 
                                 columns=colvars).fillna(0)
       # predicting modechoice
-      if (self.model.scenario == "NoEmissionZone2030") & (self.eletriccaraccess == 0):
-        modechoice_probs = ModalChoiceModel.predict_proba(pred_df[OrderPredVars])
-        modechoice_probs[0][1] = 0
-        self.modechoice = np.argmax(modechoice_probs) + 1
+      if (self.model.scenario == "NoEmissionZone2030"):
+        if (self.eletriccaraccess == 0):
+          modechoice_probs = ModalChoiceModel.predict_proba(pred_df[OrderPredVars])
+          modechoice_probs[0][1] = 0
+          self.modechoice = np.argmax(modechoice_probs) + 1
+        else:
+          self.modechoice = ModalChoiceModel.predict(pred_df[OrderPredVars])[0]
       else:
         self.modechoice = ModalChoiceModel.predict(pred_df[OrderPredVars])[0]
       self.modechoice = ["bike", "drive", "transit", "walk"][self.modechoice-1]
@@ -502,6 +505,7 @@ class Humans(Agent):
                 self.nexthourduration = list(it.repeat(60, len(self.nexthourstracks)-1)) + self.nexthourduration
               self.nexthoursmodes = list(it.repeat(self.modechoice, len(self.nexthourstracks)))
           else:
+            print("Error: Trip duration is 0",self.track_length, self.track_geometry)
             self.thishourtrack.append(self.track_geometry)
             self.thishourmode.append(self.modechoice)
             self.thishourduration.append(self.track_duration)
@@ -603,8 +607,6 @@ class Humans(Agent):
             self.homeTOschool_geometry, self.schoolTOhome_geometry = None, None
         if 3 in list(np.concatenate(self.WeekSchedules).flat):
             self.homeTOwork_geometry, self.workTOhome_geometry = None, None
-        if 8 in list(np.concatenate(self.WeekSchedules).flat):
-            self.Park = [(p.x, p.y) for p in nearest_points(Point(tuple(self.Residence)), greenspace["geometry"].unary_union)][1]
         if 13 in list(np.concatenate(self.WeekSchedules).flat):
             self.homeTOkinderga_geometry, self.kindergaTOhome_geometry = None, None
         if 9 in list(np.concatenate(self.WeekSchedules).flat):
@@ -724,7 +726,7 @@ class TransportAirPollutionExposureModel(Model):
         
     def TraffCountRegression(self, HourlyTraffic):
         predictors = ["count"]    #also have tried MaxSpeedLimit, but it takes up too much of the traffic coefficient
-        datacells = (self.onroadcells) & (self.TraffGrid["count"] > 0)
+        datacells = pd.Series(self.onroadcells) & (self.TraffGrid["count"] > 0)
         reg = LinearRegression().fit(self.TraffGrid.loc[datacells, predictors], self.TraffGrid.loc[datacells,self.TraffVcolumn])
         TraffAssDat.write(f"hour {self.current_datetime} \n")
         TraffAssDat.write(f"hourly Traff tracks: {len(HourlyTraffic)} \n")
@@ -773,6 +775,7 @@ class TransportAirPollutionExposureModel(Model):
         else:
           HourlyTraffic = pool.starmap(RetrieveRoutes, [(Human.thishourmode, Human.thishourtrack) for Human in self.Humans], chunksize = 500)
         HourlyTraffic = list(it.chain.from_iterable(list(filter(lambda x: x is not None, HourlyTraffic))))
+        HourlyTraffic = [track for track in HourlyTraffic if track.is_valid]
         # gpd.GeoDataFrame(data = {'count': [1]*len(self.HourlyTraffic), 'geometry':self.HourlyTraffic}, geometry="geometry", crs=crs).to_file(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/TrafficTracks/TrafficTracks_A{nb_humans}_H{self.hour-1}.shp')
         print("Nr of hourly traffic tracks: ", len(HourlyTraffic))
         if self.hour == 0:
@@ -880,10 +883,11 @@ class TransportAirPollutionExposureModel(Model):
                 self.OffRoadDispersion()
                 print("Hybrid Dispersion Model: ", time.time() - st, "Seconds")
                 # self.PlotAirPoll()
-              if self.current_datetime.hour == 0: # new day
-                  self.weekday = self.current_datetime.weekday()
-                  if TraffStage in ["PredictionNoR2", "PredictionR2"]:
-                      self.SaveAirPollTraffic()
+            if self.current_datetime.hour == 0: # new day
+              self.weekday = self.current_datetime.weekday()
+              if  modelname != "NoEmissionZone2030":
+                if TraffStage in ["PredictionNoR2", "PredictionR2"]:
+                   self.SaveAirPollTraffic()
 
 
         self.activitystep = int((self.hour * 6) + (self.minute / 10))
@@ -892,13 +896,14 @@ class TransportAirPollutionExposureModel(Model):
         if self.minute == 0:
           ModalSplitH = pool.starmap(RetrieveModalSplitHour, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
           ModalSplitLog.write(f"{self.datesuffix}, {Counter(list(it.chain.from_iterable(filter(None, list(it.chain.from_iterable(ModalSplitH))))))}\n")
-          Alltracks = pool.starmap(RetrieveAllTracksHour, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
-          Alltracks = pd.DataFrame(list(filter(lambda x: len(x[1])>0, [item for sublist in Alltracks for item in sublist])), 
-                       columns=['agent', 'geometry', 'mode', 'duration'])
-          Alltracks["geometry"] = Alltracks["geometry"].apply(lambda x: "; ".join([str(el) for el in x]))
-          Alltracks.to_csv(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/Tracks/{randomID}/AllTracks_{randomID}_A{nb_humans}_{self.datesuffix}_{modelname}.csv', 
-                         index=False, quoting=csv.QUOTE_NONNUMERIC, float_format='%.15g')
           if TraffStage in ["PredictionNoR2", "PredictionR2"]:
+            Alltracks = pool.starmap(RetrieveAllTracksHour, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
+            Alltracks = pd.DataFrame(list(filter(lambda x: len(x[1])>0, [item for sublist in Alltracks for item in sublist])), 
+                        columns=['agent', 'geometry', 'mode', 'duration'])
+            Alltracks["geometry"] = Alltracks["geometry"].apply(lambda x: "; ".join([str(el) for el in x]))
+            Alltracks.to_csv(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/Tracks/{randomID}/AllTracks_{randomID}_A{nb_humans}_{self.datesuffix}_{modelname}.csv', 
+                          index=False, quoting=csv.QUOTE_NONNUMERIC, float_format='%.15g')
+
             self.Humans = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]), self.WeatherVars)  for agents in np.array_split(self.Humans, n)], chunksize=1)))
             print("collecting and saving exposure")
             AgentExposure = pool.starmap(RetrieveExposure, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
@@ -925,26 +930,26 @@ if __name__ == "__main__":
     
     
     # Number of Humans
-    nb_humans = 21750     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
+    nb_humans = 43500     #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 
     # New Population sample or already existing one
     newpop = False
-    subsetnr = 0
+    subsetnr = 6
     
     # Length of the simulation run
     NrHours = 24
     NrDays = 7
-    NrMonths = 4
+    NrMonths = 1
     
     # Starting Date and Time
     starting_date = datetime(2019, 1, 1, 0, 0, 0)
     
     # Type of scenario
-    # modelname = "StatusQuo" 
+    modelname = "StatusQuo" 
     # modelname = "PrkPriceInterv"
     # modelname = "15mCity"
     # modelname = "15mCityWithDestination"
-    modelname = "NoEmissionZone2025"
+    # modelname = "NoEmissionZone2025"
     # modelname = "NoEmissionZone2030"
     
     # cellsize of the Airpollution and Traffic grid
@@ -954,7 +959,7 @@ if __name__ == "__main__":
     profile = False
     
     # Stage of the Traffic Model
-    TraffStage = "PredictionNoR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
+    TraffStage = "Regression" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
     
     
     # Traffic Model
@@ -1049,7 +1054,7 @@ if __name__ == "__main__":
     Universities = gpd.read_feather(path_data+"SpatialData/Universities.feather")
     
     if modelname in ["15mCity", "15mCityWithDestination"]:
-      greenspace = gpd.read_feather(path_data+f"SpatialData/Greenspace15mCity.feather")
+      greenspace = gpd.read_feather(path_data+f"SpatialData/GreenspaceCentroids15mCity.feather")
       Schools = gpd.read_feather(path_data+f"SpatialData/Schools15mCity.feather")
       Supermarkets = gpd.read_feather(path_data+f"SpatialData/Supermarkets15mCity.feather")
       Kindergardens = gpd.read_feather(path_data+f"SpatialData/Kindergardens15mCity.feather")
@@ -1059,7 +1064,7 @@ if __name__ == "__main__":
       Nightlife = gpd.read_feather(path_data+f"SpatialData/Nightlife15mCity.feather")
       Profess = gpd.read_feather(path_data+f"SpatialData/Profess15mCity.feather")
     else:
-      greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
+      greenspace = gpd.read_feather(path_data+"SpatialData/GreenspaceCentroids.feather")
       Schools = gpd.read_feather(path_data+"SpatialData/Schools.feather")
       Supermarkets = gpd.read_feather(path_data+"SpatialData/Supermarkets.feather")
       Kindergardens = gpd.read_feather(path_data+"SpatialData/Kindergardens.feather")
@@ -1068,6 +1073,7 @@ if __name__ == "__main__":
       ShopsnServ = gpd.read_feather(path_data+"SpatialData/ShopsnServ.feather")
       Nightlife = gpd.read_feather(path_data+"SpatialData/Nightlife.feather")
       Profess = gpd.read_feather(path_data+"SpatialData/Profess.feather")
+    
 
     # if modelname in ["NoEmissionZone2025", "NoEmissionZone2030"]:
     #   NoEmissionZone = gpd.read_feather(path_data+f"SpatialData/{modelname}.feather")
