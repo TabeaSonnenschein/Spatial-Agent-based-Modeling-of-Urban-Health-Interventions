@@ -543,7 +543,7 @@ class Humans(Agent):
         # NO2
         indoorfilter = [1 if x == 8 else 0.51 for x in self.activities]  #8 =  outdoor activity hence no filter
         self.hourlyplaceNO2wFilter = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [duration*10*indoorfilter[count] for count, duration in enumerate(self.durationPlaces)]))
-        self.thishourindoor = sum([duration*10[count] for count, duration in enumerate(self.durationPlaces) if self.activities[count] != 8])
+        self.thishourindoor = sum([duration*10 for count, duration in enumerate(self.durationPlaces) if self.activities[count] != 8])
         self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [x*10 for x in self.durationPlaces]))
 
     def ResetPlaceTracks(self):
