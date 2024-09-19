@@ -140,7 +140,7 @@ def RetrieveNoEVRoutes(thishourmode, thishourtrack, evaccess):
       return([thishourtrack[count] for count, value in enumerate(thishourmode) if value == "drive"])
 
 def RetrieveExposure(agents, dum):
-    return [[agent.unique_id, agent.hourlyNO2, agent.hourlyMET]  for agent in agents]
+    return [[agent.unique_id, agent.hourlyNO2, agent.hourlyNO2wFilter, agent.hourlyMET, agent.thishourindoor]  for agent in agents]
   
 def RetrieveAllTracksHour(agents, dum):
     return [[agent.unique_id, agent.thishourtrack, agent.thishourmode, agent.thishourduration]  for agent in agents]
@@ -242,7 +242,8 @@ class Humans(Agent):
         # exposure variables
         self.newplace, self.newactivity = 0, 0
         self.visitedPlaces, self.durationPlaces, self.activities, self.durationActivties =  [Point(tuple(self.Residence))], [0], [self.WeekSchedules[self.weekday][self.activitystep]], [0]
-        self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyNO2 = 0,0,0
+        self.thishourindoor = 0
+        self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyplaceNO2wFilter, self.hourlyNO2, self.hourlyNO2wFilter = 0,0,0,0,0
         self.hourlytravelMET, self.hourlyMET = 0,0
         
         
@@ -518,12 +519,14 @@ class Humans(Agent):
       if current_datetime >= self.arrival_time:
           self.activity = "perform_activity"
           self.pos = self.destination_activity
-
+          self.durationPlaces.append((self.arrival_time.minute % 10)/10)
+          self.durationActivties.append((self.arrival_time.minute % 10)/10)
+          
     def PlaceTracker(self):
       if self.newplace == 1:
         self.visitedPlaces.append(Point(tuple(self.pos)))
-        self.durationPlaces.append(1)
-        self.durationActivties.append(1)
+        self.durationPlaces[-1] += 1
+        self.durationActivties[-1] += 1
         self.activities.append(self.current_activity)
         self.newplace = 0
       elif self.newactivity == 1:
@@ -539,8 +542,9 @@ class Humans(Agent):
       if len(self.visitedPlaces) > 0:
         # NO2
         indoorfilter = [1 if x == 8 else 0.51 for x in self.activities]  #8 =  outdoor activity hence no filter
-        self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [duration*10*indoorfilter[count] for count, duration in enumerate(self.durationPlaces)]))
-        # self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [x*10 for x in self.durationPlaces]))
+        self.hourlyplaceNO2wFilter = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [duration*10*indoorfilter[count] for count, duration in enumerate(self.durationPlaces)]))
+        self.thishourindoor = sum([duration*10[count] for count, duration in enumerate(self.durationPlaces) if self.activities[count] != 8])
+        self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [x*10 for x in self.durationPlaces]))
 
     def ResetPlaceTracks(self):
       if self.activity== "perform_activity":
@@ -553,6 +557,7 @@ class Humans(Agent):
         self.durationPlaces = []
         self.activities = []
         self.durationActivties = []
+      self.thishourindoor = 0
     
     def RescaleExcessDuration(self):
       if sum(self.thishourduration) > 60: # seldomly, when people change activities while traveling the additive duration of the trips  can be longer than 60 minutes, so we rescale
@@ -589,7 +594,8 @@ class Humans(Agent):
         self.TravelExposure()
         self.AtPlaceExposure()
         self.hourlyNO2 = (self.hourlyplaceNO2 + self.hourlytravelNO2)/60
-        self.hourlytravelNO2, self.hourlyplaceNO2 = 0,0
+        self.hourlyNO2wFilter = (self.hourlyplaceNO2wFilter + self.hourlytravelNO2)/60
+        self.hourlytravelNO2, self.hourlyplaceNO2, self.hourlyplaceNO2wFilter = 0,0,0
         self.hourlyMET = self.hourlytravelMET/60
         self.hourlytravelMET  = 0
   
@@ -907,7 +913,7 @@ class TransportAirPollutionExposureModel(Model):
             self.Humans = list(it.chain.from_iterable(pool.starmap(hourly_worker_process, [(agents, self.current_datetime, np.array(self.TraffGrid["NO2"]), self.WeatherVars)  for agents in np.array_split(self.Humans, n)], chunksize=1)))
             print("collecting and saving exposure")
             AgentExposure = pool.starmap(RetrieveExposure, [(Human, 0) for Human in np.array_split(self.Humans, n)], chunksize = 1)
-            pd.DataFrame([item for items in AgentExposure for item in items], columns=['agent', 'NO2', 'MET']).to_csv(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/AgentExposure/{randomID}/AgentExposure_{randomID}_A{nb_humans}_{self.datesuffix}_{modelname}.csv', index=False)
+            pd.DataFrame([item for items in AgentExposure for item in items], columns=['agent', 'NO2', 'NO2wFilter', 'MET', 'indoortime']).to_csv(path_data + f'ModelRuns/{modelname}/{nb_humans}Agents/AgentExposure/{randomID}/AgentExposure_{randomID}_A{nb_humans}_{self.datesuffix}_{modelname}.csv', index=False)
           else:
             self.Humans = list(it.chain.from_iterable(pool.starmap(worker_process, [(Humans, self.current_datetime, self.WeatherVars)  for Humans in np.array_split(self.Humans, n)], chunksize=1)))
         else:
@@ -934,7 +940,7 @@ if __name__ == "__main__":
 
     # New Population sample or already existing one
     newpop = False
-    subsetnr = 6
+    subsetnr = 1
     
     # Length of the simulation run
     NrHours = 24
@@ -959,14 +965,14 @@ if __name__ == "__main__":
     profile = False
     
     # Stage of the Traffic Model
-    TraffStage = "Regression" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
+    TraffStage = "Remainder" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
     
     
     # Traffic Model
     if nb_humans == 21750:
-      TraffVCoeff =  5.53923309648345     # 43500 = 3.787805251680264	21750 =  5.53923309648345	8700 = 7.214888208
+      TraffVCoeff =  6.8583637     # 43500 = 3.7927303	21750 =  6.8583637	8700 = 7.214888208
     elif nb_humans == 43500:
-      TraffVCoeff =  3.787805251680264      # 43500 =3.787805251680264	21750 =  5.53923309648345	8700 = 7.214888208
+      TraffVCoeff =  3.7927303      # 43500 =3.7927303	21750 =  6.8583637	8700 = 7.214888208
     elif nb_humans == 8700:
       TraffVCoeff =  7.214888208      # 43500 = 3.787805251680264	21750 =  5.53923309648345	8700 = 7.214888208
     
