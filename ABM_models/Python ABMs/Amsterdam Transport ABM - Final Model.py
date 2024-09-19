@@ -519,8 +519,8 @@ class Humans(Agent):
       if current_datetime >= self.arrival_time:
           self.activity = "perform_activity"
           self.pos = self.destination_activity
-          self.durationPlaces.append((self.arrival_time.minute % 10)/10)
-          self.durationActivties.append((self.arrival_time.minute % 10)/10)
+          self.durationPlaces.append((10-(self.arrival_time.minute % 10))/10) # the remaining activity time till next 10 minute slot
+          self.durationActivties.append((10-(self.arrival_time.minute % 10))/10) # the remaining activity time till next 10 minute slot
           
     def PlaceTracker(self):
       if self.newplace == 1:
@@ -545,6 +545,8 @@ class Humans(Agent):
         self.hourlyplaceNO2wFilter = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [duration*10*indoorfilter[count] for count, duration in enumerate(self.durationPlaces)]))
         self.thishourindoor = sum([duration*10 for count, duration in enumerate(self.durationPlaces) if self.activities[count] != 8])
         self.hourlyplaceNO2 = sum(np.multiply([EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in self.visitedPlaces], [x*10 for x in self.durationPlaces]))
+      else:
+        self.thishourindoor = 0
 
     def ResetPlaceTracks(self):
       if self.activity== "perform_activity":
@@ -557,7 +559,6 @@ class Humans(Agent):
         self.durationPlaces = []
         self.activities = []
         self.durationActivties = []
-      self.thishourindoor = 0
     
     def RescaleExcessDuration(self):
       if sum(self.thishourduration) > 60: # seldomly, when people change activities while traveling the additive duration of the trips  can be longer than 60 minutes, so we rescale
