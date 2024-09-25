@@ -4,16 +4,14 @@ from matplotlib import pyplot as plt
 
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/TrafficRemainder/TraffRemainder/new/"
 scenario = "StatusQuo"
-nb_humans = 21750
+nb_humans = 43500
 # read in the data
-# experimentoverview = pd.read_csv(f"{path_data}ExperimentOverview.csv")
-# experimentoverview = experimentoverview.loc[experimentoverview["fullrun"] == True]
-# modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-# modelruns = [895997, 853373, 108181, 13018, 362560, 362256, 310510, 218448, 158037, 874562]
-# subsetnr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-modelruns = [400301,885127, 82445,411905, 360111, 601529, 276407, 872156, 678167, 869497]
-subsetnr = [0,2,3,4,5,6,7,1,9, 8]
+experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
+modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_humans}Agents"), "Model Run"].values
+subsetnr = [experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Model Run"]== modelrun), "Population Sample"].values[0] for modelrun in modelruns]
+print(modelruns, subsetnr)
+# modelruns = [400301,885127, 82445,411905, 360111, 601529, 276407, 872156, 678167, 869497]
+# subsetnr = [0,2,3,4,5,6,7,1,9, 8]
 
 newcols = [f"TraffVrest{hour}" for hour in range(24)]
 for count,modelrun in enumerate(modelruns):

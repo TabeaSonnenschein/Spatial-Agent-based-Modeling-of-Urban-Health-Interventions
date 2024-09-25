@@ -225,7 +225,7 @@ scenario = "StatusQuo"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
-scenario = "NoEmissionZone2030"
+# scenario = "NoEmissionZone2030"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
@@ -237,9 +237,9 @@ modelruns = ["MeanAcrossRuns"]
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 viztype = [
-        # "singleIntervention", 
-        # "CirclePlot",
-        "statusquocomparison"
+        "singleIntervention", 
+        "CirclePlot",
+        # "statusquocomparison"
         ]
 
 # extentname = "parkingprice_interventionextent"

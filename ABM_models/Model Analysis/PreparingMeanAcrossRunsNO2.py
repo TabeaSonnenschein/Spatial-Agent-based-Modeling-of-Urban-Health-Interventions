@@ -11,9 +11,9 @@ from shapely import Point
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 
-# scenario = "StatusQuo"
+scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
-scenario = "15mCityWithDestination"
+# scenario = "15mCityWithDestination"
 # scenario = "15mCity"
 # scenario = "NoEmissionZone2025"
 # scenario = "NoEmissionZone2030"
@@ -35,7 +35,7 @@ monthsnames = ["January",  "February",  "March",  "April",  "May",  "June",
 viztype = [
         "preparingData",
         "mappingInterventionNO2", 
-        "statusquocomparison",
+        # "statusquocomparison",
         ]
 
 if not os.path.exists(path_data+f"/{scenario}/{nb_agents}Agents/NO2/NO2Viz"):

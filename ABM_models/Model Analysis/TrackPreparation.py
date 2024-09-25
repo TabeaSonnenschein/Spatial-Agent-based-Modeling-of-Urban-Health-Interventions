@@ -11,21 +11,22 @@ from itertools import chain
 ####################################################
 
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
-# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
-path_data = "F:/ModelRuns"
+path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
+# path_data = "F:/ModelRuns"
 os.chdir(path_data)
 crs = "epsg:28992"
 
-# scenario = "StatusQuo"
+scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
 # scenario = "15mCity"
-scenario = "15mCityWithDestination"
+# scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
 # scenario = "NoEmissionZone2030"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
-modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
+modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
+modelruns = [modelrun for modelrun in modelruns if not(modelrun in [313363, 2457])]
 # modelruns = [413719]
 # modelruns = [700698, 895973, 958354]
 # modelruns = [ 912787, 493519, 989597]
@@ -41,7 +42,7 @@ if not os.path.exists(path_data+f"/{scenario}/{nb_agents}Agents/Tracks/TrackViz"
       
 destination = path_data+f"/{scenario}/{nb_agents}Agents/Tracks/TrackViz"
 
-spatial_extract = False
+spatial_extract = True
 
 if spatial_extract:
     spatial_extract = gpd.read_file("D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/parking/parkingprices_prepostintervention.shp")

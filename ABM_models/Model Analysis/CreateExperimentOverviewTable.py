@@ -33,7 +33,6 @@ for experiment in Experiments:
                 maxmonth.append(None)
                 maxday.append(None)
                 maxhour.append(None)
-                popsample.append(None)
             else:
                 dates = [[int(x.split("_")[3][1:]), int(x.split("_")[4][1:]), int(x.split("_")[5][1:])] for x in recordedTimes]
                 minmonth.append(min(dates)[0])
@@ -43,12 +42,12 @@ for experiment in Experiments:
                 maxday.append(max(dates)[1])
                 maxhour.append(max(dates)[2])
                 # finding pop of modelrun
-                sample = [sample for sample in popsamples if f"Amsterdam_population_subset{numberagents.replace('Agents', '')}_{modelrun}" in sample]
-                if len(sample) == 0:
-                    popsample.append(None)
-                else:
-                    samplenr = sample[0].split("_")[4].replace(".csv", "")
-                    popsample.append(samplenr)
+            sample = [sample for sample in popsamples if f"Amsterdam_population_subset{numberagents.replace('Agents', '')}_{modelrun}" in sample]
+            if len(sample) == 0:
+                popsample.append(None)
+            else:
+                samplenr = sample[0].split("_")[4].replace(".csv", "")
+                popsample.append(samplenr)
                 
                 
 ExperimentOverview_df = pd.DataFrame({"Experiment": exp, 

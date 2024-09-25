@@ -11,9 +11,9 @@ from shapely import Point
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 
-# scenario = "StatusQuo"
+scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
-scenario = "15mCity"
+# scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
 # scenario = "NoEmissionZone2030"
@@ -21,9 +21,9 @@ scenario = "15mCity"
 cellsize = 50
 
 viztype = [
-        # "preparingData",
-        # "mappingInterventionTraffic", 
-        "statusquocomparison",
+        "preparingData",
+        "mappingInterventionTraffic", 
+        # "statusquocomparison",
         ]
 
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")

@@ -3,21 +3,23 @@ import os
 
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/"
 scenario = "StatusQuo"
-nb_humans = 21750
-# nb_humans = 43500
+# nb_humans = 21750
+nb_humans = 43500
 # read in the data
-# experimentoverview = pd.read_csv(f"{path_data}ExperimentOverview.csv")
+experimentoverview = pd.read_csv(f"{path_data}ExperimentOverview.csv")
 # experimentoverview = experimentoverview.loc[experimentoverview["fullrun"] == True]
-# modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
+modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_humans}Agents"), "Model Run"].values
+subsetnr = [experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Model Run"]== modelrun), "Population Sample"].values[0] for modelrun in modelruns]
+print(modelruns, subsetnr)
 # modelruns = [300390, 364558, 254724, 90988, 529699, 602810]
 # subsetnr = [0, 5, 1, 2, 6, 4]
 # modelruns = [4668, 408696, 819297, 38705, 110469, 973820, 163533, 566814, 167714, 705197]
 # subsetnr = [0,1,2,3,4,5,6,7,9, 8]
-subsetnr = [0,1,2,3,6,7, 8, 9, 4, 5]
-modelruns = [978678,29343,581405,610661,142955,738001, 238750, 553312, 830467, 492793]
+# subsetnr = [0,1,2,3,6,7, 8, 9, 4, 5]
+# modelruns = [978678,29343,581405,610661,142955,738001, 238750, 553312, 830467, 492793]
 meancoeffs = []
 
-traffassignfilespath = f"{path_data}TrafficRemainder/TraffCoefficient/new/"
+traffassignfilespath = f"{path_data}TrafficRemainder/TraffCoefficient/new/{nb_humans}/"
 # traffassignfilespath = f"{path_data}ModelRuns/{scenario}/{nb_humans}Agents/Traffic/"
 
 for count,modelrun in enumerate(modelruns):
@@ -39,7 +41,7 @@ for count,modelrun in enumerate(modelruns):
     TraffCoefficients_df = pd.DataFrame({"Date":Date, "Time":Time, "Coefficients":TraffCoefficients, "ModelRun":modelrun, "PopulationSample":subsetnr[count]})
     TraffCoefficients_df.to_csv(f"{traffassignfilespath}TraffAssignModelPerf{nb_humans}_{scenario}_pop{subsetnr[count]}_{modelrun}.csv", index=False)
     meancoeffs.append(TraffCoefficients_df["Coefficients"].iloc[23:].mean())
-    
+
 totTraffCoeffdf = pd.DataFrame({"ModelRun":modelruns, "PopulationSample":subsetnr, "MeanCoefficients":meancoeffs})
 # add a row with the mean of the mean coefficients
 meanmean = pd.DataFrame({"ModelRun":["tot"], "PopulationSample":["tot"], "MeanCoefficients": totTraffCoeffdf["MeanCoefficients"].mean()})

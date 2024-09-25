@@ -826,10 +826,10 @@ nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 os.chdir(path_data)
 
-# scenario = "StatusQuo"
+scenario = "StatusQuo"
 # scenario = "PrkPriceInterv"
 # scenario = "15mCity"
-scenario = "15mCityWithDestination"
+# scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
 # scenario = "NoEmissionZone2030"
 
@@ -859,17 +859,17 @@ viztasks = [
             # "Comparative plots",
             # "Mean across runs aggregate exposure df",
             # "Mean across runs exposure circle plot",
-            # "Mean across runs strat exposure Circle plot",
+            "Mean across runs strat exposure Circle plot",
             # "Mean across runs and Neighborhoods",
             # "Mean across runs aggregate exposure diff df",
             # "Mean across runs exposure diff circle plot",
-            "Mean across runs strat exposure diff Circle plot",
+            # "Mean across runs strat exposure diff Circle plot",
             # "Mean across runs and Neighborhoods diff"
             ]
             
 categoricalstratvars = ["sex", "migr_bck", "income_class", "age_group", "HH_size", "absolved_education", "HH_type", "student", "location"]
 plottypes = [ "line", "violin"] # "scatter"
-outcomevars = ["NO2", "MET"]
+outcomevars = ["NO2", "MET", "NO2wFilter", "indoortime"]
 timevars = ["hour", "weekday", "month"]
 
 fullnamedict = {
@@ -885,6 +885,8 @@ fullnamedict = {
     "location": "Location",
     "NO2": "NO2 (µg/m3)",
     "MET": "Metabolic Equivalent of Task (MET)",
+    "NO2wFilter": "NO2 with I/O Filter (µg/m3)",
+    "indoortime": "Time spent indoors (h)",
     "NO2_diff": "NO2 Difference (µg/m3)",
     "MET_diff": "Metabolic Equivalent of Task (MET) Difference" }
 
@@ -1208,7 +1210,7 @@ if "Mean across runs strat exposure Circle plot" in viztasks:
     else:
         labelprefix = "Scenario"
     # 
-    plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel=f"{labelprefix} Mean Exposure\nacross population",  rangeval=[-1.5, -0.75, 0, 0.75, 1.5],
+    plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel=f"{labelprefix} Mean Exposure\nacross population",  rangeval=[-3, -1.5, 0, 1.5, 3],
                         subgroupcolors = subgroupcolors, meanval= aggexposure.loc[aggexposure["timeunit"]=="total", "NO2"].values[0],
                         outcomevar = "NO2_deviation", roundval = 2, centertext=f"NO2 (µg/m3)\nDeviation\nfrom Mean", suffix = "")
 
@@ -1216,6 +1218,15 @@ if "Mean across runs strat exposure Circle plot" in viztasks:
     plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Scenario Mean Exposure\nacross population",
                         subgroupcolors = subgroupcolors, meanval= aggexposure.loc[aggexposure["timeunit"]=="total", "MET"].values[0],
                         outcomevar = "MET_deviation", roundval = 2, centertext=f"Transport MET\nDeviation\nfrom Mean", suffix = "")
+    
+    plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel=f"{labelprefix} Mean Exposure\nacross population",  rangeval=[ -1.5, -0.75, 0, 0.75, 1.5],
+                        subgroupcolors = subgroupcolors, meanval= aggexposure.loc[aggexposure["timeunit"]=="total", "NO2wFilter"].values[0],
+                        outcomevar = "NO2wFilter_deviation", roundval = 2, centertext=f"NO2 with I/O\nFilter (µg/m3)\nDeviation\nfrom Mean", suffix = "")
+
+
+    plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Scenario Mean Exposure\nacross population", rangeval=[ -1.5, -0.75, 0, 0.75, 1.5],
+                        subgroupcolors = subgroupcolors, meanval= aggexposure.loc[aggexposure["timeunit"]=="total", "indoortime"].values[0],
+                        outcomevar = "indoortime_deviation", roundval = 1, centertext=f"Time spent indoors\nDeviation\nfrom Mean", suffix = "")
 
 if "Mean across runs and Neighborhoods" in viztasks:
     os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/MeanExposureViz")
@@ -1265,12 +1276,14 @@ if "Mean across runs and Neighborhoods" in viztasks:
 
     fullnamedict["MET"] = "Transport MET (MET/h)"
     showplots = False
-    maxvals = {"NO2": 16, "MET": 0.3}
-    minvals = {"NO2": None, "MET": 0.1}
+    maxvals = {"NO2": 30, "MET": 0.3, "NO2wFilter": 16, "indoortime": 55}
+    minvals = {"NO2": None, "MET": 0.1, "NO2wFilter": None, "indoortime": 51}
     for outcomvar in outcomevars:
+        print(f"Plotting the exposure stratification for {outcomvar}")
         PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun="MeanAcrossRuns", 
                             spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
-                            distance_meters=distance_meters, vmax=maxvals[outcomvar], vmin = minvals[outcomvar])
+                            distance_meters=distance_meters, 
+                            vmax=maxvals[outcomvar], vmin = minvals[outcomvar])
 
 
 
@@ -1325,7 +1338,6 @@ if "Mean across runs exposure diff circle plot" in viztasks:
 
     
     units = ["weekday", "hour", "month"]
-    outcomevars = ["NO2", "MET"]
     roundvals = [2,3]
     for stratgroup in subgroups_Meta:
         print(f"Plotting the exposure stratification for {stratgroup}")

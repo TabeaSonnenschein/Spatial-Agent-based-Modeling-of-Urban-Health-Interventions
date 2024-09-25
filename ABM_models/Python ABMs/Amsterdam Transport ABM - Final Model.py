@@ -442,9 +442,9 @@ class Humans(Agent):
       url = ("http://127.0.0.1" + server + "route/v1/"+ lua_profile + "/" + str(orig_point.x)+ ","+ str(orig_point.y)+ ";"+ str(dest_point.x)+ ","+ str(dest_point.y) + "?overview=full&geometries=polyline")
       res = rq.get(url).json()
       self.track_geometry = transform(projecy_to_crs, transform(Math_utils.flip, LineString(polyline.decode(res['routes'][0]['geometry']))))
-      self.track_duration = (res['routes'][0]['duration'])/60  # minutes
+      self.track_duration = round((res['routes'][0]['duration'])/60)  # minutes
       if self.modechoice == "transit":
-        self.track_duration = self.track_duration/10
+        self.track_duration =  round(self.track_duration/10,0)
       self.trip_distance = res['routes'][0]['distance']  # meters
     
     def SavingRoute(self):
@@ -941,7 +941,7 @@ if __name__ == "__main__":
 
     # New Population sample or already existing one
     newpop = False
-    subsetnr = 1
+    subsetnr = 4
     
     # Length of the simulation run
     NrHours = 24
