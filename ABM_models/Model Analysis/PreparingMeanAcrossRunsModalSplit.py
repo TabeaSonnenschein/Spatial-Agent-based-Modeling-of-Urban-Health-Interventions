@@ -11,8 +11,8 @@ import numpy as np
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
@@ -25,7 +25,8 @@ os.chdir(os.path.join(path_data,scenario, f"{nb_agents}Agents/ModalSplit"))
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
-# modelruns = [12365, 364241, 441245, 510849, 976383, 992330]
+# modelruns = [ 108922, 194070,671831, 922980, 855029, 415419, 782789]
+
 modes = ["bike","drive", "transit","walk"]
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 timerefs = ["month", "weekday",  "hour"]

@@ -806,28 +806,87 @@ def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
         figure.savefig(f"CirclePlot_with_Legend{suffix}.png", dpi=600)
 
 
-def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, distance_meters, vmax = None, vmin= None, outcomelabel = None):
-    if outcomelabel is None:
-        outcomelabel = outcomvar
-    ax = spatialdata.plot(outcomvar, antialiased=False, legend = True, vmax = vmax, vmin = vmin)
-    cx.add_basemap(ax, crs=spatialdata.crs, source=cx.providers.CartoDB.PositronNoLabels)
+def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, distance_meters, colormaplabel = None, vmax = None, vmin= None, outcomelabel = None):
+    ax = spatialdata.plot(outcomvar, antialiased=False, legend = True, legend_kwds= {"label": colormaplabel, "location":"top", "shrink": 0.72,  "pad":0.03}, vmax = vmax, vmin = vmin)
+    cx.add_basemap(ax, crs=spatialdata.crs, source=cx.providers.CartoDB.PositronNoLabels, attribution= False)
+    ax.annotate("© OpenStreetMap contributors © CARTO", xy=(0.15, 0.1), xycoords="figure fraction", fontsize=6, color="dimgrey")
     scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
     ax.add_artist(scalebar)
-    plt.title(f"{outcomelabel} Per Neighborhood")
+    if outcomelabel != None:
+        plt.title(f"{outcomelabel} Per Neighborhood")
+    plt.xticks(fontsize=7.5)
+    plt.yticks(fontsize=7.5)
+    plt.xlabel("Latitude (EPSG:28992)", fontsize=7.5)
+    plt.ylabel("Longitude (EPSG:28992)", fontsize=7.5)
     plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.png', dpi = 600, bbox_inches='tight', pad_inches=0.1)
     if showplots:
         plt.show()
     plt.close()
 
+    # def calculate_clean_range(minval, maxval, num_steps=5):
+    #     magnitude = 10**(np.floor(np.log10(max(abs(minval), abs(maxval))))-1)
+    #     stepcandidates = np.array([1, 1.25, 1.75, 2, 2.5, 5, 0.25, 0.5, 0.75]) * magnitude
+    #     fraction = abs(minval)/maxval
+    #     print(f"Fraction is {fraction}")
+    #     if fraction > 0.3:
+    #         if maxval > abs(minval):
+    #             uncleanstep = maxval/2
+    #         else:
+    #             uncleanstep = abs(minval)/2
+    #     else:
+    #         if maxval > abs(minval):
+    #             uncleanstep = maxval/3
+    #         else:
+    #             uncleanstep = abs(minval)/3
+    #     roundadjuster = stepcandidates[np.argmin([abs(stepcandidates - uncleanstep)] )]      
+    #     print(f"Magnitude is {magnitude}")
+    #     print("uncleanstep", uncleanstep, "step_size", roundadjuster)
+    #     roundminval = np.floor(minval / roundadjuster) * roundadjuster
+    #     roundmaxval = np.ceil(maxval / roundadjuster) * roundadjuster
+    #     # diffmin = minval - roundminval
+    #     # diffmax = roundmaxval - maxval
+    #     # roundingdiff = min(diffmin, diffmax)
+    #     # roundadjustcandidates = np.array([1, 2.5, 5, 0.5]) * magnitude
+    #     # roundadjuster = roundadjustcandidates[np.argmin([cand - roundingdiff if (cand - roundingdiff) < 0 else 100 for cand in roundadjustcandidates ] )]      
+    #     # roundminval = roundminval + roundadjuster
+    #     # roundmaxval = roundmaxval - roundadjuster
+    #     print(f"rounded  Min value is {roundminval}, Max value is {roundmaxval}")
+    #     # uncleanstep = (roundmaxval - roundminval)/5
+        
+    #     # if (roundmaxval- abs(roundminval))/roundmaxval < 0.3:
+    #     #     uncleanstep = roundmaxval/2
+    #     # else:
+    #     #     if roundmaxval > abs(roundminval):
+    #     #         uncleanstep = roundmaxval/3
+    #     #     else:
+    #     #         uncleanstep = abs(roundminval)/3
+    #     # # stepcandidates = np.array([1, 2.5, 5, 0.1, 0.25, 0.5, 0.75]) * magnitude
+    #     # print("stepcandidates", stepcandidates)
+    #     # step_size = stepcandidates[np.argmin(abs(stepcandidates - uncleanstep))]      
+        
+    #     clean_range = np.arange(roundminval, roundmaxval, roundadjuster)
+    #     return clean_range
+        
+    # for outcomevar in outcomevars:
+    #     maxval = np.max(stratexposure_df[f"{outcomevar}_deviationStatQMean"])
+    #     minval = np.min(stratexposure_df[f"{outcomevar}_deviationStatQMean"])
+    #     print(f"Min value for {outcomevar} is {minval}, Max value for {outcomevar} is {maxval}")
+    #     cleanrange = calculate_clean_range(minval, maxval)
+    #     print(f"Clean range for {outcomevar} is {cleanrange}")
+    #     outcomedeviationrange[outcomevar] = cleanrange
 
 ######################################################
 ##########################################
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/samemodelrun/"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/popsizes/"
+
+
 os.chdir(path_data)
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
@@ -839,14 +898,13 @@ experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/AB
 # experimentoverview = experimentoverview[~np.isnan(experimentoverview["Population Sample"])]
 modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [669169,509190])]
-# modelruns = [365800, 846897, 999180]
-# modelruns = [799701]
-# modelruns = [ 912787, 493519, 989597]
+# modelruns = [ 108922, 194070,671831, 922980, 855029, 415419, 782789, 741730, 750904,786142]
+# popsamples = [1,2,0,4,3,9,8, 5, 6, 7]
+# modelruns = [741730]
+# popsamples = [5]
 
 popsamples = [experimentoverview.loc[experimentoverview["Model Run"]== modelrun, "Population Sample"].values[0] for modelrun in modelruns]
 print(modelruns, popsamples)
-
-
 
 viztasks = [
             # "Exposure preparation",
@@ -859,12 +917,12 @@ viztasks = [
             # "Comparative plots",
             # "Mean across runs aggregate exposure df",
             # "Mean across runs exposure circle plot",
-            "Mean across runs strat exposure Circle plot",
+            # "Mean across runs strat exposure Circle plot",
             # "Mean across runs and Neighborhoods",
             # "Mean across runs aggregate exposure diff df",
             # "Mean across runs exposure diff circle plot",
             # "Mean across runs strat exposure diff Circle plot",
-            # "Mean across runs and Neighborhoods diff"
+            "Mean across runs and Neighborhoods diff"
             ]
             
 categoricalstratvars = ["sex", "migr_bck", "income_class", "age_group", "HH_size", "absolved_education", "HH_type", "student", "location"]
@@ -883,10 +941,10 @@ fullnamedict = {
     "HH_type": "Household Type",
     "student": "Student Status",
     "location": "Location",
-    "NO2": "NO2 (µg/m3)",
+    "NO2": "Personal NO2 Exposure (µg/m3)",
     "MET": "Metabolic Equivalent of Task (MET)",
-    "NO2wFilter": "NO2 with I/O Filter (µg/m3)",
-    "indoortime": "Time spent indoors (h)",
+    "NO2wFilter": "Personal NO2 Exposure with O/I (µg/m3)",
+    "indoortime": "Time spent indoors (min/h)",
     "NO2_diff": "NO2 Difference (µg/m3)",
     "MET_diff": "Metabolic Equivalent of Task (MET) Difference" }
 
@@ -1026,7 +1084,7 @@ for count, modelrun in enumerate(modelruns):
         ##########################################################  
         ### Visualize the aggregate data in a circle plot
         ##########################################################
-        
+        os.chdir(path_data+f"/{scenario}/{nb_agents}Agents/AgentExposure/{modelrun}/ExposureViz")
         aggexposure = pd.read_csv(f"Exposure_A{nb_agents}_{modelrun}_aggregate.csv")
 
         subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "green","greenyellow",  "lightseagreen", "aquamarine","olive",  ]
@@ -1078,8 +1136,10 @@ for count, modelrun in enumerate(modelruns):
         print(distance_meters)
         neighborhoods = gpd.read_file("D:\PhD EXPANSE\Data\Amsterdam\Administrative Units\Amsterdam_Neighborhoods_RDnew.shp")
         print(neighborhoods.columns)
-        exposure_df_vertical
+        exposure_df_vertical["count"]=1
         exposure_neigh = exposure_df_vertical[["neighb_code"] +outcomevars].groupby(["neighb_code"],  as_index=False).mean()
+        exposure_neigh_count = exposure_df_vertical[["neighb_code", "agent_ID", "count"]].drop_duplicates()[["neighb_code", "count"]].groupby(["neighb_code"],  as_index=False).sum()
+        exposure_neigh= pd.merge(exposure_neigh, exposure_neigh_count, on="neighb_code", how="left")
         exposure_neigh.to_csv(f"Exposure_A{nb_agents}_{modelrun}_neigh.csv", index=False)
         exposure_neigh.rename(columns={"neighb_code": "buurtcode"}, inplace=True)
         print(exposure_neigh.head())
@@ -1088,7 +1148,7 @@ for count, modelrun in enumerate(modelruns):
         showplots = False
         for outcomvar in outcomevars:
             PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun=modelrun, 
-                                spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
+                                spatialdata=neighborhoods, colormaplabel=fullnamedict[outcomvar], 
                                 distance_meters=distance_meters)
 
     if "Comparative plots" in viztasks:
@@ -1221,7 +1281,7 @@ if "Mean across runs strat exposure Circle plot" in viztasks:
     
     plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel=f"{labelprefix} Mean Exposure\nacross population",  rangeval=[ -1.5, -0.75, 0, 0.75, 1.5],
                         subgroupcolors = subgroupcolors, meanval= aggexposure.loc[aggexposure["timeunit"]=="total", "NO2wFilter"].values[0],
-                        outcomevar = "NO2wFilter_deviation", roundval = 2, centertext=f"NO2 with I/O\nFilter (µg/m3)\nDeviation\nfrom Mean", suffix = "")
+                        outcomevar = "NO2wFilter_deviation", roundval = 2, centertext=f"NO2 with O/I\nFilter (µg/m3)\nDeviation\nfrom Mean", suffix = "")
 
 
     plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Scenario Mean Exposure\nacross population", rangeval=[ -1.5, -0.75, 0, 0.75, 1.5],
@@ -1246,8 +1306,12 @@ if "Mean across runs and Neighborhoods" in viztasks:
 
         print(exposure_neigh.tail(30))
 
+    exposure_neigh["totcount"] = exposure_neigh[[f"count_{count}" for count in range(len(modelruns))]].sum(axis=1)
     for outcomevar in outcomevars:
         exposure_neigh[outcomevar] = exposure_neigh[[f"{outcomevar}_{count}" for count in range(len(modelruns))]].mean(axis=1)
+        for count in range(len(modelruns)):
+            exposure_neigh[f"weighted{outcomevar}_{count}"] = (exposure_neigh[f"{outcomevar}_{count}"]*exposure_neigh[f"count_{count}"]/exposure_neigh["totcount"]) 
+        exposure_neigh[f"weighted{outcomevar}"] = exposure_neigh[[f"weighted{outcomevar}_{count}" for count in range(len(modelruns))]].sum(axis=1)
     
     print(exposure_neigh.head(20))
     exposure_neigh.to_csv(f"Exposure_A{nb_agents}_Mean_{scenario}_neigh.csv", index=False)    
@@ -1255,11 +1319,13 @@ if "Mean across runs and Neighborhoods" in viztasks:
 
     outcomecols = exposure_neigh.columns[1:]
     observations = exposure_neigh[outcomecols[0:10]]
-    exposure_neigh["count"] = observations.count(axis=1)
-    print(exposure_neigh["count"].value_counts())
+    exposure_neigh["samplecount"] = observations.count(axis=1)
+    print(exposure_neigh["samplecount"].value_counts())
 
     # deleting neighborhoods where below 5 observations are available
-    exposure_neigh = exposure_neigh.loc[exposure_neigh["count"]>6]
+    exposure_neigh = exposure_neigh.loc[exposure_neigh["totcount"]>10]
+    for outcomevar in outcomevars:
+        exposure_neigh[outcomevar] = exposure_neigh[f"weighted{outcomevar}"]
     
     print("Plotting mean status quo scenario exposure per neighborhood")
 
@@ -1281,7 +1347,7 @@ if "Mean across runs and Neighborhoods" in viztasks:
     for outcomvar in outcomevars:
         print(f"Plotting the exposure stratification for {outcomvar}")
         PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun="MeanAcrossRuns", 
-                            spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
+                            spatialdata=neighborhoods, colormaplabel=fullnamedict[outcomvar], 
                             distance_meters=distance_meters, 
                             vmax=maxvals[outcomvar], vmin = minvals[outcomvar])
 
@@ -1384,6 +1450,8 @@ if "Mean across runs strat exposure diff Circle plot" in viztasks:
     print(stratexposure_df.head(20))
     stratexposure_df.to_csv(f"Exposure_A{nb_agents}_{scenario}_aggregate_diff_strat.csv", index=False)
 
+    subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "olive","blue", "green", "aqua", "maroon", "blue"]
+    subgroupcolors = {stratgroup: subgroupcolorpalette[count] for count, stratgroup in enumerate(subgroups_Meta)}
 
     
     subgroups_Meta["HH_type"] = ["Single Person", "Pair without\nchildren","Pair with\nchild(ren)", "Single Parent\nwith child(ren)", "Other\nmultiperson HH"]
@@ -1392,57 +1460,163 @@ if "Mean across runs strat exposure diff Circle plot" in viztasks:
                                                                    "Single Parent with children": "Single Parent\nwith child(ren)",
                                                                    "Other multiperson household": "Other\nmultiperson HH"})
     subgroups_Meta.pop("HH_size")
-    # NO2range = [-3,-2,-1,0,1]
-    # NO2range = [-4,-3,-2,-1,0]
-    # NO2range = [-5,-2.5, 0,2.5]
     
-    # NO2range = None
-    # NO2range = [-3, -2, -1, 0, 1, 2]
-    NO2range = [-2, -1.5, -1, -0.5, 0, 0.5, 1]
-    # NO2range = [-1.5, -1, -0.5, 0, 0.5,1]
-    # NO2range = [-0.04, -0.02, 0, 0.02, 0.04]
-    # NO2range = [-1.5, -0.75, 0, 0.75, 1.5]
-    # NO2range = [-0.7, -0.35, 0, 0.35, 0.7]
-    # METrange = [-0.01, -0.005, 0, 0.005, 0.01]
-    # METrange = [-0.002, -0.001, 0, 0.001, 0.002]
-    # METrange = None
-    # METrange = [-0.1, -0.05, 0, 0.05, 0.1]
-    METrange = [-0.08, -0.04, 0, 0.04, 0.08]
-    # plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Status Quo Mean\nacross popoulation", rangeval = NO2range,
-    #                     subgroupcolors = subgroupcolors, meanval= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", "NO2"].values[0],
-    #                     outcomevar = "NO2_deviationStatQMean", roundval = 2, centertext=f"NO2 (µg/m3)\nDeviation to\nStatus Quo Mean", suffix = "diff_StatQMean")
+    
+    outcomevars = ["NO2", "MET", "NO2wFilter", "indoortime"]
+    oucomecentertextdicDevStatQ = {"NO2": "NO2 (µg/m3)\nDeviation to\nStatus Quo Mean",
+                            "MET": "Transport MET\nDeviation to\nStatus Quo Mean",
+                            "NO2wFilter": "NO2 with O/I\nFilter (µg/m3)\nDeviation to\nStatus Quo Mean",
+                            "indoortime": "Time spent indoors\nDeviation to\nStatus Quo Mean"}
+    
+    oucomecentertextdicDiffStatQ = {"NO2": "NO2 (µg/m3)\nDifference to\nGroup StatQ Mean",
+                            "MET": "Transport MET\nDifference to\nGroup StatQ Mean",
+                            "NO2wFilter": "NO2 with O/I\nFilter (µg/m3)\nDifference to\nGroup StatQ Mean",
+                            "indoortime": "Time spent indoors\nDifference to\nGroup StatQ Mean"}
+    
+    oucomecentertextdicChangeStatQ = {"NO2": "NO2 (µg/m3)\nChange from\nStatus Quo",
+                            "MET": "Transport MET\nChange from\nStatus Quo",
+                            "NO2wFilter": "NO2 with O/I\nFilter (µg/m3)\nChange from\nStatus Quo",
+                            "indoortime": "Time spent indoors\nChange from\nStatus Quo"}
 
+    
+    for outcomevar in outcomevars:
+        maxval = np.max(stratexposure_df[f"{outcomevar}_deviationStatQMean"])
+        minval = np.min(stratexposure_df[f"{outcomevar}_deviationStatQMean"])
+        print(f"DeviationStatQMean {outcomevar}:  Min value {minval}, Max value {maxval}")
+        
+    for outcomevar in outcomevars:
+        maxval = np.max(stratexposure_df[f"{outcomevar}_diffStatQ"])
+        minval = np.min(stratexposure_df[f"{outcomevar}_diffStatQ"])
+        print(f"DiffStatQ {outcomevar}:  Min value {minval}, Max value {maxval}")
+    
 
-    # plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Status Quo Mean\nacross popoulation", 
-    #                     subgroupcolors = subgroupcolors, meanval= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", "MET"].values[0],
-    #                     outcomevar = "MET_deviationStatQMean", roundval = 2, centertext=f"Transport MET\nDeviation to\nStatus Quo Mean", suffix = "diff_StatQMean")
+    # # Parking price
+    outcomedeviationrangeStatQMean = {
+        "NO2": [-3.75,-2.5, -1.25, 0,1.25],
+        "MET": [-0.04, -0.02, 0, 0.02, 0.04],
+        "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
+        "indoortime": [-1.5, -0.75, 0, 0.75, 1.5]
+    }
 
+    outcomedeviationrangeDiffStatQ = {
+        "NO2": [-0.21,-0.14,-0.07, 0,0.07],
+        "MET": [-0.03, -0.015, 0, 0.015, 0.03],
+        "NO2wFilter": [-0.09,-0.06,-0.03, 0,0.03],
+        "indoortime": [-0.008, -0.004, 0, 0.004, 0.008]
+    }
 
-    # plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, rangeval= [-0.07, -0.035, 0, 0.035, 0.07],
-    #                     subgroupcolors = subgroupcolors, meanval= 0, redlinelabel="Status Quo Mean\nof respective subgroup",
-    #                     outcomevar = "NO2_diffStatQ", roundval = 2, centertext=f"NO2 (µg/m3)\nDifference to\nStatus Quo Mean", suffix = "diff_StatQ")
+    outcomedeviationrangeStatQRelative = {
+        "NO2": [-3.75,-2.5, -1.25, 0,1.25],
+        "MET": [-0.04, -0.02, 0, 0.02, 0.04],
+        "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
+        "indoortime": [-1.5, -0.75, 0, 0.75, 1.5]
+    }
+    
+    # # 15mcitywithDestination
+    # outcomedeviationrangeStatQMean = {
+    #     "NO2": [-3.6,-2.4, -1.2, 0,1.2],
+    #     "MET": [-0.1, -0.05, 0, 0.05, 0.1],
+    #     "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
+    #     "indoortime": [-0.75,0, 0.75, 1.5, 2.25]
+    # }
 
+    # outcomedeviationrangeDiffStatQ = {
+    #     "NO2": [-1,-0.5,0, 0.5,1],
+    #     "MET": [-0.1,-0.05,0, 0.05,0.1],
+    #     "NO2wFilter": [-0.8,-0.04,0, 0.4,0.8],
+    #     "indoortime": [-1, -0.5, 0, 0.5,1]
+    # }
 
-    # plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, rangeval = METrange,
-    #                     subgroupcolors = subgroupcolors, meanval= 0, redlinelabel="Status Quo Mean\nof respective subgroup",
-    #                     outcomevar = "MET_diffStatQ", roundval = 2, centertext=f"Transport MET\nDifference to\nStatus Quo Mean", suffix = "diff_StatQ")
+    # outcomedeviationrangeStatQRelative = {
+    #     "NO2": [-3.6,-2.4, -1.2, 0,1.2],
+    #     "MET": [-0.1, -0.05, 0, 0.05, 0.1],
+    #     "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
+    #     "indoortime": [-2,-1, 0, 1, 2]
+    # }
+    
+    # # 15mcity
+    # outcomedeviationrangeStatQMean = {
+    #     "NO2": [-3,-2, -1, 0,1],
+    #     "MET": [-0.04, -0.02, 0, 0.02, 0.04],
+    #     "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
+    #     "indoortime": [-1.5, -0.75, 0, 0.75, 1.5]
+    # }
 
-    subgroupcolorpalette = ["darkviolet", "darkorange", "teal", "olive","blue", "green", "aqua", "maroon", "blue"]
-    subgroupcolors = {stratgroup: subgroupcolorpalette[count] for count, stratgroup in enumerate(subgroups_Meta)}
+    # outcomedeviationrangeDiffStatQ = {
+    #     "NO2": [-0.25,-0.125,0, 0.125,0.25],
+    #     "MET": [-0.004,-0.002,0, 0.002,0.004],
+    #     "NO2wFilter": [-0.08,-0.06,-0.04, -0.02,0],
+    #     "indoortime": [-0.03, -0.02, -0.01, 0,0.01]
+    # }
 
-    plotCircosMeanStratRelativ(stratexposure_df, subgroups= subgroups_Meta, rangeval = NO2range,
+    # outcomedeviationrangeStatQRelative = {
+    #     "NO2": [-3.6,-2.4, -1.2, 0,1.2],
+    #     "MET": [-0.04, -0.02, 0, 0.02, 0.04],
+    #     "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
+    #     "indoortime": [-1.5, -0.75, 0, 0.75, 1.5]
+    # }
+    
+    # # No Emission Zone 2030
+    # outcomedeviationrangeStatQMean = {
+    #     "NO2": [-8,-6, -4, -2,0],
+    #     "MET": [0, 0.02, 0.04, 0.06, 0.08],
+    #     "NO2wFilter": [-4, -3, -2, -1, 0],
+    #     "indoortime": [-2.4,-1.6, -0.8, 0, 0.8]
+    # }
+
+    # outcomedeviationrangeDiffStatQ = {
+    #     "NO2": [-8,-6, -4, -2,0],
+    #     "MET": [0, 0.02, 0.04, 0.06, 0.08],
+    #     "NO2wFilter": [-4, -3, -2, -1, 0],
+    #     "indoortime": [-0.4, -0.3, -0.2, -0.1,0]
+    # }
+
+    # outcomedeviationrangeStatQRelative = {
+    #     "NO2": [-7.5,-5, -2.5, 0,2.5],
+    #     "MET": [-0.025, 0, 0.025, 0.05, 0.075],
+    #     "NO2wFilter": [-4.5, -3, -1.5, 0, 1.5],
+    #     "indoortime": [-3,-2, -1, 0, 1]
+    # }
+    
+    # # No Emission Zone 2025
+    # outcomedeviationrangeStatQMean = {
+    #     "NO2": [-6,-4.5, -3, -1.5,0],
+    #     "MET": [-0.04, -0.02, 0, 0.02, 0.04],
+    #     "NO2wFilter": [-4, -3, -2, -1, 0],
+    #     "indoortime": [-3,-2, -1, 0, 1]
+    # }
+
+    # outcomedeviationrangeDiffStatQ = {
+    #     "NO2": [-6,-4.5, -3, -1.5,0],
+    #     "MET": [-0.015, -0.0075, 0, 0.0075, 0.015],
+    #     "NO2wFilter": [-4, -3, -2, -1, 0],
+    #     "indoortime": [-0.2, -0.1, 0, 0.1,0.2]
+    # }
+
+    # outcomedeviationrangeStatQRelative = {
+    #     "NO2": [-6,-4, -2, 0,2],
+    #     "MET": [-0.04, -0.02, 0, 0.02, 0.04],
+    #     "NO2wFilter": [-3, -2, -1, 0, 1],
+    #     "indoortime": [-3,-2, -1, 0, 1]
+    # }    
+
+    for outcomevar in outcomevars:
+        plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Status Quo Mean\nacross popoulation", rangeval = outcomedeviationrangeStatQMean[outcomevar],
+                                subgroupcolors = subgroupcolors, meanval= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", outcomevar].values[0],
+                                outcomevar = f"{outcomevar}_deviationStatQMean", roundval = 2, centertext=oucomecentertextdicDevStatQ[outcomevar], suffix = "diff_StatQMean")
+
+        plotCircosMeanStrat(stratexposure_df, subgroups= subgroups_Meta, redlinelabel="Status Quo Mean\nof respective subgroup", rangeval = outcomedeviationrangeDiffStatQ[outcomevar],
+                                subgroupcolors = subgroupcolors, meanval= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", outcomevar].values[0],
+                                outcomevar = f"{outcomevar}_diffStatQ", roundval = 2, centertext=oucomecentertextdicDiffStatQ[outcomevar], suffix = "diff_StatQ")
+
+        plotCircosMeanStratRelativ(stratexposure_df, subgroups= subgroups_Meta, rangeval = outcomedeviationrangeStatQRelative[outcomevar],
                         subgroupcolors = subgroupcolors, 
-                        meanvalStatQ= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", "NO2"].values[0], 
-                        meanvalScenario= aggexposure.loc[aggexposure["timeunit"]=="total", "NO2"].values[0],
+                        meanvalStatQ= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", outcomevar].values[0], 
+                        meanvalScenario= aggexposure.loc[aggexposure["timeunit"]=="total", outcomevar].values[0],
                         redlinelabel="Mean across \n popoulation",
-                        outcomevar = "NO2", roundval = 2, centertext=f"NO2 (µg/m3)\nChange from\nStatus Quo", suffix = "diff_beforeafterStatQ")
+                        outcomevar = outcomevar, roundval = 2, centertext=oucomecentertextdicChangeStatQ[outcomevar], suffix = "diff_beforeafterStatQ")
 
-    plotCircosMeanStratRelativ(stratexposure_df, subgroups= subgroups_Meta, rangeval = METrange,
-                        subgroupcolors = subgroupcolors, 
-                        meanvalStatQ= aggexposureStatusQ.loc[aggexposureStatusQ["timeunit"]=="total", "MET"].values[0], 
-                        meanvalScenario= aggexposure.loc[aggexposure["timeunit"]=="total", "MET"].values[0],
-                        redlinelabel="Mean across \n popoulation",
-                        outcomevar = "MET", roundval = 3, centertext=f"Transport MET\nChange from\nStatus Quo", suffix = "diff_beforeafterStatQ")
+
 
 
 
@@ -1485,15 +1659,44 @@ if "Mean across runs and Neighborhoods diff" in viztasks:
     neighborhoods = neighborhoods.merge(exposure_neighDiff, on="buurtcode", how="left")
 
     diffoutcomevars = [f"{outcomvar}_diff" for outcomvar in outcomevars]
-    fullnamedict = {"NO2_diff": "Difference in NO2 (µg/m3)", "MET_diff": "Difference in Transport MET (MET/h)"}
-    showplots = False
-    maxvals = {"NO2_diff": 0.2, "MET_diff": 0.02}
-    minvals = {"NO2_diff": -0.75, "MET_diff": -0.02}
+    fullnamedictdiff = {"NO2_diff": "Difference in NO2 Exposure (µg/m3)", 
+                        "MET_diff": "Difference in Transport MET (MET/h)",
+                        "NO2wFilter_diff": "Difference in NO2 Exposure with O/I (µg/m3)",
+                        "indoortime_diff": "Difference in Time spent indoors (min/h)"
+                        }
+    # print the min and max of the outcome variables
 
+    print(exposure_neighDiff[diffoutcomevars].quantile(0.75))    
+    print(exposure_neighDiff[diffoutcomevars].quantile(0.25))
+
+    showplots = False
+    
+    # Parking price
+    maxvals = {"NO2_diff": 0, "MET_diff": 0.01, "NO2wFilter_diff": 0, "indoortime_diff": 0.02}
+    minvals = {"NO2_diff": -0.3, "MET_diff": -0.01, "NO2wFilter_diff": -0.15, "indoortime_diff": -0.03}
+
+    # #No Emission Zone 2030
+    # maxvals = {"NO2_diff": -4, "MET_diff": 0.04, "NO2wFilter_diff": -2, "indoortime_diff": 0}
+    # minvals = {"NO2_diff": -8, "MET_diff": -0.04, "NO2wFilter_diff": -4, "indoortime_diff": -0.3}
+    
+    # # No Emission Zone 2025
+    # maxvals = {"NO2_diff": -2, "MET_diff": 0.04, "NO2wFilter_diff": -1.5, "indoortime_diff": 0.3}
+    # minvals = {"NO2_diff": -5.5, "MET_diff": -0.04, "NO2wFilter_diff": -3, "indoortime_diff": -0.3}
+    
+    # # 15 minute city with destination
+    # maxvals = {"NO2_diff": 0, "MET_diff": 0.0, "NO2wFilter_diff": 0, "indoortime_diff": 1}
+    # minvals = {"NO2_diff": -1.5, "MET_diff": -0.1, "NO2wFilter_diff": -0.8, "indoortime_diff": 0.5}
+
+    # # 15 minute city
+    # maxvals = {"NO2_diff": 0, "MET_diff": 0.01, "NO2wFilter_diff": 0, "indoortime_diff": 0.01}
+    # minvals = {"NO2_diff": -0.2, "MET_diff": -0.01, "NO2wFilter_diff": -0.1, "indoortime_diff": -0.05}
+    
     for outcomvar in diffoutcomevars:
         PlotPerNeighbOutcome(outcomvar=outcomvar, showplots=showplots, modelrun="MeanAcrossRuns", 
-                            spatialdata=neighborhoods, outcomelabel=fullnamedict[outcomvar], 
+                            spatialdata=neighborhoods, colormaplabel=fullnamedictdiff[outcomvar], 
                             distance_meters=distance_meters, vmax=maxvals[outcomvar], vmin = minvals[outcomvar])
+
+
 
 
 

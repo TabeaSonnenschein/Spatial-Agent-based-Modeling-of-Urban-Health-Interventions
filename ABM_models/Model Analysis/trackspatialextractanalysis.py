@@ -7,22 +7,23 @@ from shapely import LineString, Point
 import geopandas as gpd
 from shapely.wkt import loads
 from itertools import chain
-
+import sys
 
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 os.chdir(path_data)
 crs = "epsg:28992"
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[experimentoverview["Experiment"] == scenario, "Model Run"].values
-modelruns = [870413]
-
+# modelruns = [870413]
+# modelruns = [modelrun for modelrun in modelruns if not(modelrun in [2457,313363])]
+modelruns = [786142]
 
 spatialjointype = "trackintersect"
 
@@ -54,7 +55,7 @@ for modelrun in modelruns:
                 modal_split.loc[index, "transit"] = trips.count("'transit'")
                 modal_split.loc[index, "walk"] = trips.count("'walk'")
                 durations = list(tracksubset["duration"].loc[trackindices])
-                durations = list(chain.from_iterable([el.split(", ") for el in durations]))
+                durations = list(chain.from_iterable([str(el).split(", ") for el in durations]))
                 durations = [float(x) for x in durations]
                 if len(durations) == 0:
                     modal_split.loc[index, "mean_duration"] = None

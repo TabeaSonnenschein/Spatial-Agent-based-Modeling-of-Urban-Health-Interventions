@@ -9,9 +9,11 @@ from shapely import Point
 ####################################################
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/samemodelrun/"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/popsizes/"
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
@@ -22,8 +24,8 @@ experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/AB
 modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [481658, 708658])]
 # modelruns = [715113]
-# modelruns = [23721, 413719]
-# modelruns = [ 799701]
+modelruns = [750904,786142]
+print(modelruns)
 
 os.chdir(path_data)
 
@@ -57,6 +59,7 @@ datedf = datedf.sort_values("weekday")
 datedf.to_csv(destination+"/datedf.csv", index=False)
 
 for modelrun in modelruns:
+    print(scenario,"Modelrun: ", modelrun)
     totTraffdat = pd.DataFrame()
     totTraffcols = []
     totTraffCcols = []
@@ -94,12 +97,11 @@ for modelrun in modelruns:
         AirPollGrid_x["mean_TrCount"] = AirPollGrid_x[totTraffCcols].mean(axis=1)
 
         for month in [1, 4,7,10]:
-            monthlycols = [col for col in AirPollGrid_x.columns if f"prTraff_M{month}" in col]
+            monthlycols = [col for col in AirPollGrid_x.columns if f"prTraff_M{month}_" in col]
             AirPollGrid_x[f"mean_prTraff_M{month}"] = AirPollGrid_x[monthlycols].mean(axis=1)
 
         for hour in range(24):
-            #hourly cols if column name ends with f"H{hour}"
-            hourlycols = [col for col in AirPollGrid_x.columns if col.endswith(f"H{hour}")]
+            hourlycols = [col for col in AirPollGrid_x.columns if ("prTraff" in col) & col.endswith(f"H{hour}")]
             AirPollGrid_x[f"mean_prTraff_H{hour}"] = AirPollGrid_x[hourlycols].mean(axis=1)
         
         for weekday in days_order: 

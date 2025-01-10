@@ -9,9 +9,11 @@ import numpy as np
 
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/samemodelrun/"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/popsizes/"
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
@@ -22,6 +24,8 @@ experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/AB
 modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
 # modelruns = [12365, 364241, 441245, 510849, 976383, 992330]
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [708658,481658])]
+modelruns = [741730, 750904,786142]
+# modelruns = [ 671831, 922980, 855029]
 
 os.chdir(os.path.join(path_data,scenario, f"{nb_agents}Agents/ModalSplit"))
 
@@ -58,5 +62,4 @@ for modelrun in modelruns:
     modalsplit_df["weekday"] = modalsplit_df['date'].dt.day_name()
     modalsplit_df[["bike", "drive", "transit", "walk"]] = modalsplit_df[["bike", "drive", "transit", "walk"]].fillna(0)
     print(modalsplit_df.head())
-
     modalsplit_df.to_csv(f"ModalSplitLog{nb_agents}_{scenario}_{modelrun}.csv", index=False)

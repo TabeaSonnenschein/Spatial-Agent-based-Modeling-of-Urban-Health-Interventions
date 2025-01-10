@@ -3,10 +3,13 @@ import os
 ##########################################
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/samemodelrun/"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/popsizes/"
+
 os.chdir(path_data)
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
@@ -17,12 +20,9 @@ scenario = "StatusQuo"
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [669169,509190])]
-# print(modelruns)
-# bestStatusQuo = 481658
-# modelruns = [708658, 481658]
-# modelruns = [819838]
-# modelruns = [ 912787, 493519, 989597]
-# modelruns = [ 989597]
+
+modelruns = [ 786142]
+print(modelruns)
 
 
 days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']

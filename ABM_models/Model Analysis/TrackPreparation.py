@@ -16,8 +16,8 @@ path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 os.chdir(path_data)
 crs = "epsg:28992"
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
@@ -26,11 +26,9 @@ scenario = "StatusQuo"
 # identify model run for scenario
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
-modelruns = [modelrun for modelrun in modelruns if not(modelrun in [313363, 2457])]
-# modelruns = [413719]
-# modelruns = [700698, 895973, 958354]
-# modelruns = [ 912787, 493519, 989597]
-
+modelruns = [modelrun for modelrun in modelruns if not(modelrun in [786142])]
+# modelruns = [ 108922, 194070,671831, 922980, 855029, 750904]
+# modelruns = [786142]
 print(modelruns)
 
 # spatialjointype = "origdest"
@@ -42,7 +40,7 @@ if not os.path.exists(path_data+f"/{scenario}/{nb_agents}Agents/Tracks/TrackViz"
       
 destination = path_data+f"/{scenario}/{nb_agents}Agents/Tracks/TrackViz"
 
-spatial_extract = True
+spatial_extract = False
 
 if spatial_extract:
     spatial_extract = gpd.read_file("D:/PhD EXPANSE/Data/Amsterdam/Built Environment/Transport Infrastructure/parking/parkingprices_prepostintervention.shp")
@@ -118,36 +116,36 @@ if spatial_extract:
         # final_gdf.to_feather(f"{destination}/AllTracks_{scenario}_{modelrun}.feather")
 
 else:
-    for modelrun in modelruns:
-        print("Modelrun: ", modelrun)
-        observations = os.listdir(path=f"{path_data}/{scenario}/{nb_agents}Agents/Tracks/{modelrun}")
-        month, day, hour, nr_trips, bike, drive, transit, walk, mean_durations, nr_travelers = [], [], [], [], [], [], [], [], [], []
-        for observation in observations:
-            print("Observation: ", observation)
-            df = pd.read_csv(os.path.join(f"{path_data}/{scenario}/{nb_agents}Agents/Tracks/{modelrun}" , observation))
-            month.append(observation.split("_")[3][1:])
-            day.append(observation.split("_")[4][1:])
-            hour.append(observation.split("_")[5][1:])
-            nr_travelers.append(len(df["agent"].unique()))
-            trips = list(df["mode"].apply(lambda x: x.replace("[", "").replace("]", "")))
-            trips = list(chain.from_iterable([el.split(", ") for el in trips]))
-            durations = list(df["duration"].apply(lambda x: x.replace("[", "").replace("]", "")))
-            nr_trips.append(len(trips))
-            durations = list(chain.from_iterable([el.split(", ") for el in durations]))
-            durations = [float(x) for x in durations]
-            if len(durations) == 0:
-                mean_durations.append(None)
-            else:
-                mean_durations.append(sum(durations)/len(durations))
-            bike.append(trips.count("'bike'"))
-            drive.append(trips.count("'drive'"))
-            transit.append(trips.count("'transit'"))
-            walk.append(trips.count("'walk'"))
-            trips.count("'drive'")
+    # for modelrun in modelruns:
+    #     print("Modelrun: ", modelrun)
+    #     observations = os.listdir(path=f"{path_data}/{scenario}/{nb_agents}Agents/Tracks/{modelrun}")
+    #     month, day, hour, nr_trips, bike, drive, transit, walk, mean_durations, nr_travelers = [], [], [], [], [], [], [], [], [], []
+    #     for observation in observations:
+    #         print("Observation: ", observation)
+    #         df = pd.read_csv(os.path.join(f"{path_data}/{scenario}/{nb_agents}Agents/Tracks/{modelrun}" , observation))
+    #         month.append(observation.split("_")[3][1:])
+    #         day.append(observation.split("_")[4][1:])
+    #         hour.append(observation.split("_")[5][1:])
+    #         nr_travelers.append(len(df["agent"].unique()))
+    #         trips = list(df["mode"].apply(lambda x: x.replace("[", "").replace("]", "")))
+    #         trips = list(chain.from_iterable([el.split(", ") for el in trips]))
+    #         durations = list(df["duration"].apply(lambda x: x.replace("[", "").replace("]", "")))
+    #         nr_trips.append(len(trips))
+    #         durations = list(chain.from_iterable([el.split(", ") for el in durations]))
+    #         durations = [float(x) for x in durations]
+    #         if len(durations) == 0:
+    #             mean_durations.append(None)
+    #         else:
+    #             mean_durations.append(sum(durations)/len(durations))
+    #         bike.append(trips.count("'bike'"))
+    #         drive.append(trips.count("'drive'"))
+    #         transit.append(trips.count("'transit'"))
+    #         walk.append(trips.count("'walk'"))
+    #         trips.count("'drive'")
 
-        pd.DataFrame({"Month": month, "Day": day, "Hour": hour, "Nr travelers": nr_travelers,
-                      "nr_trips": nr_trips,  "duration": mean_durations,"bike": bike, 
-                      "drive": drive, "transit": transit, "walk": walk}).to_csv(f"{destination}/ModalSplitEnriched_{scenario}_{modelrun}.csv", index=False)
+    #     pd.DataFrame({"Month": month, "Day": day, "Hour": hour, "Nr travelers": nr_travelers,
+    #                   "nr_trips": nr_trips,  "duration": mean_durations,"bike": bike, 
+    #                   "drive": drive, "transit": transit, "walk": walk}).to_csv(f"{destination}/ModalSplitEnriched_{scenario}_{modelrun}.csv", index=False)
             
 
     ### create a summary of the enriched modal split across all modelruns

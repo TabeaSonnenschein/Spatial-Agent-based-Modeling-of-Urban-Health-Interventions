@@ -4,15 +4,51 @@ import os
 import numpy as np
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from CellAutDisp import PrintSaveSummaryStats, MapSpatialDataFixedColorMapSetofVariables, ParallelMapSpatialDataFixedColorMap, ParallelMapSpatialData_StreetsFixedColorMap, ViolinOverTimeColContinous, SplitYAxis2plusLineGraph, meltPredictions, plotComputationTime,ViolinOverTimeColContinous_WithMaxSubgroups
+# from CellAutDisp import PrintSaveSummaryStats, MapSpatialDataFixedColorMapSetofVariables, ParallelMapSpatialDataFixedColorMap, ParallelMapSpatialData_StreetsFixedColorMap, ViolinOverTimeColContinous, SplitYAxis2plusLineGraph, meltPredictions, plotComputationTime,ViolinOverTimeColContinous_WithMaxSubgroups
 from shapely import Point
+from matplotlib_scalebar.scalebar import ScaleBar
+
+
+def MapSpatialDataFixedColorMapSetofVariables(variables, rasterdf, jointlabel, specificlabel, colormaplabelprefix, vmin, vmax, 
+                                              distance_meters, cmap= "viridis" , suffix = ""):
+    """This function maps the spatial distribution of a set of variables and saves them to files. 
+    It uses a fixed color map.
+
+    Args:
+        variables (list(str)): A list of variables for which to create the maps.
+        rasterdf (geodataframe): A geodataframe with the spatial data.
+        jointlabel (str): A string label to use for the variables.
+        specificlabel (list(str)): A list of string labels to use for the variables.
+        vmin (float): The minimum value for the color map.
+        vmax (float): The maximum value for the color map.
+        distance_meters (int): The distance in meters for the scale bar.
+        cmap (str, optional): The color map to use. Defaults to "viridis".
+        suffix (str, optional): A string for the filesuffix. Defaults to "".
+    """
+    for variable in variables:
+        print(rasterdf[variable].describe())
+        ax= rasterdf.plot(variable, cmap= cmap, antialiased=False, linewidth = 0.00001, legend = True, legend_kwds= {"label": f"{colormaplabelprefix}{specificlabel[variables.index(variable)]}", "location":"top", "shrink": 0.72,  "pad":0.03}, vmin = vmin, vmax=vmax)
+        ax.set_xlim(rasterdf.total_bounds[0], rasterdf.total_bounds[2])
+        ax.set_ylim(rasterdf.total_bounds[1], rasterdf.total_bounds[3])
+        scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
+        ax.add_artist(scalebar)
+        # ax.axis('off')
+        plt.xticks(fontsize=7.5)
+        plt.yticks(fontsize=7.5)
+        plt.xlabel("Latitude (EPSG:28992)", fontsize=7.5)
+        plt.ylabel("Longitude (EPSG:28992)", fontsize=7.5)
+        # plt.title(f"{jointlabel} Distribution: {specificlabel[variables.index(variable)]}")
+        plt.savefig(f'{variable}_map_{suffix}.png', bbox_inches='tight',dpi=400)
+        plt.close()
+
+
 
 ####################################################
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
@@ -23,11 +59,14 @@ cellsize = 50
 viztype = [
         "preparingData",
         "mappingInterventionTraffic", 
-        # "statusquocomparison",
+        "statusquocomparison",
         ]
+allvars = False
 
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
+# modelruns = [ 108922, 194070,671831, 922980, 855029, 415419, 782789, 741730]
+print(modelruns)
 
 os.chdir(path_data)
 
@@ -81,10 +120,16 @@ if "mappingInterventionTraffic" in viztype:
     AirPollGrid_x = AirPollGrid.merge(Traffic_df, on="int_id", how="left")
     labels = ["Mean annual Traffic Volumn", "Mean annual Traffic Count"] + [f"Mean Traffic Volume in {monthsnames[month-1]}" for month in [1, 4,7,10]] + [f"Mean Traffic Volume at Hour {hour}" for hour in range(24)] + [f"Mean Traffic Volume on {weekday}s" for weekday in days_order]
     os.chdir(destination)
-    MapSpatialDataFixedColorMapSetofVariables(variables = colnames, rasterdf = AirPollGrid_x, jointlabel = "", 
-                                                    specificlabel = labels, vmin=0, vmax=600,distance_meters= distance_meters, 
-                                                    cmap="turbo", suffix=f"{scenario}_MeanAcrossRuns")
+    
+    if allvars:
+        mapvars = colnames
+    else:
+        mapvars = colnames[:2]
 
+    MapSpatialDataFixedColorMapSetofVariables(variables = mapvars, rasterdf = AirPollGrid_x, jointlabel = "", 
+                                                    specificlabel = labels, colormaplabelprefix="",
+                                                    vmin=0, vmax=600,distance_meters= distance_meters, 
+                                                    cmap="turbo", suffix=f"{scenario}_MeanAcrossRuns")
 
 if "statusquocomparison" in viztype:
     Traffic_status =  pd.read_csv(path_data+f"/StatusQuo/{nb_agents}Agents/Traffic/TraffViz/TraffMeans_StatusQuo_MeanAcrossRuns.csv")
@@ -93,12 +138,18 @@ if "statusquocomparison" in viztype:
     Traffic_diff = Traffic_diff.rename(columns={col: f"{col}_diff" for col in colnames})
     Traffic_diff.to_csv(destination+f"/TraffMeans_{scenario}_MeanAcrossRuns_diff.csv", index=False)
     newcolnames = [f"{col}_diff" for col in colnames]  
+    if allvars:
+        mapvars = newcolnames
+    else:
+        mapvars = newcolnames[:2]
     AirPollGrid_x = AirPollGrid.merge(Traffic_diff, on="int_id", how="left")
     # find global min and max
-    vmin = AirPollGrid_x[newcolnames].min().min()
-    vmax = AirPollGrid_x[newcolnames].max().max()
+    vmin = AirPollGrid_x[mapvars].min().min()
+    vmax = AirPollGrid_x[mapvars].max().max()
     print("vmin: ", vmin, "vmax: ", vmax)
     labels = ["Difference annual Traffic"] + [f"Difference Traffic in {monthsnames[month-1]}" for month in [1, 4,7,10]] + [f"Difference Traffic at Hour {hour}" for hour in range(24)] + [f"Difference Traffic on {weekday}s" for weekday in days_order] 
-    MapSpatialDataFixedColorMapSetofVariables(variables = newcolnames, rasterdf = AirPollGrid_x, jointlabel = "", 
-                                                    specificlabel = labels, vmin=vmin, vmax=30,distance_meters= distance_meters, 
+    
+    MapSpatialDataFixedColorMapSetofVariables(variables = mapvars, rasterdf = AirPollGrid_x, jointlabel = "", 
+                                                    specificlabel = labels, colormaplabelprefix="Δ ",
+                                                    vmin=vmin, vmax=30,distance_meters= distance_meters, 
                                                     cmap="turbo", suffix=f"{scenario}_DifferenceStatusQuo")

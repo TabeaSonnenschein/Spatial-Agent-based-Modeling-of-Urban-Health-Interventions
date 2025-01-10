@@ -236,63 +236,152 @@ import numpy as np
 
 
 ######################################################
-### stratified fractions age, sex, migrationbackground, education
+# ### stratified fractions age, sex, migrationbackground, education
+# os.chdir("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/CBS statistics")
+# # retrieve current directory
+
+# os.chdir("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/CBS statistics/socioeconomics")
+# absolved_edu = pd.read_csv("diplomaabsolvation conditioned by age sex and migrationbackground.csv")
+# age_coding = pd.read_csv("age_coding.csv")
+# edu_coding = pd.read_csv("education_coding.csv")
+# age_coding.columns = ['Leeftijd'] + age_coding.columns[1:].tolist()
+# edu_coding.columns = ['Onderwijssoort', 'education_level'] + edu_coding.columns[2:].tolist()
+# absolved_edu = pd.merge(absolved_edu, age_coding, how='left', on='Leeftijd')
+# absolved_edu = pd.merge(absolved_edu, edu_coding, how='left', on='Onderwijssoort')
+
+# absolved_edu = absolved_edu.loc[absolved_edu["age"] != "Totaal"]
+# absolved_edu = absolved_edu.loc[absolved_edu["Migratieachtergrond"] != "Total"]
+# absolved_edu = absolved_edu.loc[absolved_edu["sex"] != "Total"]
+# absolved_edu = absolved_edu.loc[absolved_edu["age"] != "Leeftijd onbekend"]
+# absolved_edu = absolved_edu[["sex", "age", "Migratieachtergrond","ranking","Gediplomeerden_1"]]
+# absolved_edu.fillna(0, inplace=True)
+# #  remove the absolved edu rows where age is in "12", "13", "14"
+# absolved_edu = absolved_edu.loc[~absolved_edu["age"].isin(["12", "13", "14"])]
+
+# # sum the Gediplomeerden_1 column for each sex, age, migrationbackground, ranking combination
+# absolved_edu = absolved_edu.groupby(by= ["sex", "age", "Migratieachtergrond","ranking"], as_index=False).sum()
+# absolved_edu_total =  absolved_edu[["sex", "age", "Migratieachtergrond","Gediplomeerden_1"]].groupby(by= ["sex", "age", "Migratieachtergrond"], as_index=False).sum()
+# absolved_edu = absolved_edu.merge(absolved_edu_total, on = ["sex", "age", "Migratieachtergrond"], how="left", suffixes=("", "_totalgroup"))
+# absolved_edu["fraction"] = absolved_edu["Gediplomeerden_1"]/absolved_edu["Gediplomeerden_1_totalgroup"]
+
+
+# print(absolved_edu.columns.values)
+# print(absolved_edu.head(50))
+
+# # rename columns ["sex", "age_group", migrationbackground, "absolved_education", "Gediplomeerden_1",  "Gediplomeerden_1_totalgroup" , "fraction"]
+# absolved_edu.columns = ["sex", "age_group", "migrationbackground", "absolved_education", "Gediplomeerden_1",  "Gediplomeerden_1_totalgroup" , "fraction"]
+# absolved_edu.to_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_Education.csv", index=False)
+
+# print(absolved_edu["age_group"].unique())
+
+# pop_df = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/Population/Agent_pop_clean.csv")
+# print(pop_df.columns.values)
+
+# bins=[0,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29, 30, 35,40,45,50,110]
+# labels=["0-11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29",
+#             "30 tot 35 jaar", "35 tot 40 jaar", "40 tot 45 jaar", "45 tot 50 jaar", "50 jaar of ouder"]
+
+# print(len(bins), len(labels))
+# print(pop_df["absolved_education"].unique())
+# pop_df["age_group"] = pd.cut(pop_df["age"], bins=bins, labels=labels)
+# pop_df = pop_df.loc[~pop_df["age_group"].isin(["0-11","12", "13", "14"])]
+
+# # group by sex, age_group, migrationbackground, absolved_education and count the number of agents in each group
+# pop_df_groups = pop_df.groupby(by=["sex", "age_group", "migrationbackground", "absolved_education"], as_index=False).size().reset_index()
+
+# pop_df_groups_tot = pop_df_groups[["sex", "age_group", "migrationbackground", "size"]].groupby(by = ["sex", "age_group", "migrationbackground"], as_index=False).sum()
+# pop_df_groups = pop_df_groups.merge(pop_df_groups_tot, on=  ["sex", "age_group", "migrationbackground"], how = "left", suffixes=("", "_totalgroup"))
+# pop_df_groups["fraction"] = pop_df_groups["size"]/pop_df_groups["size_totalgroup"]
+
+# print(pop_df_groups.head(50))
+
+# pop_df_groups.to_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_Agents.csv", index=False)
+
+
+# pop_df_groups = pd.read_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_Agents.csv")
+
+# absolved_edu= pd.read_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_Education.csv")
+
+# print(pop_df_groups.head())
+# print(absolved_edu.head())
+
+# merged = pop_df_groups.merge(absolved_edu, on=["sex", "age_group", "migrationbackground", "absolved_education"])
+# # remove the "absolved education 0 values
+# merged = merged.loc[merged["absolved_education"] != "0"]
+
+# print(merged.head())
+# # calculate correlation between fraction_x and fraction_x
+# correlation = merged["fraction_x"].corr(merged["fraction_y"])
+# print(f"Correlation between agent and education fractions: {correlation}")
+
+# merged["correlation"] = correlation
+# merged.to_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_Educationmerged.csv", index=False)
+
+
+####################################################################
+# age gender migrationbackground familie position
 os.chdir("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/CBS statistics")
-# retrieve current directory
 
-os.chdir("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/CBS statistics/socioeconomics")
-absolved_edu = pd.read_csv("diplomaabsolvation conditioned by age sex and migrationbackground.csv")
-age_coding = pd.read_csv("age_coding.csv")
-edu_coding = pd.read_csv("education_coding.csv")
-age_coding.columns = ['Leeftijd'] + age_coding.columns[1:].tolist()
-edu_coding.columns = ['Onderwijssoort', 'education_level'] + edu_coding.columns[2:].tolist()
-absolved_edu = pd.merge(absolved_edu, age_coding, how='left', on='Leeftijd')
-absolved_edu = pd.merge(absolved_edu, edu_coding, how='left', on='Onderwijssoort')
+migrat_df = pd.read_csv("age gender migrationbackground familie position.csv")
+print(migrat_df.head())
+agecoding = pd.read_csv("agegroup coding_migration data.csv")
+migrat_df = migrat_df.merge(agecoding, on= "Leeftijd")
+migrat_df = migrat_df.loc[migrat_df["Generatie"]== "T001040"]
+migrat_df = migrat_df[["Geslacht","age","Migratieachtergrond","TotaalAantalPersonenInHuishoudens_1"]]
+migrat_df.columns = ["sex","age_group","migrationbackground","Nrpeople"]
+migrat_df = migrat_df.loc[migrat_df["age_group"]!= "Totaal"]
 
-absolved_edu = absolved_edu.loc[absolved_edu["age"] != "Totaal"]
-absolved_edu = absolved_edu.loc[absolved_edu["Migratieachtergrond"] != "Total"]
-absolved_edu = absolved_edu.loc[absolved_edu["sex"] != "Total"]
-absolved_edu = absolved_edu.loc[absolved_edu["age"] != "Leeftijd onbekend"]
-absolved_edu = absolved_edu[["sex", "age", "Migratieachtergrond","ranking","Gediplomeerden_1"]]
-absolved_edu.fillna(0, inplace=True)
-#  remove the absolved edu rows where age is in "12", "13", "14"
-absolved_edu = absolved_edu.loc[~absolved_edu["age"].isin(["12", "13", "14"])]
-
-# sum the Gediplomeerden_1 column for each sex, age, migrationbackground, ranking combination
-absolved_edu = absolved_edu.groupby(by= ["sex", "age", "Migratieachtergrond","ranking"], as_index=False).sum()
-absolved_edu_total =  absolved_edu[["sex", "age", "Migratieachtergrond","Gediplomeerden_1"]].groupby(by= ["sex", "age", "Migratieachtergrond"], as_index=False).sum()
-absolved_edu = absolved_edu.merge(absolved_edu_total, on = ["sex", "age", "Migratieachtergrond"], how="left", suffixes=("", "_totalgroup"))
-absolved_edu["fraction"] = absolved_edu["Gediplomeerden_1"]/absolved_edu["Gediplomeerden_1_totalgroup"]
+migrat_df["migrationbackground"] = migrat_df["migrationbackground"].replace({
+    '"Nederlandse achtergrond"': "Dutch",
+    '"Niet-westerse migratieachtergrond"': "Non-Western",
+    '"Westerse migratieachtergrond"': "Western"
+})
 
 
-print(absolved_edu.columns.values)
-print(absolved_edu.head(50))
+migrat_df_tot = migrat_df[["sex", "age_group", "Nrpeople"]].groupby(by = ["sex", "age_group"], as_index=False).sum()
+migrat_df = migrat_df.merge(migrat_df_tot, on=   ["sex", "age_group"], how = "left", suffixes=("", "_totalgroup"))
+migrat_df["fraction"] = migrat_df['Nrpeople']/migrat_df["Nrpeople_totalgroup"]
 
-# rename columns ["sex", "age_group", migrationbackground, "absolved_education", "Gediplomeerden_1",  "Gediplomeerden_1_totalgroup" , "fraction"]
-absolved_edu.columns = ["sex", "age_group", "migrationbackground", "absolved_education", "Gediplomeerden_1",  "Gediplomeerden_1_totalgroup" , "fraction"]
-absolved_edu.to_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_Education.csv", index=False)
+migrat_df.to_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_agesexmigrationbackgroundCBS.csv", index= False)
 
-print(absolved_edu["age_group"].unique())
+print(migrat_df.head())
 
 pop_df = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/Population/Agent_pop_clean.csv")
 print(pop_df.columns.values)
+age_bins = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, float('inf')]
+age_labels = [
+    "0 tot 5 jaar", "5 tot 10 jaar", "10 tot 15 jaar", "15 tot 20 jaar", "20 tot 25 jaar",
+    "25 tot 30 jaar", "30 tot 35 jaar", "35 tot 40 jaar", "40 tot 45 jaar", "45 tot 50 jaar",
+    "50 tot 55 jaar", "55 tot 60 jaar", "60 tot 65 jaar", "65 tot 70 jaar", "70 tot 75 jaar",
+    "75 tot 80 jaar", "80 tot 85 jaar", "85 tot 90 jaar", "90 tot 95 jaar", "95 jaar of ouder"
+]
 
-bins=[0,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29, 30, 35,40,45,50,110]
-labels=["0-11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29",
-            "30 tot 35 jaar", "35 tot 40 jaar", "40 tot 45 jaar", "45 tot 50 jaar", "50 jaar of ouder"]
+pop_df["age_group"] = pd.cut(pop_df["age"], bins=age_bins, labels=age_labels)
 
-print(len(bins), len(labels))
-print(pop_df["absolved_education"].unique())
-pop_df["age_group"] = pd.cut(pop_df["age"], bins=bins, labels=labels)
-pop_df = pop_df.loc[~pop_df["age_group"].isin(["0-11","12", "13", "14"])]
 
-# group by sex, age_group, migrationbackground, absolved_education and count the number of agents in each group
-pop_df_groups = pop_df.groupby(by=["sex", "age_group", "migrationbackground", "absolved_education"], as_index=False).size().reset_index()
+agent_counts = pop_df.groupby(["age_group", "sex", "migrationbackground"]).size().reset_index(name='count')
+pop_df_groups_tot = agent_counts[["sex", "age_group", "count"]].groupby(by = ["sex", "age_group"], as_index=False).sum()
+agent_counts = agent_counts.merge(pop_df_groups_tot, on=   ["sex", "age_group"], how = "left", suffixes=("", "_totalgroup"))
+agent_counts["fraction"] = agent_counts['count']/agent_counts["count_totalgroup"]
 
-pop_df_groups_tot = pop_df_groups[["sex", "age_group", "migrationbackground", "size"]].groupby(by = ["sex", "age_group", "migrationbackground"], as_index=False).sum()
-pop_df_groups = pop_df_groups.merge(pop_df_groups_tot, on=  ["sex", "age_group", "migrationbackground"], how = "left", suffixes=("", "_totalgroup"))
-pop_df_groups["fraction"] = pop_df_groups["size"]/pop_df_groups["size_totalgroup"]
 
-print(pop_df_groups.head(50))
+agent_counts.to_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_agesexmigrationbackgroundAgents.csv",index= False)
 
-pop_df_groups.to_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_Agents.csv", index=False)
+agent_counts = pd.read_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_agesexmigrationbackgroundAgents.csv")
+agent_counts = agent_counts.merge(migrat_df, on=["age_group", "sex", "migrationbackground"], how= "left")
+
+print(agent_counts.head())
+
+correlation = agent_counts["fraction_x"].corr(agent_counts["fraction_y"])
+print(f"Correlation between agent and education fractions: {correlation}")
+
+agent_counts["innergroupfractioncorrelation"] = correlation
+
+agent_counts["overall_fraction_x"] = agent_counts["count"]/ np.sum(agent_counts["count"])
+agent_counts["overall_fraction_y"] = agent_counts["Nrpeople"]/ np.sum(agent_counts["Nrpeople"])
+
+correlation = agent_counts["overall_fraction_x"].corr(agent_counts["overall_fraction_y"])
+print(f"Correlation between agent and education fractions: {correlation}")
+agent_counts["overallfractioncorrelation"] = correlation
+
+agent_counts.to_csv("D:/PhD EXPANSE/Data/Data/Amsterdam/Population/StratifiedFractions_agesexmigrationbackgroundAgentsmerged.csv",index= False)

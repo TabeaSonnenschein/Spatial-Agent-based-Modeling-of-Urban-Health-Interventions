@@ -941,12 +941,12 @@ if __name__ == "__main__":
 
     # New Population sample or already existing one
     newpop = False
-    subsetnr = 4
+    subsetnr = 1
     
     # Length of the simulation run
     NrHours = 24
     NrDays = 7
-    NrMonths = 1
+    NrMonths = 4
     
     # Starting Date and Time
     starting_date = datetime(2019, 1, 1, 0, 0, 0)
@@ -966,7 +966,7 @@ if __name__ == "__main__":
     profile = False
     
     # Stage of the Traffic Model
-    TraffStage = "Remainder" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
+    TraffStage = "PredictionR2" # "Remainder" or "Regression" or "PredictionNoR2" or "PredictionR2" 
     
     
     # Traffic Model
@@ -974,8 +974,6 @@ if __name__ == "__main__":
       TraffVCoeff =  6.8583637     # 43500 = 3.7927303	21750 =  6.8583637	8700 = 7.214888208
     elif nb_humans == 43500:
       TraffVCoeff =  3.7927303      # 43500 =3.7927303	21750 =  6.8583637	8700 = 7.214888208
-    elif nb_humans == 8700:
-      TraffVCoeff =  7.214888208      # 43500 = 3.787805251680264	21750 =  5.53923309648345	8700 = 7.214888208
     
     TraffVNO2Coeff = 0.02845   # Traffic Volume NO2 coefficient for 50m cellsize
     TraffIntensNO2Coeff = 0.0001072 # Traffic Intensity NO2 coefficient for 50m cellsize
@@ -1094,7 +1092,7 @@ if __name__ == "__main__":
     elif modelname in ["15mCity", "15mCityWithDestination"]:
       EnvBehavDeterms = gpd.read_feather(path_data+f"SpatialData/EnvBehavDeterminants15mCity.feather")
       EnvBehavDeterms['retaiDns'] = EnvBehavDeterms['retaiDns15']
-      EnvBehavDeterms['greenCovr'] = EnvBehavDeterms['grenCovr15']
+      # EnvBehavDeterms['greenCovr'] = EnvBehavDeterms['grenCovr15']
       EnvBehavDeterms['retailDiv'] = EnvBehavDeterms['retDiv15']
     # other Interventions
     else:

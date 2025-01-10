@@ -9,9 +9,11 @@ from shapely import Point
 ####################################################
 nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/samemodelrun/"
+# path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/UncertaintyAnalysis/popsizes/"
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCityWithDestination"
 # scenario = "15mCity"
 # scenario = "NoEmissionZone2025"
@@ -28,10 +30,9 @@ viztype = [
 experimentoverview = pd.read_csv("D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ExperimentOverview.csv")
 modelruns = experimentoverview.loc[(experimentoverview["Experiment"] == scenario)& (experimentoverview["Number of Agents"] == f"{nb_agents}Agents"), "Model Run"].values
 # modelruns = [modelrun for modelrun in modelruns if not(modelrun in [481658,708658])]
-# modelruns = [715113]
-# modelruns = [ 799701]
-# modelruns = [ 497507, 672874, 759145, 806323]
-# modelruns = [ 912787, 493519, 989597]
+modelruns = [741730, 750904,786142]
+# modelruns = [ 108922, 194070,671831, 922980, 855029]
+print(modelruns)
 
 os.chdir(path_data)
 
@@ -59,6 +60,7 @@ datedf = datedf.sort_values("weekday")
 datedf.to_csv(destination+"/datedf.csv", index=False)
 
 for modelrun in modelruns:
+    print(scenario,"Modelrun: ", modelrun)
     totNO2dat = pd.DataFrame()
     totNO2cols = []
     totNO2Ccols = []
@@ -94,7 +96,7 @@ for modelrun in modelruns:
             
         AirPollGrid_x["mean_prNO2"] = AirPollGrid_x[totNO2cols].mean(axis=1)
         for month in [1, 4,7,10]:
-            monthlycols = [col for col in AirPollGrid_x.columns if f"prNO2_M{month}" in col]
+            monthlycols = [col for col in AirPollGrid_x.columns if f"prNO2_M{month}_" in col]
             AirPollGrid_x[f"mean_prNO2_M{month}"] = AirPollGrid_x[monthlycols].mean(axis=1)
 
         for hour in range(24):
@@ -106,15 +108,6 @@ for modelrun in modelruns:
             weekdaycolentries = [f"prNO2_M{date[0]}_D{date[1]}" for date in datedf.loc[datedf["weekday"] == weekday, ["month", "day"]].values]
             weekdaycols = [col for entry in weekdaycolentries for col in AirPollGrid_x.columns  if entry in col]
             AirPollGrid_x[f"mean_prNO2_{weekday}"] = AirPollGrid_x[weekdaycols].mean(axis=1)
-
-        # AirPollGrid_x.rename(columns={"mean_prTraff_Tuesday": "mean_prTraff_Monday",
-        #                               "mean_prTraff_Wednesday": "mean_prTraff_Tuesday",
-        #                               "mean_prTraff_Thursday": "mean_prTraff_Wednesday",
-        #                               "mean_prTraff_Friday": "mean_prTraff_Thursday",
-        #                               "mean_prTraff_Saturday": "mean_prTraff_Friday",
-        #                               "mean_prTraff_Sunday": "mean_prTraff_Saturday",
-        #                               "mean_prTraff_Monday": "mean_prTraff_Sunday"
-        #                             }, inplace=True)
 
         colnames = ["mean_prNO2"]+[f"mean_prNO2_M{month}" for month in [1,4,7,10]] + [f"mean_prNO2_H{hour}" for hour in range(24)] + [f"mean_prNO2_{weekday}" for weekday in days_order] 
         labels = ["Mean annual NO2"] + [f"Mean NO2 in {monthsnames[month-1]}" for month in [1, 4,7,10]] + [f"Mean NO2 at Hour {hour}" for hour in range(24)] + [f"Mean NO2 on {weekday}s" for weekday in days_order] 

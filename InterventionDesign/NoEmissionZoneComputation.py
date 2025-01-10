@@ -253,7 +253,7 @@ from collections import Counter
 # ## altering baseline traffic in zones
 # ####################################################
 
-# NoEmissionZone = gpd.read_file(r"D:\PhD EXPANSE\Written Paper\04- Case study 1 - Transport Interventions\interventiondocs\mileuzonen\Uitstootvrijgebied2025.shp")
+# NoEmissionZone = gpd.read_file(r"D:\PhD EXPANSE\Written Paper\04- Case study 1 - Transport Interventions\figures\Intervention Designs\mileuzonen\Uitstootvrijgebied2025.shp")
 
 # TrafficRemainder = pd.read_csv(r"D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\TrafficRemainder\AirPollGrid_HourlyTraffRemainder_21750.csv")
 # Grid = gpd.read_file(r"D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\AirPollutionModelData\AirPollDeterm_grid50m.shp")
@@ -289,12 +289,12 @@ from collections import Counter
 
 # Gridplot = pd.merge(Grid, TrafficRemainder, on="int_id", how="left")
 # Gridplot.plot(column="TraffVrest8", legend=True)
-# plt.savefig(r"D:\PhD EXPANSE\Written Paper\04- Case study 1 - Transport Interventions\figures\NoEmissionZones\BeforeNoEmissionZone2025_TraffRemainder8_21750.png", dpi = 600, bbox_inches = 'tight')
+# plt.savefig(r"D:\PhD EXPANSE\Written Paper\04- Case study 1 - Transport Interventions\figures\Intervention Designs\mileuzonen\BeforeNoEmissionZone2025_TraffRemainder8_21750.png", dpi = 600, bbox_inches = 'tight')
 
 # TrafficRemainder.loc[TrafficRemainder["int_id"].isin(IntIDs), TraffCols] = 0.0
 
 # ## read commercial EV share
-# data_commercial = pd.read_csv(r"D:\PhD EXPANSE\Written Paper\04- Case study 1 - Transport Interventions\interventiondocs\mileuzonen\electric carownership"+"/commercialelectric_car_adoption_percentageEV.csv")
+# data_commercial = pd.read_csv(r"D:\PhD EXPANSE\Written Paper\04- Case study 1 - Transport Interventions\figures\Intervention Designs\mileuzonen\electric carownership"+"/commercialelectric_car_adoption_percentageEV.csv")
 # commericalEVshare = data_commercial.loc[data_commercial["year"]== 2025, "percentageEV"].values[0]
 # print(commericalEVshare)
 
@@ -306,8 +306,36 @@ from collections import Counter
 # # join the Grid and Traffic Remainder and plot the traffic remainder
 # Grid = pd.merge(Grid, TrafficRemainder, on="int_id", how="left")
 # Grid.plot(column="TraffVrest8", legend=True)
-# plt.savefig(r"D:\PhD EXPANSE\Written Paper\04- Case study 1 - Transport Interventions\figures\NoEmissionZones\NoEmissionZone2025_TraffRemainder8_21750.png", dpi = 600, bbox_inches = 'tight')
+# plt.savefig(r"D:\PhD EXPANSE\Written Paper\04- Case study 1 - Transport Interventions\figures\Intervention Designs\mileuzonen\NoEmissionZone2025_TraffRemainder8_21750.png", dpi = 600, bbox_inches = 'tight')
 # plt.show()
+
+
+
+##########################################
+### calculate percentage of electric car access
+##########################################
+
+# # read Agent_pop_ElectricCarOwnership.csv
+# Agent_df = pd.read_csv(r"D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\Population\Agent_pop_cleanElectricCarOwnership.csv")
+
+# nr_agents = len(Agent_df)
+# nr_agents_EV2025 = Agent_df["EV_access2025"].sum()
+# nr_agents_car_access = Agent_df["car_access"].sum()
+# nr_agents_EV2030 = Agent_df["EV_access2030"].sum()
+
+# print("Nr of agents: ", nr_agents)
+# print("Nr of agents with EV access 2025: ", nr_agents_EV2025)
+# print("Nr of agents with car access: ", nr_agents_car_access)
+# print("Nr of agents with EV access 2030: ", nr_agents_EV2030)
+
+# print("Percentage of EV from all vehicles: ", nr_agents_EV2025/nr_agents_car_access)
+# print("Percentage of population with EV access: ", nr_agents_EV2025/nr_agents)
+# print("Percentage of population with non-EV access: ", (nr_agents_car_access-nr_agents_EV2025)/nr_agents)
+# print("Percentage car access of the total population 2020: ", nr_agents_car_access/nr_agents)
+# print("Percentage reduction in nr of vehicles 2030: ", (nr_agents_car_access-nr_agents_EV2030)/nr_agents_car_access)
+# print("Percentage of population with EV access 2030: ", nr_agents_EV2030/nr_agents)
+
+
 
 
 # ########################################

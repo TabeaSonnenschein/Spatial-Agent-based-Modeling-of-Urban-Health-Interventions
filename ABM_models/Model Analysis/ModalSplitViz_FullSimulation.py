@@ -220,8 +220,8 @@ nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 os.chdir(path_data)
 
-scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+# scenario = "StatusQuo"
+scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
 # scenario = "NoEmissionZone2025"
@@ -239,7 +239,7 @@ days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 viztype = [
         "singleIntervention", 
         "CirclePlot",
-        # "statusquocomparison"
+        "statusquocomparison"
         ]
 
 # extentname = "parkingprice_interventionextent"
@@ -407,21 +407,21 @@ if "statusquocomparison" in viztype:
         # MSabs_hourmin, MSabs_hourmax, MSabs_hourstep = -1000, 1500, 500
         
         # # NoEmissionZone2025, 15minCity, PrkPriceInterv
-        # MSperc_monthmin, MSperc_monthmax, MSperc_monthstep = -0.05, 0.05, 0.025
-        # MSperc_hourmin, MSperc_hourmax, MSperc_hourstep =  -0.05, 0.05, 0.025
-        # MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = -100, 100, 50
-        # MSabs_hourmin, MSabs_hourmax, MSabs_hourstep =  -100, 100, 50
+        MSperc_monthmin, MSperc_monthmax, MSperc_monthstep = -0.05, 0.05, 0.025
+        MSperc_hourmin, MSperc_hourmax, MSperc_hourstep =  -0.05, 0.05, 0.025
+        MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = -100, 100, 50
+        MSabs_hourmin, MSabs_hourmax, MSabs_hourstep =  -100, 100, 50
         
         # NoEmissionZone2030
-        MSperc_monthmin, MSperc_monthmax, MSperc_monthstep = -0.2, 0.2, 0.1
-        MSperc_hourmin, MSperc_hourmax, MSperc_hourstep =  -0.2, 0.2, 0.1
-        MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = -1000, 1000, 500
-        MSabs_hourmin, MSabs_hourmax, MSabs_hourstep =  -1000, 1000, 500
+        # MSperc_monthmin, MSperc_monthmax, MSperc_monthstep = -0.2, 0.2, 0.1
+        # MSperc_hourmin, MSperc_hourmax, MSperc_hourstep =  -0.2, 0.2, 0.1
+        # MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = -1000, 1000, 500
+        # MSabs_hourmin, MSabs_hourmax, MSabs_hourstep =  -1000, 1000, 500
         
-        print(MSperc_monthmin, MSperc_monthmax, MSperc_monthstep)
-        print(MSperc_hourmin, MSperc_hourmax, MSperc_hourstep)
-        print(MSabs_monthmin, MSabs_monthmax, MSabs_monthstep)
-        print(MSabs_hourmin, MSabs_hourmax, MSabs_hourstep)                                                                       
+        # print(MSperc_monthmin, MSperc_monthmax, MSperc_monthstep)
+        # print(MSperc_hourmin, MSperc_hourmax, MSperc_hourstep)
+        # print(MSabs_monthmin, MSabs_monthmax, MSabs_monthstep)
+        # print(MSabs_hourmin, MSabs_hourmax, MSabs_hourstep)                                                                       
                                                        
 
         # MSabs_monthmin, MSabs_monthmax, MSabs_monthstep = calc_min_max(aggmodalsplit_diff,  timeunit_contains = "weekday", stratvals = ["totaltrips"],
