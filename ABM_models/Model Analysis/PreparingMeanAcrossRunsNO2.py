@@ -37,8 +37,7 @@ def MapSpatialDataFixedColorMapSetofVariables(variables, rasterdf, jointlabel, s
         plt.xlabel("Latitude (EPSG:28992)", fontsize=7.5)
         plt.ylabel("Longitude (EPSG:28992)", fontsize=7.5)
         # plt.title(f"{jointlabel} Distribution: {specificlabel[variables.index(variable)]}")
-        # plt.savefig(f'{variable}_map_{suffix}.png', bbox_inches='tight',dpi=400)
-        plt.savefig(f'{variable}_map_{suffix}.eps', format='eps', bbox_inches='tight',dpi=400)
+        plt.savefig(f'{variable}_map_{suffix}.png', bbox_inches='tight',dpi=400)
         plt.close()
 
 
@@ -48,10 +47,10 @@ nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns"
 
 # scenario = "StatusQuo"
-# scenario = "PrkPriceInterv"
+scenario = "PrkPriceInterv"
 # scenario = "15mCityWithDestination"
 # scenario = "15mCity"
-scenario = "NoEmissionZone2025"
+# scenario = "NoEmissionZone2025"
 # scenario = "NoEmissionZone2030"
 
 cellsize = 50
@@ -69,8 +68,8 @@ monthsnames = ["January",  "February",  "March",  "April",  "May",  "June",
 
 
 viztype = [
-        # "preparingData",
-        # "mappingInterventionNO2", 
+        "preparingData",
+        "mappingInterventionNO2", 
         "statusquocomparison",
         ]
 allvars = False
