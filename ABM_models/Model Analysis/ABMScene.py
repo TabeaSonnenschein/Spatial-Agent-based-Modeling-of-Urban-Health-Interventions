@@ -14,6 +14,7 @@ from matplotlib_scalebar.scalebar import ScaleBar
 import matplotlib.gridspec as gridspec
 import warnings
 import contextily as cx
+import xarray as xr
 
 
 warnings.filterwarnings("ignore", message="invalid value encountered in line_locate_point")
@@ -68,8 +69,11 @@ def prepareTrackData(trackdf):
 
 
 
-def sampleTrackDataAndFindOverlappingTracks(gdf, sample_size = 1):
-    sample = gdf.sample(sample_size)
+def sampleTrackDataAndFindOverlappingTracks(gdf, sample_size = 1, agent = None):
+    if agent is not None:
+        sample = gdf[gdf["agent"] == agent]
+    else:
+        sample = gdf.sample(sample_size)
     track_bounds = sample.total_bounds
     xlength = track_bounds[2]-track_bounds[0]
     ylength = track_bounds[3]-track_bounds[1]
@@ -87,6 +91,51 @@ def sampleTrackDataAndFindOverlappingTracks(gdf, sample_size = 1):
     track_bounds[3] = track_bounds[3] + 500
     otheroverlappingtracks = gdf.cx[track_bounds[0]:track_bounds[2], track_bounds[1]:track_bounds[3]]
     return sample, otheroverlappingtracks, track_bounds
+
+def sampleTrackDataAndFindOverlappingTracks_nAgents(gdf, sample_size = 1, agent = None, n = 1):
+    if agent is not None:
+        sample = gdf[gdf["agent"] == agent]
+    else:
+        sample = gdf.sample(sample_size)
+    track_bounds = sample.total_bounds
+    xlength = track_bounds[2]-track_bounds[0]
+    ylength = track_bounds[3]-track_bounds[1]
+    if xlength > ylength:
+        lendiff = xlength - ylength
+        track_bounds[1] = track_bounds[1] - lendiff/2
+        track_bounds[3] = track_bounds[3] + lendiff/2                
+    else:
+        lendiff = ylength - xlength
+        track_bounds[0] = track_bounds[0] - lendiff/2
+        track_bounds[2] = track_bounds[2] + lendiff/2
+    track_bounds[0] = track_bounds[0] - 500 
+    track_bounds[1] = track_bounds[1] - 500
+    track_bounds[2] = track_bounds[2] + 500
+    track_bounds[3] = track_bounds[3] + 500
+    otheroverlappingtracks = gdf.cx[track_bounds[0]:track_bounds[2], track_bounds[1]:track_bounds[3]]
+    if n > 1:
+        for i in range(n-1):
+            add_sample = gdf[gdf["agent"] == otheroverlappingtracks.sample(1)["agent"].values[0]]
+            sample = pd.concat([sample, add_sample])
+    track_bounds = sample.total_bounds
+    xlength = track_bounds[2]-track_bounds[0]
+    ylength = track_bounds[3]-track_bounds[1]
+    if xlength > ylength:
+        lendiff = xlength - ylength
+        track_bounds[1] = track_bounds[1] - lendiff/2
+        track_bounds[3] = track_bounds[3] + lendiff/2                
+    else:
+        lendiff = ylength - xlength
+        track_bounds[0] = track_bounds[0] - lendiff/2
+        track_bounds[2] = track_bounds[2] + lendiff/2
+    track_bounds[0] = track_bounds[0] - 500 
+    track_bounds[1] = track_bounds[1] - 500
+    track_bounds[2] = track_bounds[2] + 500
+    track_bounds[3] = track_bounds[3] + 500
+    otheroverlappingtracks = gdf.cx[track_bounds[0]:track_bounds[2], track_bounds[1]:track_bounds[3]]
+    return sample, otheroverlappingtracks, track_bounds
+
+
 
 def FindMissingAgents(synthpop, trackdf):
     coveredagents = trackdf["agent"].unique()
@@ -154,10 +203,11 @@ def SnappingLinesToFadeOut(line):
 
 
 
-path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/"
+path_data_input  = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/"
+path_data= "F:/ModelRunsOLDOLD/"
 
 
-random_subset = pd.read_csv(path_data+f"Population/Amsterdam_population_subset21750_0.csv")
+random_subset = pd.read_csv(path_data_input+f"Population/Amsterdam_population_subset21750_0.csv")
 
 random_subset["HH_type"] = ""
 random_subset["Nrchildren"] = random_subset["Nrchildren"].astype(int)
@@ -176,7 +226,7 @@ popsamples = [experimentoverview.loc[experimentoverview["Model Run"]== modelrun,
 samplerun = [modelruns[count] for count, popsample in enumerate(popsamples) if popsample == '0'][0]
 
 # samplerun = 670942
-samplerun = 870217
+samplerun = 879534
 
 
 # create a color map 
@@ -195,21 +245,21 @@ points = points.to_crs(32619)  # Projected WGS 84 - meters
 distance_meters = points[0].distance(points[1])
 print(distance_meters)
 
-spatial_extent = gpd.read_feather(path_data+"SpatialData/SpatialExtent.feather")
-buildings = gpd.read_feather(path_data+"SpatialData/Buildings.feather")
-streets = gpd.read_feather(path_data+"SpatialData/Streets.feather")
-greenspace = gpd.read_feather(path_data+"SpatialData/Greenspace.feather")
+spatial_extent = gpd.read_feather(path_data_input+"SpatialData/SpatialExtent.feather")
+buildings = gpd.read_feather(path_data_input+"SpatialData/Buildings.feather")
+streets = gpd.read_feather(path_data_input+"SpatialData/Streets.feather")
+greenspace = gpd.read_feather(path_data_input+"SpatialData/Greenspace.feather")
 
 
 
-Residences = gpd.read_feather(path_data+"SpatialData/Residences.feather")
-Supermarkets = gpd.read_feather(path_data+f"SpatialData/Supermarkets15mCity.feather")
-Kindergardens = gpd.read_feather(path_data+f"SpatialData/Kindergardens15mCity.feather")
-Restaurants = gpd.read_feather(path_data+f"SpatialData/Restaurants15mCity.feather")
-Entertainment = gpd.read_feather(path_data+f"SpatialData/Entertainment15mCity.feather")
-ShopsnServ = gpd.read_feather(path_data+f"SpatialData/ShopsnServ15mCity.feather")
-Nightlife = gpd.read_feather(path_data+f"SpatialData/Nightlife15mCity.feather")
-Profess = gpd.read_feather(path_data+f"SpatialData/Profess15mCity.feather")
+Residences = gpd.read_feather(path_data_input+"SpatialData/Residences.feather")
+Supermarkets = gpd.read_feather(path_data_input+f"SpatialData/Supermarkets15mCity.feather")
+Kindergardens = gpd.read_feather(path_data_input+f"SpatialData/Kindergardens15mCity.feather")
+Restaurants = gpd.read_feather(path_data_input+f"SpatialData/Restaurants15mCity.feather")
+Entertainment = gpd.read_feather(path_data_input+f"SpatialData/Entertainment15mCity.feather")
+ShopsnServ = gpd.read_feather(path_data_input+f"SpatialData/ShopsnServ15mCity.feather")
+Nightlife = gpd.read_feather(path_data_input+f"SpatialData/Nightlife15mCity.feather")
+Profess = gpd.read_feather(path_data_input+f"SpatialData/Profess15mCity.feather")
 
 # join all the points data
 allpoints = gpd.GeoDataFrame(pd.concat([Residences, Supermarkets, Kindergardens, Restaurants, Entertainment, ShopsnServ, Nightlife, Profess], ignore_index=True), crs=crs)
@@ -225,186 +275,799 @@ nr_plots = 5
 nr_hours = 5
 hours = [8,12,14,21]
 days = [3,4,2,2]
+agents = ["Agent_496038", "Agent_224888", "Agent_858433"]
+agentday = 2
+randomplots = False
+agentplots = False
+autoplot = False
 
-for timeslot in range(len(hours)):
-    hour = hours[timeslot]
-    month = 1
-    day = days[timeslot]
-    timestep = hour*6
-    date = f"0{day}-0{month}-2019"
-    print(date, "hour", hour)
-    weekday = pd.to_datetime(date, format="%d-%m-%Y").weekday()
-    weekday = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][weekday]
+if autoplot:
+    for timeslot in range(len(hours)):
+        hour = hours[timeslot]
+        month = 1
+        day = days[timeslot]
+        timestep = hour*6
+        date = f"0{day}-0{month}-2019"
+        print(date, "hour", hour)
+        weekday = pd.to_datetime(date, format="%d-%m-%Y").weekday()
+        weekday = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][weekday]
 
-    # scheduledf = pd.read_csv(path_data+f"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_{weekday}.csv")
+        # scheduledf = pd.read_csv(path_data+f"ActivitySchedules/HETUS2010_Synthpop_schedulesclean_{weekday}.csv")
 
-    # sampleTracks  = pd.read_csv(f"F:/ModelRuns/PrkPriceInterv/21750Agents/Tracks/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour}_{scenario}.csv")
-    sampleTracks  = pd.read_csv(path_data+ f"ModelRuns/StatusQuo/21750Agents/ForVisualization/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour}_{scenario}.csv")
-    gdf, staticagents = prepareTrackData(sampleTracks)
+        # sampleTracks  = pd.read_csv(f"F:/ModelRuns/PrkPriceInterv/21750Agents/Tracks/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour}_{scenario}.csv")
+        sampleTracks  = pd.read_csv(path_data+ f"StatusQuo/21750Agents/ForVisualization/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour}_{scenario}.csv")
+        gdf, staticagents = prepareTrackData(sampleTracks)
 
-    gdf = gdf[gdf["geometry"].isvalid]
-    if plotvideo:
-        while len(unique_activities) < 2:
-            tracksample, otheroverlappingtracks, track_bounds = sampleTrackDataAndFindOverlappingTracks(gdf)
-            otheroverlappingtracks = otheroverlappingtracks[(otheroverlappingtracks["geometry"].notnull()) & (otheroverlappingtracks["geometry"].is_valid)]
-            print(tracksample)
-
-            sampleagent = tracksample["agent"].iloc[0]
-            Agentdata = random_subset[random_subset["agent_ID"] == sampleagent]
-            print(Agentdata)
-
-
-
-    else:
-        for plot in range(nr_plots):
-            unique_activities, activitylocations, uniqueactivitylocations = [], [], []
-            while len(uniqueactivitylocations) < 2:
+        gdf = gdf[gdf["geometry"].is_valid]
+        if plotvideo:
+            while len(unique_activities) < 2:
                 tracksample, otheroverlappingtracks, track_bounds = sampleTrackDataAndFindOverlappingTracks(gdf)
                 otheroverlappingtracks = otheroverlappingtracks[(otheroverlappingtracks["geometry"].notnull()) & (otheroverlappingtracks["geometry"].is_valid)]
                 print(tracksample)
-                
+
                 sampleagent = tracksample["agent"].iloc[0]
                 Agentdata = random_subset[random_subset["agent_ID"] == sampleagent]
                 print(Agentdata)
 
-                unique_activities = [int(float(x)) for x in tracksample["activities"].iloc[0]]
-                activitylocations = [activitylocationdict[x] for x in unique_activities]
-                uniqueactivitylocations = [activity for count, activity in enumerate(activitylocations) if activity not in activitylocations[:count]]
-                locationchange = [count-1 for count in range(1,len(activitylocations)) if activitylocations[count] != activitylocations[count-1]]
-                print(unique_activities, activitylocations, uniqueactivitylocations)
-        
-            if len(unique_activities) > 1:
-                trackorder = tracksample["trackorder"].iloc[0]
-                try:
-                    previousactivity = unique_activities[locationchange[trackorder]]
-                    nextactivity = unique_activities[locationchange[trackorder]+1]
-                except:
-                    previousactivity = unique_activities[locationchange[trackorder-1]]
-                    nextactivity = unique_activities[locationchange[trackorder-1]+1]
-                else:
-                    pass
-                # scheduletext = f"\\textbf{{Activity Schedule}}\nPrevious activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
-                # triptext = f"\\textbf{{Trip}}\nMode: {tracksample['mode'].iloc[0]}\nDuration: {round(float(tracksample['duration'].iloc[0]), 2)} min\nDistance: {round(tracksample['geometry'].iloc[0].length, 2)}m\nDeparture Time: {tracksample['start_hour'].iloc[0]}:{tracksample['start_minute'].iloc[0]:02d}\nArrival Time: {tracksample['end_hour'].iloc[0]}:{tracksample['end_minute'].iloc[0]:02d}"
-                scheduletext = f"Previous activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
-                triptext = f"Mode: {tracksample['mode'].iloc[0]}\nDuration: {round(float(tracksample['duration'].iloc[0]), 2)} min\nDistance: {round(tracksample['geometry'].iloc[0].length, 2)}m\nDeparture Time: {tracksample['start_hour'].iloc[0]}:{tracksample['start_minute'].iloc[0]:02d}\nArrival Time: {tracksample['end_hour'].iloc[0]}:{tracksample['end_minute'].iloc[0]:02d}"
-                datetime_text = f"Date: {date}\nWeekday: {weekday}"
-                agent_text = f"Agent ID: {sampleagent}\nAge: {Agentdata['age'].iloc[0]}\nSex: {Agentdata['sex'].iloc[0]}\nMigration Background: {Agentdata['migrationbackground'].iloc[0]}\nIncome Decile: {Agentdata['incomeclass_int'].iloc[0]}\nHousehold Size: {Agentdata['HH_size'].iloc[0]}\n{Agentdata['HH_type'].iloc[0]}\nEmployment: {Agentdata['employed'].iloc[0]}\nEducation: {Agentdata['absolved_education'].iloc[0]}\n..."
 
-                # missingGeometries = FindingNontravelingAgentslocations(synthpop = random_subset, trackdf = sampleTracks, hour=hour, day=day, points = allpoints)
+        else:
+            if randomplots:
+                for plot in range(nr_plots):
+                    unique_activities, activitylocations, uniqueactivitylocations = [], [], []
+                    while len(uniqueactivitylocations) < 2:
+                        tracksample, otheroverlappingtracks, track_bounds = sampleTrackDataAndFindOverlappingTracks(gdf)
+                        otheroverlappingtracks = otheroverlappingtracks[(otheroverlappingtracks["geometry"].notnull()) & (otheroverlappingtracks["geometry"].is_valid)]
+                        print(tracksample)
+                        
+                        sampleagent = tracksample["agent"].iloc[0]
+                        Agentdata = random_subset[random_subset["agent_ID"] == sampleagent]
+                        print(Agentdata)
 
-                # # Create a figure and axis
-                # fig, ax = plt.subplots(figsize=(10, 10))
+                        unique_activities = [int(float(x)) for x in tracksample["activities"].iloc[0]]
+                        activitylocations = [activitylocationdict[x] for x in unique_activities]
+                        uniqueactivitylocations = [activity for count, activity in enumerate(activitylocations) if activity not in activitylocations[:count]]
+                        locationchange = [count-1 for count in range(1,len(activitylocations)) if activitylocations[count] != activitylocations[count-1]]
+                        print(unique_activities, activitylocations, uniqueactivitylocations)
+                
+                    if len(unique_activities) > 1:
+                        trackorder = tracksample["trackorder"].iloc[0]
+                        try:
+                            previousactivity = unique_activities[locationchange[trackorder]]
+                            nextactivity = unique_activities[locationchange[trackorder]+1]
+                        except:
+                            previousactivity = unique_activities[locationchange[trackorder-1]]
+                            nextactivity = unique_activities[locationchange[trackorder-1]+1]
+                        else:
+                            pass
+                        # scheduletext = f"\\textbf{{Activity Schedule}}\nPrevious activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
+                        # triptext = f"\\textbf{{Trip}}\nMode: {tracksample['mode'].iloc[0]}\nDuration: {round(float(tracksample['duration'].iloc[0]), 2)} min\nDistance: {round(tracksample['geometry'].iloc[0].length, 2)}m\nDeparture Time: {tracksample['start_hour'].iloc[0]}:{tracksample['start_minute'].iloc[0]:02d}\nArrival Time: {tracksample['end_hour'].iloc[0]}:{tracksample['end_minute'].iloc[0]:02d}"
+                        scheduletext = f"Previous activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
+                        triptext = f"Mode: {tracksample['mode'].iloc[0]}\nDuration: {round(float(tracksample['duration'].iloc[0]), 2)} min\nDistance: {round(tracksample['geometry'].iloc[0].length, 2)}m\nDeparture Time: {tracksample['start_hour'].iloc[0]}:{tracksample['start_minute'].iloc[0]:02d}\nArrival Time: {tracksample['end_hour'].iloc[0]}:{tracksample['end_minute'].iloc[0]:02d}"
+                        datetime_text = f"Date: {date}\nWeekday: {weekday}"
+                        agent_text = f"Agent ID: {sampleagent}\nAge: {Agentdata['age'].iloc[0]}\nSex: {Agentdata['sex'].iloc[0]}\nMigration Background: {Agentdata['migrationbackground'].iloc[0]}\nIncome Decile: {Agentdata['incomeclass_int'].iloc[0]}\nHousehold Size: {Agentdata['HH_size'].iloc[0]}\n{Agentdata['HH_type'].iloc[0]}\nEmployment: {Agentdata['employed'].iloc[0]}\nEducation: {Agentdata['absolved_education'].iloc[0]}\n..."
 
-                fig = plt.figure(figsize=(14, 10))
-                gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])  # Control size ratio between the map and text
+                        # missingGeometries = FindingNontravelingAgentslocations(synthpop = random_subset, trackdf = sampleTracks, hour=hour, day=day, points = allpoints)
 
-                # First subplot: the map
-                ax_map = fig.add_subplot(gs[0])
+                        # # Create a figure and axis
+                        # fig, ax = plt.subplots(figsize=(10, 10))
 
-                # Plot the data
-                greenspace.plot(ax=ax_map, color="green", label="Green Spaces", alpha=0.2,  zorder= 1)
-                buildings.plot(ax=ax_map, color="grey", label="Buildings", alpha=0.55, zorder= 1)
-                streets.plot(ax=ax_map, color="lightgrey", linewidth=1, label="Streets", zorder= 2)
+                        fig = plt.figure(figsize=(14, 10))
+                        gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])  # Control size ratio between the map and text
 
-                # plot the missing agents locations
-                staticagents.plot(ax=ax_map, color="forestgreen", alpha = 0.5, markersize=7, label="Agents Performing Activities", zorder = 3)
+                        # First subplot: the map
+                        ax_map = fig.add_subplot(gs[0])
 
-                # plot otheroverlappingtracks but color based on modecolorlib
-                for mode, color in modecolorlib.items():
-                    # otheroverlappingtracks[otheroverlappingtracks["mode"] == mode].plot(ax=ax, color=color, linewidth=1, alpha = 0.7, label=mode)
-                    for line in otheroverlappingtracks.loc[otheroverlappingtracks["mode"] == mode, "geometry"]:
-                        segments= SnappingLinesToFadeOut(line)
-                        n_segments = len(segments)
-                        alphas = np.linspace(0.8, 0.1, n_segments)  # Gradually decreasing alpha
-                        colors = [mcolors.to_rgba(color, alpha) for alpha in alphas]
+                        # Plot the data
+                        greenspace.plot(ax=ax_map, color="green", label="Green Spaces", alpha=0.2,  zorder= 1)
+                        buildings.plot(ax=ax_map, color="grey", label="Buildings", alpha=0.55, zorder= 1)
+                        streets.plot(ax=ax_map, color="lightgrey", linewidth=1, label="Streets", zorder= 2)
 
-                        lc = gpd.GeoDataFrame( geometry=segments, crs=crs)
-                        lc.plot(ax=ax_map, color=colors, linewidth=2, zorder=3)
+                        # plot the missing agents locations
+                        staticagents.plot(ax=ax_map, color="forestgreen", alpha = 0.5, markersize=7, label="Agents Performing Activities", zorder = 3)
 
-                    # plot a point at the start of the track in the color
-                    start_points_overlapping = otheroverlappingtracks[otheroverlappingtracks["mode"] == mode].apply(lambda x: Point(x["geometry"].coords[0]), axis=1)
-                    start_points_overlapping = otheroverlappingtracks[otheroverlappingtracks["mode"] == mode]["geometry"].apply(lambda geom: Point(geom.coords[0]))
+                        # plot otheroverlappingtracks but color based on modecolorlib
+                        for mode, color in modecolorlib.items():
+                            # otheroverlappingtracks[otheroverlappingtracks["mode"] == mode].plot(ax=ax, color=color, linewidth=1, alpha = 0.7, label=mode)
+                            for line in otheroverlappingtracks.loc[otheroverlappingtracks["mode"] == mode, "geometry"]:
+                                segments= SnappingLinesToFadeOut(line)
+                                n_segments = len(segments)
+                                alphas = np.linspace(0.8, 0.1, n_segments)  # Gradually decreasing alpha
+                                colors = [mcolors.to_rgba(color, alpha) for alpha in alphas]
 
-                    gpd.GeoDataFrame(geometry=start_points_overlapping, crs=crs).plot(ax=ax_map, color=color, markersize=10, zorder  = 4)
+                                lc = gpd.GeoDataFrame( geometry=segments, crs=crs)
+                                lc.plot(ax=ax_map, color=colors, linewidth=2, zorder=3)
+
+                            # plot a point at the start of the track in the color
+                            start_points_overlapping = otheroverlappingtracks[otheroverlappingtracks["mode"] == mode].apply(lambda x: Point(x["geometry"].coords[0]), axis=1)
+                            start_points_overlapping = otheroverlappingtracks[otheroverlappingtracks["mode"] == mode]["geometry"].apply(lambda geom: Point(geom.coords[0]))
+
+                            gpd.GeoDataFrame(geometry=start_points_overlapping, crs=crs).plot(ax=ax_map, color=color, markersize=10, zorder  = 4)
+                            
+                        start_point =  Point(loads(tracksample["visitedplaces"].iloc[0][trackorder]))
+                        if tracksample["end_hour"].iloc[0] == hour:          
+                            try:
+                                end_point =  Point(loads(tracksample["visitedplaces"].iloc[0][trackorder+1]))
+                            except:
+                                # take the start and end coordinates of the track
+                                end_point =  Point(tracksample["geometry"].iloc[0].coords[-1])
+                                start_point =  Point(tracksample["geometry"].iloc[0].coords[0])
+                            else:
+                                pass
+                        else:
+                            nexthoursampleTracks  = pd.read_csv(path_data+ f"StatusQuo/21750Agents/ForVisualization/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour+1}_{scenario}.csv")
+                            gdf_nexthour, staticagents_nexthour = prepareTrackData(nexthoursampleTracks)
+                            nexthoursample = gdf_nexthour[gdf_nexthour["agent"] == tracksample["agent"].iloc[0]]
+                            end_point =  Point(loads(nexthoursample["visitedplaces"].iloc[0][0]))
+                            start_point =  Point(loads(tracksample["visitedplaces"].iloc[0][-1]))
+                            
+                        tracksample.plot(ax=ax_map, color=modecolorlib[tracksample["mode"].iloc[0]], linewidth=3, label="Sample Track", zorder=5)
+                        gpd.GeoDataFrame(geometry=[start_point]).plot(ax=ax_map, color="blue", label="Origin", markersize=100, zorder=6)
+                        gpd.GeoDataFrame(geometry=[end_point]).plot(ax=ax_map, color="red", label="Destination", markersize=100, zorder = 6)
+
+
+                        ax_map.set_xlim([track_bounds[0], track_bounds[2]])  # Adding small padding
+                        ax_map.set_ylim([track_bounds[1], track_bounds[3]])
+                        cx.add_basemap(ax_map, crs=greenspace.crs, source=cx.providers.CartoDB.PositronNoLabels)
+
+                        ax_map.set_title("ABM Scene")
+                        ax_map.set_xlabel("Longitude")
+                        ax_map.set_ylabel("Latitude") 
+
+                        scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
+                        ax_map.add_artist(scalebar)
+
+                        # plot text on the agent data on the left side
+                        fulltext = datetime_text + "\n\n\n" + triptext + "\n\n\n"+ agent_text + "\n\n\n" + scheduletext + "\n\n"
+
+                        # Second subplot: Text and Legend
+                        # plt.rc('text', usetex=True)
+                        ax_text = fig.add_subplot(gs[1])
+                        ax_text.axis('off')
+
+                        ax_text.text(0, 0.97, datetime_text, fontsize=10, color="black", ha="left", va="top")
+                        
+                        ax_text.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
+                        ax_text.text(0, 0.87, triptext, fontsize=10, color="black", ha="left", va="top")
+
+                        ax_text.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
+                        ax_text.text(0, 0.70, scheduletext, fontsize=10, color="black", ha="left", va="top")
+
+                        ax_text.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
+                        ax_text.text(0, 0.55, agent_text, fontsize=10, color="black", ha="left", va="top")
+
+                        
+                        # ax_text.text(0, 0.99, fulltext, fontsize=10, color="black",
+                        #             ha="left", va="top", bbox=dict(facecolor='white', alpha=0.5, edgecolor = "white"))
+
+                        legend_elements = [
+                            mpatches.Patch(facecolor='green', alpha = 0.2, edgecolor='green', label='Green Spaces'),
+                            mpatches.Patch(facecolor='grey', edgecolor='grey', label='Buildings', alpha = 0.55),
+                            plt.Line2D([0], [0], color='lightgrey', lw=1, label='Roads'),
+                            plt.Line2D([0], [0], color='red', marker='o', lw=0, markersize=10, label='Destination'),
+                            plt.Line2D([0], [0], color='blue', marker='o',  lw=0,  markersize=10, label='Origin'),
+                            plt.Line2D([0], [0],color='forestgreen', alpha =0.5, marker='o',  lw=0,  markersize=7, label='Agents Performing Activities'),
+                            plt.Line2D([0], [0], color=modecolorlib[tracksample["mode"].iloc[0]], lw=3, label='Sample Track')
+                        ]
+                        for mode, color in modecolorlib.items():
+                            legend_elements.append(plt.Line2D([0], [0], color=color, lw=2, label=mode))
+
+                        # legend_elements.append(mpatches.Patch(facecolor='white', alpha = 0.5, edgecolor='white', label='Basemap: CartoDB'))
+                        
+                        # Position the custom legend outside the plot
+                        ax_text.legend(handles=legend_elements, loc='lower left', frameon=False, borderaxespad=0.,edgecolor = "white", title = "Map Legend", title_fontproperties={'weight':'bold', 'size':'12'}, fontsize=10)
+                        # plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.3)
+
+                        # generate a random number
+                        random = np.random.randint(1000)
+
+                        # Show the plot
+                        plt.savefig(f"D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/figures/Methodsdocs/ABMScene_{samplerun}_M{month}_D{day}_H{hour}_{scenario}_{random}.png", 
+                                    dpi = 600, bbox_inches = 'tight')
+                        plt.savefig(f"D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/figures/Methodsdocs/ABMScene_{samplerun}_M{month}_D{day}_H{hour}_{scenario}_{random}.eps", format='eps', 
+                                    dpi = 600, bbox_inches = 'tight')
+                        plt.close()
+if agentplots:
+    month = 1
+    day = agentday
+    date = f"0{day}-0{month}-2019"
+    weekday = pd.to_datetime(date, format="%d-%m-%Y").weekday()
+    weekday = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][weekday]
+    for agent in agents:
+        hours = [7, 8, 10, 12, 14, 16, 18, 20]
+        for hour in hours:
+            sampleTracks  = pd.read_csv(path_data+ f"StatusQuo/21750Agents/ForVisualization/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour}_{scenario}.csv")
+            if agent in sampleTracks["agent"].values:
+                gdf, staticagents = prepareTrackData(sampleTracks)
+                gdf = gdf[gdf["geometry"].is_valid]
+
+                unique_activities, activitylocations, uniqueactivitylocations = [], [], []
+                while len(uniqueactivitylocations) < 2:
+                    tracksample, otheroverlappingtracks, track_bounds = sampleTrackDataAndFindOverlappingTracks(gdf, agent = agent)
+                    otheroverlappingtracks = otheroverlappingtracks[(otheroverlappingtracks["geometry"].notnull()) & (otheroverlappingtracks["geometry"].is_valid)]
+                    print(tracksample)
                     
-                start_point =  Point(loads(tracksample["visitedplaces"].iloc[0][trackorder]))
-                if tracksample["end_hour"].iloc[0] == hour:          
+                    sampleagent = tracksample["agent"].iloc[0]
+                    Agentdata = random_subset[random_subset["agent_ID"] == sampleagent]
+                    print(Agentdata)
+
+                    unique_activities = [int(float(x)) for x in tracksample["activities"].iloc[0]]
+                    activitylocations = [activitylocationdict[x] for x in unique_activities]
+                    uniqueactivitylocations = [activity for count, activity in enumerate(activitylocations) if activity not in activitylocations[:count]]
+                    locationchange = [count-1 for count in range(1,len(activitylocations)) if activitylocations[count] != activitylocations[count-1]]
+                    print(unique_activities, activitylocations, uniqueactivitylocations)
+            
+                if len(unique_activities) > 1:
+                    trackorder = tracksample["trackorder"].iloc[0]
                     try:
-                        end_point =  Point(loads(tracksample["visitedplaces"].iloc[0][trackorder+1]))
+                        previousactivity = unique_activities[locationchange[trackorder]]
+                        nextactivity = unique_activities[locationchange[trackorder]+1]
+                    except:
+                        previousactivity = unique_activities[locationchange[trackorder-1]]
+                        nextactivity = unique_activities[locationchange[trackorder-1]+1]
+                    else:
+                        pass
+                    # scheduletext = f"\\textbf{{Activity Schedule}}\nPrevious activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
+                    # triptext = f"\\textbf{{Trip}}\nMode: {tracksample['mode'].iloc[0]}\nDuration: {round(float(tracksample['duration'].iloc[0]), 2)} min\nDistance: {round(tracksample['geometry'].iloc[0].length, 2)}m\nDeparture Time: {tracksample['start_hour'].iloc[0]}:{tracksample['start_minute'].iloc[0]:02d}\nArrival Time: {tracksample['end_hour'].iloc[0]}:{tracksample['end_minute'].iloc[0]:02d}"
+                    scheduletext = f"Previous activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
+                    triptext = f"Mode: {tracksample['mode'].iloc[0]}\nDuration: {round(float(tracksample['duration'].iloc[0]), 2)} min\nDistance: {round(tracksample['geometry'].iloc[0].length, 2)}m\nDeparture Time: {tracksample['start_hour'].iloc[0]}:{tracksample['start_minute'].iloc[0]:02d}\nArrival Time: {tracksample['end_hour'].iloc[0]}:{tracksample['end_minute'].iloc[0]:02d}"
+                    datetime_text = f"Date: {date}\nWeekday: {weekday}"
+                    agent_text = f"Agent ID: {sampleagent}\nAge: {Agentdata['age'].iloc[0]}\nSex: {Agentdata['sex'].iloc[0]}\nMigration Background: {Agentdata['migrationbackground'].iloc[0]}\nIncome Decile: {Agentdata['incomeclass_int'].iloc[0]}\nHousehold Size: {Agentdata['HH_size'].iloc[0]}\n{Agentdata['HH_type'].iloc[0]}\nEmployment: {Agentdata['employed'].iloc[0]}\nEducation: {Agentdata['absolved_education'].iloc[0]}\n..."
+
+                    # missingGeometries = FindingNontravelingAgentslocations(synthpop = random_subset, trackdf = sampleTracks, hour=hour, day=day, points = allpoints)
+
+                    # # Create a figure and axis
+                    # fig, ax = plt.subplots(figsize=(10, 10))
+
+                    fig = plt.figure(figsize=(14, 10))
+                    gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])  # Control size ratio between the map and text
+
+                    # First subplot: the map
+                    ax_map = fig.add_subplot(gs[0])
+
+                    # Plot the data
+                    greenspace.plot(ax=ax_map, color="green", label="Green Spaces", alpha=0.2,  zorder= 1)
+                    buildings.plot(ax=ax_map, color="grey", label="Buildings", alpha=0.55, zorder= 1)
+                    streets.plot(ax=ax_map, color="lightgrey", linewidth=1, label="Streets", zorder= 2)
+
+                    # plot the missing agents locations
+                    staticagents.plot(ax=ax_map, color="forestgreen", alpha = 0.5, markersize=7, label="Agents Performing Activities", zorder = 3)
+
+                    # plot otheroverlappingtracks but color based on modecolorlib
+                    for mode, color in modecolorlib.items():
+                        # otheroverlappingtracks[otheroverlappingtracks["mode"] == mode].plot(ax=ax, color=color, linewidth=1, alpha = 0.7, label=mode)
+                        for line in otheroverlappingtracks.loc[otheroverlappingtracks["mode"] == mode, "geometry"]:
+                            segments= SnappingLinesToFadeOut(line)
+                            n_segments = len(segments)
+                            alphas = np.linspace(0.8, 0.1, n_segments)  # Gradually decreasing alpha
+                            colors = [mcolors.to_rgba(color, alpha) for alpha in alphas]
+
+                            lc = gpd.GeoDataFrame( geometry=segments, crs=crs)
+                            lc.plot(ax=ax_map, color=colors, linewidth=2, zorder=3)
+
+                        # plot a point at the start of the track in the color
+                        start_points_overlapping = otheroverlappingtracks[otheroverlappingtracks["mode"] == mode].apply(lambda x: Point(x["geometry"].coords[0]), axis=1)
+                        start_points_overlapping = otheroverlappingtracks[otheroverlappingtracks["mode"] == mode]["geometry"].apply(lambda geom: Point(geom.coords[0]))
+
+                        gpd.GeoDataFrame(geometry=start_points_overlapping, crs=crs).plot(ax=ax_map, color=color, markersize=10, zorder  = 4)
+                        
+                    start_point =  Point(loads(tracksample["visitedplaces"].iloc[0][trackorder]))
+                    if tracksample["end_hour"].iloc[0] == hour:          
+                        try:
+                            end_point =  Point(loads(tracksample["visitedplaces"].iloc[0][trackorder+1]))
+                        except:
+                            # take the start and end coordinates of the track
+                            end_point =  Point(tracksample["geometry"].iloc[0].coords[-1])
+                            start_point =  Point(tracksample["geometry"].iloc[0].coords[0])
+                        else:
+                            pass
+                    else:
+                        nexthoursampleTracks  = pd.read_csv(path_data+ f"StatusQuo/21750Agents/ForVisualization/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour+1}_{scenario}.csv")
+                        gdf_nexthour, staticagents_nexthour = prepareTrackData(nexthoursampleTracks)
+                        nexthoursample = gdf_nexthour[gdf_nexthour["agent"] == tracksample["agent"].iloc[0]]
+                        end_point =  Point(loads(nexthoursample["visitedplaces"].iloc[0][0]))
+                        start_point =  Point(loads(tracksample["visitedplaces"].iloc[0][-1]))
+                        
+                    tracksample.plot(ax=ax_map, color=modecolorlib[tracksample["mode"].iloc[0]], linewidth=3, label="Sample Track", zorder=5)
+                    gpd.GeoDataFrame(geometry=[start_point]).plot(ax=ax_map, color="blue", label="Origin", markersize=100, zorder=6)
+                    gpd.GeoDataFrame(geometry=[end_point]).plot(ax=ax_map, color="red", label="Destination", markersize=100, zorder = 6)
+
+
+                    ax_map.set_xlim([track_bounds[0], track_bounds[2]])  # Adding small padding
+                    ax_map.set_ylim([track_bounds[1], track_bounds[3]])
+                    cx.add_basemap(ax_map, crs=greenspace.crs, source=cx.providers.CartoDB.PositronNoLabels)
+
+                    ax_map.set_title("ABM Scene")
+                    ax_map.set_xlabel("Longitude")
+                    ax_map.set_ylabel("Latitude") 
+
+                    scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
+                    ax_map.add_artist(scalebar)
+
+                    # plot text on the agent data on the left side
+                    fulltext = datetime_text + "\n\n\n" + triptext + "\n\n\n"+ agent_text + "\n\n\n" + scheduletext + "\n\n"
+
+                    # Second subplot: Text and Legend
+                    # plt.rc('text', usetex=True)
+                    ax_text = fig.add_subplot(gs[1])
+                    ax_text.axis('off')
+
+                    ax_text.text(0, 0.97, datetime_text, fontsize=10, color="black", ha="left", va="top")
+                    
+                    ax_text.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
+                    ax_text.text(0, 0.87, triptext, fontsize=10, color="black", ha="left", va="top")
+
+                    ax_text.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
+                    ax_text.text(0, 0.70, scheduletext, fontsize=10, color="black", ha="left", va="top")
+
+                    ax_text.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
+                    ax_text.text(0, 0.55, agent_text, fontsize=10, color="black", ha="left", va="top")
+
+                    
+                    # ax_text.text(0, 0.99, fulltext, fontsize=10, color="black",
+                    #             ha="left", va="top", bbox=dict(facecolor='white', alpha=0.5, edgecolor = "white"))
+
+                    legend_elements = [
+                        mpatches.Patch(facecolor='green', alpha = 0.2, edgecolor='green', label='Green Spaces'),
+                        mpatches.Patch(facecolor='grey', edgecolor='grey', label='Buildings', alpha = 0.55),
+                        plt.Line2D([0], [0], color='lightgrey', lw=1, label='Roads'),
+                        plt.Line2D([0], [0], color='red', marker='o', lw=0, markersize=10, label='Destination'),
+                        plt.Line2D([0], [0], color='blue', marker='o',  lw=0,  markersize=10, label='Origin'),
+                        plt.Line2D([0], [0],color='forestgreen', alpha =0.5, marker='o',  lw=0,  markersize=7, label='Agents Performing Activities'),
+                        plt.Line2D([0], [0], color=modecolorlib[tracksample["mode"].iloc[0]], lw=3, label='Sample Track')
+                    ]
+                    for mode, color in modecolorlib.items():
+                        legend_elements.append(plt.Line2D([0], [0], color=color, lw=2, label=mode))
+
+                    # legend_elements.append(mpatches.Patch(facecolor='white', alpha = 0.5, edgecolor='white', label='Basemap: CartoDB'))
+                    
+                    # Position the custom legend outside the plot
+                    ax_text.legend(handles=legend_elements, loc='lower left', frameon=False, borderaxespad=0.,edgecolor = "white", title = "Map Legend", title_fontproperties={'weight':'bold', 'size':'12'}, fontsize=10)
+                    # plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.3)
+
+                    # generate a random number
+                    random = np.random.randint(1000)
+
+                    # Show the plot
+                    plt.savefig(f"D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/figures/Methodsdocs/ABMScene_{samplerun}_M{month}_D{day}_H{hour}_{scenario}_{random}.png", 
+                                dpi = 600, bbox_inches = 'tight')
+                    plt.savefig(f"D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/figures/Methodsdocs/ABMScene_{samplerun}_M{month}_D{day}_H{hour}_{scenario}_{random}.eps", format='eps', 
+                                dpi = 600, bbox_inches = 'tight')
+                    plt.close()
+                    
+                    
+
+def getAgentData(agent, tracksample):
+    Agentdata = random_subset[random_subset["agent_ID"] == agent]
+    print(Agentdata)
+
+    unique_activities = [int(float(x)) for x in tracksample["activities"]]
+    activitylocations = [activitylocationdict[x] for x in unique_activities]
+    uniqueactivitylocations = [activity for count, activity in enumerate(activitylocations) if activity not in activitylocations[:count]]
+    locationchange = [count-1 for count in range(1,len(activitylocations)) if activitylocations[count] != activitylocations[count-1]]
+    print(unique_activities, activitylocations, uniqueactivitylocations)
+
+    if len(unique_activities) > 1:
+        trackorder = tracksample["trackorder"]
+        print(trackorder)
+        try:
+            previousactivity = unique_activities[locationchange[trackorder]]
+            nextactivity = unique_activities[locationchange[trackorder]+1]
+        except:
+            previousactivity = unique_activities[locationchange[trackorder-1]]
+            nextactivity = unique_activities[locationchange[trackorder-1]+1]
+        else:
+            pass
+        # scheduletext = f"\\textbf{{Activity Schedule}}\nPrevious activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
+        # triptext = f"\\textbf{{Trip}}\nMode: {tracksample['mode'].iloc[0]}\nDuration: {round(float(tracksample['duration'].iloc[0]), 2)} min\nDistance: {round(tracksample['geometry'].iloc[0].length, 2)}m\nDeparture Time: {tracksample['start_hour'].iloc[0]}:{tracksample['start_minute'].iloc[0]:02d}\nArrival Time: {tracksample['end_hour'].iloc[0]}:{tracksample['end_minute'].iloc[0]:02d}"
+        scheduletext = f"Previous activity: {activitydict[previousactivity]}\nOrigin: {activitylocationdict[previousactivity]}\nNext activity: {activitydict[nextactivity]}\nDestination: {activitylocationdict[nextactivity]}"
+        triptext = f"Mode: {tracksample['mode']}\nDuration: {round(float(tracksample['duration']), 2)} min\nDistance: {round(tracksample['geometry'].length, 2)}m\nDeparture Time: {tracksample['start_hour']}:{tracksample['start_minute']:02d}\nArrival Time: {tracksample['end_hour']}:{tracksample['end_minute']:02d}"
+        agent_text = f"Agent ID: {agent}\nAge: {Agentdata['age'].iloc[0]}\nSex: {Agentdata['sex'].iloc[0]}\nMigration Background: {Agentdata['migrationbackground'].iloc[0]}\nIncome Decile: {Agentdata['incomeclass_int'].iloc[0]}\nHousehold Size: {Agentdata['HH_size'].iloc[0]}\n{Agentdata['HH_type'].iloc[0]}\nEmployment: {Agentdata['employed'].iloc[0]}\nEducation: {Agentdata['absolved_education'].iloc[0]}\n..."
+        return triptext, agent_text, scheduletext, trackorder
+
+
+def retrieveTripExposure(tracksamples, month, day, hour):
+    NO2map = pd.read_csv(f"D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/ModelRuns/StatusQuo/21750Agents/NO2/817328/AirPollGrid_NO2_817328_M{month}_D{day+1}_StatusQuo_817328.csv")
+    EnvStressGrid = xr.open_dataarray(f"D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData/AirPollutionModelData/AirPollDeterm_grid_50m.tif", engine="rasterio")[0] # Read raster data using rasterio
+    EnvStressGrid[:] = np.array(NO2map[f"prNO2_M{month}_D{day}_H{hour}"].astype(float)).reshape(EnvStressGrid.shape)
+    travelNO2, travelMETh = [], []
+    for i in range(len(tracksamples)):
+        track = tracksamples.iloc[i]
+        trackpoints = [track.geometry.interpolate(d) for d in np.arange(0, track.geometry.length, 10)]
+        trackjoin = [EnvStressGrid.sel(x=point.x, y=point.y, method='nearest').values.item(0) for point in trackpoints] 
+        hourlytravelNO2 = np.mean(trackjoin)
+        travelNO2.append(round(hourlytravelNO2,2))
+        hourlytravelMETh = np.multiply(float( track["mode"].replace('bike', "5.8").replace('drive', "0").replace('walk', "2.5").replace('transit', "0.75")) , float(track["duration"]))
+        travelMETh.append(round(hourlytravelMETh/60,2))
+    print("travelNO2", travelNO2)
+    print("travelMETh", travelMETh)
+    return travelNO2, travelMETh
+
+def tryTillNoerror(gdf, agent, n, max_retries=15):
+    attempts = 0
+    while attempts < max_retries:
+        try:
+            tracksample, otheroverlappingtracks, track_bounds = sampleTrackDataAndFindOverlappingTracks_nAgents(gdf,agent = agent, n=n)
+            otheroverlappingtracks = otheroverlappingtracks[(otheroverlappingtracks["geometry"].notnull()) & (otheroverlappingtracks["geometry"].is_valid)]
+            print("tracksample", tracksample)
+            agenttextlist, agenttrackorderlist = [], []
+            for i in range(len(tracksample)):
+                sampleagent = tracksample["agent"].iloc[i]
+                triptext, agent_text, scheduletext, trackorder = getAgentData(sampleagent, tracksample.iloc[i])
+                agenttextlist.append([triptext, scheduletext, agent_text])
+                agenttrackorderlist.append(trackorder)
+            return tracksample, otheroverlappingtracks, track_bounds, agenttextlist, agenttrackorderlist
+        except Exception as e:
+            attempts += 1
+            print(f"Error occurred: {e}. Retrying... (Attempt {attempts}/{max_retries})")
+            if attempts >= max_retries:
+                raise RuntimeError(f"Maximum retries ({max_retries}) reached. Last error: {e}")
+    
+
+
+def plotSpecificAgentTimeScene(agent, day, hour, month, samplerun = 879534, nr_plots =1, nr_agents = 3):
+    date = f"0{day}-0{month}-2019"
+    weekday = pd.to_datetime(date, format="%d-%m-%Y").weekday()
+    weekday = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][weekday]
+    sampleTracks  = pd.read_csv(path_data+ f"StatusQuo/21750Agents/ForVisualization/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour}_{scenario}.csv")
+    if (agent in sampleTracks["agent"].values) or (agent == None):
+        gdf, staticagents = prepareTrackData(sampleTracks)
+        gdf = gdf[gdf["geometry"].is_valid]
+
+        for i in range(nr_plots):
+            tracksample, otheroverlappingtracks, track_bounds, agenttextlist, agenttrackorderlist = tryTillNoerror(gdf, agent = agent, n = nr_agents)
+            print(agenttrackorderlist)
+            travelNO2, travelMETh = retrieveTripExposure(tracksample,month, day, hour)
+
+            datetime_text = f"Date: {date}\nWeekday: {weekday}"
+            
+            fig = plt.figure(figsize=(20, 10))
+            gs = gridspec.GridSpec(1, (2+len(agenttextlist)), width_ratios=[8] + [2]*(len(agenttextlist)+1))  # Control size ratio between the map and text
+
+            # First subplot: the map
+            ax_map = fig.add_subplot(gs[0])
+
+            # Plot the data
+            greenspace.plot(ax=ax_map, color="green", label="Green Spaces", alpha=0.2,  zorder= 1)
+            buildings.plot(ax=ax_map, color="grey", label="Buildings", alpha=0.55, zorder= 1)
+            streets.plot(ax=ax_map, color="lightgrey", linewidth=1, label="Streets", zorder= 2)
+
+            # plot the missing agents locations
+            staticagents.plot(ax=ax_map, color="forestgreen", alpha = 0.4, markersize=7, label="Agents Performing Activities", zorder = 3)
+
+            # plot otheroverlappingtracks but color based on modecolorlib
+            for mode, color in modecolorlib.items():
+                # otheroverlappingtracks[otheroverlappingtracks["mode"] == mode].plot(ax=ax, color=color, linewidth=1, alpha = 0.7, label=mode)
+                for line in otheroverlappingtracks.loc[otheroverlappingtracks["mode"] == mode, "geometry"]:
+                    segments= SnappingLinesToFadeOut(line)
+                    n_segments = len(segments)
+                    alphas = np.linspace(0.8, 0.1, n_segments)  # Gradually decreasing alpha
+                    colors = [mcolors.to_rgba(color, alpha) for alpha in alphas]
+
+                    lc = gpd.GeoDataFrame( geometry=segments, crs=crs)
+                    lc.plot(ax=ax_map, color=colors, linewidth=2, zorder=3)
+
+                # plot a point at the start of the track in the color
+                start_points_overlapping = otheroverlappingtracks[otheroverlappingtracks["mode"] == mode].apply(lambda x: Point(x["geometry"].coords[0]), axis=1)
+                start_points_overlapping = otheroverlappingtracks[otheroverlappingtracks["mode"] == mode]["geometry"].apply(lambda geom: Point(geom.coords[0]))
+
+                gpd.GeoDataFrame(geometry=start_points_overlapping, crs=crs).plot(ax=ax_map, color=color, markersize=10, zorder  = 4)
+            
+            
+            startpoints, endpoints = [], []
+            for i in range(nr_agents):
+                start_point =  Point(loads(tracksample["visitedplaces"].iloc[i][agenttrackorderlist[i]]))
+                if tracksample["end_hour"].iloc[i] == hour:
+                    try:
+                        end_point =  Point(loads(tracksample["visitedplaces"].iloc[i][agenttrackorderlist[i]+1]))
                     except:
                         # take the start and end coordinates of the track
-                        end_point =  Point(tracksample["geometry"].iloc[0].coords[-1])
-                        start_point =  Point(tracksample["geometry"].iloc[0].coords[0])
+                        end_point =  Point(tracksample["geometry"].iloc[i].coords[-1])
+                        start_point =  Point(tracksample["geometry"].iloc[i].coords[0])
                     else:
                         pass
                 else:
-                    nexthoursampleTracks  = pd.read_csv(path_data+ f"ModelRuns/StatusQuo/21750Agents/ForVisualization/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour+1}_{scenario}.csv")
+                    nexthoursampleTracks  = pd.read_csv(path_data+ f"StatusQuo/21750Agents/ForVisualization/{samplerun}/AllTracks_{samplerun}_A21750_M{month}_D{day}_H{hour+1}_{scenario}.csv")
                     gdf_nexthour, staticagents_nexthour = prepareTrackData(nexthoursampleTracks)
-                    nexthoursample = gdf_nexthour[gdf_nexthour["agent"] == tracksample["agent"].iloc[0]]
+                    nexthoursample = gdf_nexthour[gdf_nexthour["agent"] == tracksample["agent"].iloc[i]]
                     end_point =  Point(loads(nexthoursample["visitedplaces"].iloc[0][0]))
                     start_point =  Point(loads(tracksample["visitedplaces"].iloc[0][-1]))
-                    
-                tracksample.plot(ax=ax_map, color=modecolorlib[tracksample["mode"].iloc[0]], linewidth=3, label="Sample Track", zorder=5)
-                gpd.GeoDataFrame(geometry=[start_point]).plot(ax=ax_map, color="blue", label="Origin", markersize=100, zorder=6)
-                gpd.GeoDataFrame(geometry=[end_point]).plot(ax=ax_map, color="red", label="Destination", markersize=100, zorder = 6)
-
-
-                ax_map.set_xlim([track_bounds[0], track_bounds[2]])  # Adding small padding
-                ax_map.set_ylim([track_bounds[1], track_bounds[3]])
-                cx.add_basemap(ax_map, crs=greenspace.crs, source=cx.providers.CartoDB.PositronNoLabels)
-
-                ax_map.set_title("ABM Scene")
-                ax_map.set_xlabel("Longitude")
-                ax_map.set_ylabel("Latitude") 
-
-                scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
-                ax_map.add_artist(scalebar)
-
-                # plot text on the agent data on the left side
-                fulltext = datetime_text + "\n\n\n" + triptext + "\n\n\n"+ agent_text + "\n\n\n" + scheduletext + "\n\n"
-
-                # Second subplot: Text and Legend
-                # plt.rc('text', usetex=True)
-                ax_text = fig.add_subplot(gs[1])
-                ax_text.axis('off')
-
-                ax_text.text(0, 0.97, datetime_text, fontsize=10, color="black", ha="left", va="top")
+                startpoints.append(start_point)
+                endpoints.append(end_point)
                 
-                ax_text.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
-                ax_text.text(0, 0.87, triptext, fontsize=10, color="black", ha="left", va="top")
 
-                ax_text.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
-                ax_text.text(0, 0.70, scheduletext, fontsize=10, color="black", ha="left", va="top")
+            tracksample["color"] = tracksample["mode"].map(modecolorlib)
+            tracksample.plot(ax=ax_map, color=tracksample["color"], linewidth=3, label="Sample Track", zorder=5)
+            gpd.GeoDataFrame(geometry=[startpoints[0]]).plot(ax=ax_map, color="blue", marker = 'o', label="Origin", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[startpoints[1]]).plot(ax=ax_map, color="blue", marker =  's', label="Origin", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[startpoints[2]]).plot(ax=ax_map, color="blue", marker = '^', label="Origin", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[endpoints[0]]).plot(ax=ax_map, color="red", marker = 'o', label="Destination", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[endpoints[1]]).plot(ax=ax_map, color="red", marker =  's', label="Destination", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[endpoints[2]]).plot(ax=ax_map, color="red", marker = '^', label="Destination", markersize=100, zorder=6)
 
-                ax_text.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
-                ax_text.text(0, 0.55, agent_text, fontsize=10, color="black", ha="left", va="top")
+            ax_map.set_xlim([track_bounds[0], track_bounds[2]])  # Adding small padding
+            ax_map.set_ylim([track_bounds[1], track_bounds[3]])
+            cx.add_basemap(ax_map, crs=greenspace.crs, source=cx.providers.CartoDB.PositronNoLabels)
 
-                
-                # ax_text.text(0, 0.99, fulltext, fontsize=10, color="black",
-                #             ha="left", va="top", bbox=dict(facecolor='white', alpha=0.5, edgecolor = "white"))
+            ax_map.set_title("ABM Scene")
+            ax_map.set_xlabel("Longitude")
+            ax_map.set_ylabel("Latitude") 
 
-                legend_elements = [
-                    mpatches.Patch(facecolor='green', alpha = 0.2, edgecolor='green', label='Green Spaces'),
-                    mpatches.Patch(facecolor='grey', edgecolor='grey', label='Buildings', alpha = 0.55),
-                    plt.Line2D([0], [0], color='lightgrey', lw=1, label='Roads'),
-                    plt.Line2D([0], [0], color='red', marker='o', lw=0, markersize=10, label='Destination'),
-                    plt.Line2D([0], [0], color='blue', marker='o',  lw=0,  markersize=10, label='Origin'),
-                    plt.Line2D([0], [0],color='forestgreen', alpha =0.5, marker='o',  lw=0,  markersize=7, label='Agents Performing Activities'),
-                    plt.Line2D([0], [0], color=modecolorlib[tracksample["mode"].iloc[0]], lw=3, label='Sample Track')
-                ]
-                for mode, color in modecolorlib.items():
-                    legend_elements.append(plt.Line2D([0], [0], color=color, lw=2, label=mode))
+            scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
+            ax_map.add_artist(scalebar)
 
-                # legend_elements.append(mpatches.Patch(facecolor='white', alpha = 0.5, edgecolor='white', label='Basemap: CartoDB'))
-                
-                # Position the custom legend outside the plot
-                ax_text.legend(handles=legend_elements, loc='lower left', frameon=False, borderaxespad=0.,edgecolor = "white", title = "Map Legend", title_fontproperties={'weight':'bold', 'size':'12'}, fontsize=10)
-                # plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.3)
 
-                # generate a random number
-                random = np.random.randint(1000)
+            # Second subplot: Text and Legend
+            # plt.rc('text', usetex=True)
+            ax_text = fig.add_subplot(gs[1])
+            ax_text.axis('off')
 
-                # Show the plot
-                plt.savefig(f"D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/figures/Methodsdocs/ABMScene_{samplerun}_M{month}_D{day}_H{hour}_{scenario}_{random}.png", 
-                            dpi = 600, bbox_inches = 'tight')
-                plt.close()
+            ax_text.text(0, 0.90, datetime_text, fontsize=10, color="black", ha="left", va="top")
+            
+
+            legend_elements = [
+                mpatches.Patch(facecolor='green', alpha = 0.2, edgecolor='green', label='Green Spaces'),
+                mpatches.Patch(facecolor='grey', edgecolor='grey', label='Buildings', alpha = 0.55),
+                plt.Line2D([0], [0], color='lightgrey', lw=1, label='Roads'),
+                plt.Line2D([0], [0], color='red', marker='o', lw=0, markersize=10, label='Destination'),
+                plt.Line2D([0], [0], color='blue', marker='o',  lw=0,  markersize=10, label='Origin'),
+                plt.Line2D([0], [0],color='forestgreen', alpha =0.5, marker='o',  lw=0,  markersize=7, label='Agents Performing Activities'),
+                plt.Line2D([0], [0], color=modecolorlib[tracksample["mode"].iloc[0]], lw=3, label='Sample Track')
+            ]
+            for mode, color in modecolorlib.items():
+                legend_elements.append(plt.Line2D([0], [0], color=color, lw=2, label=mode))
+
+            # legend_elements.append(mpatches.Patch(facecolor='white', alpha = 0.5, edgecolor='white', label='Basemap: CartoDB'))
+            
+            # Position the custom legend outside the plot
+            ax_text.legend(handles=legend_elements, loc='lower left', frameon=False, borderaxespad=0.,edgecolor = "white", title = "Map Legend", title_fontproperties={'weight':'bold', 'size':'12'}, fontsize=10)
+            # plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.3)
+
+            ax_text1 = fig.add_subplot(gs[2])
+            ax_text1.axis('off')
+            ax_text1.set_xlim(0, 1)
+            ax_text1.set_ylim(0, 1)
+
+            # Add marker
+            ax_text1.plot(
+                0.05, 0.90,  # same y as the text
+                marker='o',
+                color='black',
+                markersize=10,
+                linestyle='None',
+                zorder=5
+            )
+
+            ax_text1.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text1.text(0, 0.87, agenttextlist[0][0], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text1.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text1.text(0, 0.70, agenttextlist[0][1], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text1.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text1.text(0, 0.55, agenttextlist[0][2], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text1.text(0.5, 0.32, "Personal Exposure", fontsize=12, color="black",weight="bold", ha="center", va="top")
+            ax_text1.text(0, 0.29, f"trip NO2(µg/m3): {travelNO2[0]}", fontsize=10, color="black", ha="left", va="top")
+            ax_text1.text(0, 0.26, f"trip mMETh: {travelMETh[0]}", fontsize=10, color="black", ha="left", va="top")
+
+            ax_text2 = fig.add_subplot(gs[3])
+            ax_text2.axis('off')
+            ax_text2.set_xlim(0, 1)
+            ax_text2.set_ylim(0, 1)
+            ax_text2.plot(
+                0.05,  0.90,  # slight offset to the left and vertically aligned
+                marker='s',                         # marker shape (square here)
+                color='black',                       # fill color
+                markersize=10,
+                linestyle='None',
+                zorder=5
+            )
+            
+            ax_text2.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text2.text(0, 0.87, agenttextlist[1][0], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text2.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text2.text(0, 0.70, agenttextlist[1][1], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text2.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text2.text(0, 0.55, agenttextlist[1][2], fontsize=10, color="black", ha="left", va="top")
+            
+            ax_text2.text(0.5, 0.32, "Personal Exposure", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text2.text(0, 0.29, f"trip NO2(µg/m3): {travelNO2[1]}", fontsize=10, color="black", ha="left", va="top")
+            ax_text2.text(0, 0.26, f"trip mMETh: {travelMETh[1]}", fontsize=10, color="black", ha="left", va="top")
+
+            ax_text3 = fig.add_subplot(gs[4])
+            ax_text3.axis('off')
+            ax_text3.set_xlim(0, 1)
+            ax_text3.set_ylim(0, 1)
+            ax_text3.plot(
+                0.05,  0.90,  # slight offset to the left and vertically aligned
+                marker='^',                         # marker shape (triangle here)
+                color='black',                       # fill color
+                markersize=10,
+                linestyle='None',
+                zorder=5
+            )
+
+            ax_text3.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text3.text(0, 0.87, agenttextlist[2][0], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text3.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text3.text(0, 0.70, agenttextlist[2][1], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text3.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text3.text(0, 0.55, agenttextlist[2][2], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text3.text(0.5, 0.32, "Personal Exposure", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text3.text(0, 0.29, f"trip NO2(µg/m3): {travelNO2[2]}", fontsize=10, color="black", ha="left", va="top")
+            ax_text3.text(0, 0.26, f"trip mMETh: {travelMETh[2]}", fontsize=10, color="black", ha="left", va="top")
+
+            # generate a random number
+            random = np.random.randint(1000)
+
+            # Show the plot
+            plt.savefig(f"D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/figures/Methodsdocs/FinalABMScene_{samplerun}_M{month}_D{day}_H{hour}_{scenario}_{random}.png", 
+                        dpi = 900, bbox_inches = 'tight')
+            plt.savefig(f"D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/figures/Methodsdocs/FinalABMScene_{samplerun}_M{month}_D{day}_H{hour}_{scenario}_{random}.eps", format='eps', 
+                        dpi = 900, bbox_inches = 'tight')
+            plt.close()
+
+
+            ##################################################
+            # without the overlapping tracks
+            ##################################################
+            
+            fig = plt.figure(figsize=(20, 10))
+            gs = gridspec.GridSpec(1, (2+len(agenttextlist)), width_ratios=[8] + [2]*(len(agenttextlist)+1))  # Control size ratio between the map and text
+
+            # First subplot: the map
+            ax_map = fig.add_subplot(gs[0])
+
+            # Plot the data
+            greenspace.plot(ax=ax_map, color="green", label="Green Spaces", alpha=0.2,  zorder= 1)
+            buildings.plot(ax=ax_map, color="grey", label="Buildings", alpha=0.55, zorder= 1)
+            streets.plot(ax=ax_map, color="lightgrey", linewidth=1, label="Streets", zorder= 2)
+            
+            tracksample["color"] = tracksample["mode"].map(modecolorlib)
+            tracksample.plot(ax=ax_map, color=tracksample["color"], linewidth=3, label="Sample Track", zorder=5)
+            gpd.GeoDataFrame(geometry=[startpoints[0]]).plot(ax=ax_map, color="blue", marker = 'o', label="Origin", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[startpoints[1]]).plot(ax=ax_map, color="blue", marker =  's', label="Origin", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[startpoints[2]]).plot(ax=ax_map, color="blue", marker = '^', label="Origin", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[endpoints[0]]).plot(ax=ax_map, color="red", marker = 'o', label="Destination", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[endpoints[1]]).plot(ax=ax_map, color="red", marker =  's', label="Destination", markersize=100, zorder=6)
+            gpd.GeoDataFrame(geometry=[endpoints[2]]).plot(ax=ax_map, color="red", marker = '^', label="Destination", markersize=100, zorder=6)
+
+            ax_map.set_xlim([track_bounds[0], track_bounds[2]])  # Adding small padding
+            ax_map.set_ylim([track_bounds[1], track_bounds[3]])
+            cx.add_basemap(ax_map, crs=greenspace.crs, source=cx.providers.CartoDB.PositronNoLabels)
+
+            ax_map.set_title("ABM Scene")
+            ax_map.set_xlabel("Longitude")
+            ax_map.set_ylabel("Latitude") 
+
+            scalebar = ScaleBar(distance_meters, length_fraction=0.2, location="lower right", box_alpha=0.5)  # Adjust the length as needed
+            ax_map.add_artist(scalebar)
+
+
+            # Second subplot: Text and Legend
+            # plt.rc('text', usetex=True)
+            ax_text = fig.add_subplot(gs[1])
+            ax_text.axis('off')
+
+            ax_text.text(0, 0.90, datetime_text, fontsize=10, color="black", ha="left", va="top")
+            
+
+            legend_elements = [
+                mpatches.Patch(facecolor='green', alpha = 0.2, edgecolor='green', label='Green Spaces'),
+                mpatches.Patch(facecolor='grey', edgecolor='grey', label='Buildings', alpha = 0.55),
+                plt.Line2D([0], [0], color='lightgrey', lw=1, label='Roads'),
+                plt.Line2D([0], [0], color='red', marker='o', lw=0, markersize=10, label='Destination'),
+                plt.Line2D([0], [0], color='blue', marker='o',  lw=0,  markersize=10, label='Origin'),
+                plt.Line2D([0], [0], color=modecolorlib[tracksample["mode"].iloc[0]], lw=3, label='Sample Track')
+            ]
+            for mode, color in modecolorlib.items():
+                legend_elements.append(plt.Line2D([0], [0], color=color, lw=2, label=mode))
+
+            ax_text.legend(handles=legend_elements, loc='lower left', frameon=False, borderaxespad=0.,edgecolor = "white", title = "Map Legend", title_fontproperties={'weight':'bold', 'size':'12'}, fontsize=10)
+            # plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.3)
+
+            ax_text1 = fig.add_subplot(gs[2])
+            ax_text1.axis('off')
+            ax_text1.set_xlim(0, 1)
+            ax_text1.set_ylim(0, 1)
+
+            # Add marker
+            ax_text1.plot(
+                0.05, 0.90,  # same y as the text
+                marker='o',
+                color='black',
+                markersize=10,
+                linestyle='None',
+                zorder=5
+            )
+
+            ax_text1.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text1.text(0, 0.87, agenttextlist[0][0], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text1.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text1.text(0, 0.70, agenttextlist[0][1], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text1.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text1.text(0, 0.55, agenttextlist[0][2], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text1.text(0.5, 0.32, "Personal Exposure", fontsize=12, color="black",weight="bold", ha="center", va="top")
+            ax_text1.text(0, 0.29, f"trip NO2(µg/m3): {travelNO2[0]}", fontsize=10, color="black", ha="left", va="top")
+            ax_text1.text(0, 0.26, f"trip mMETh: {travelMETh[0]}", fontsize=10, color="black", ha="left", va="top")
+
+            ax_text2 = fig.add_subplot(gs[3])
+            ax_text2.axis('off')
+            ax_text2.set_xlim(0, 1)
+            ax_text2.set_ylim(0, 1)
+            ax_text2.plot(
+                0.05,  0.90,  # slight offset to the left and vertically aligned
+                marker='s',                         # marker shape (square here)
+                color='black',                       # fill color
+                markersize=10,
+                linestyle='None',
+                zorder=5
+            )
+            
+            ax_text2.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text2.text(0, 0.87, agenttextlist[1][0], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text2.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text2.text(0, 0.70, agenttextlist[1][1], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text2.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text2.text(0, 0.55, agenttextlist[1][2], fontsize=10, color="black", ha="left", va="top")
+            
+            ax_text2.text(0.5, 0.32, "Personal Exposure", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text2.text(0, 0.29, f"trip NO2(µg/m3): {travelNO2[1]}", fontsize=10, color="black", ha="left", va="top")
+            ax_text2.text(0, 0.26, f"trip mMETh: {travelMETh[1]}", fontsize=10, color="black", ha="left", va="top")
+
+            ax_text3 = fig.add_subplot(gs[4])
+            ax_text3.axis('off')
+            ax_text3.set_xlim(0, 1)
+            ax_text3.set_ylim(0, 1)
+            ax_text3.plot(
+                0.05,  0.90,  # slight offset to the left and vertically aligned
+                marker='^',                         # marker shape (triangle here)
+                color='black',                       #sign fill color
+                markersize=10,
+                linestyle='None',
+                zorder=5
+            )
+
+            ax_text3.text(0.5, 0.90, "Trip", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text3.text(0, 0.87, agenttextlist[2][0], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text3.text(0.5, 0.73, "Activity Schedule", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text3.text(0, 0.70, agenttextlist[2][1], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text3.text(0.5, 0.58, "Agent Attributes", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text3.text(0, 0.55, agenttextlist[2][2], fontsize=10, color="black", ha="left", va="top")
+
+            ax_text3.text(0.5, 0.32, "Personal Exposure", fontsize=12, color="black", weight="bold", ha="center", va="top")
+            ax_text3.text(0, 0.29, f"trip NO2(µg/m3): {travelNO2[2]}", fontsize=10, color="black", ha="left", va="top")
+            ax_text3.text(0, 0.26, f"trip mMETh: {travelMETh[2]}", fontsize=10, color="black", ha="left", va="top")
+
+
+            # Show the plot
+            plt.savefig(f"D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/figures/Methodsdocs/FinalABMScene_nooverlappingagents_{samplerun}_M{month}_D{day}_H{hour}_{scenario}_{random}.png", 
+                        dpi = 900, bbox_inches = 'tight')
+            plt.savefig(f"D:/PhD EXPANSE/Written Paper/04- Case study 1 - Transport Interventions/figures/Methodsdocs/FinalABMScene_nooverlappingagents_{samplerun}_M{month}_D{day}_H{hour}_{scenario}_{random}.eps", format='eps', 
+                        dpi = 900, bbox_inches = 'tight')
+            plt.close()
+
+
+
+# plotSpecificAgentTimeScene(agent = "Agent_224888", day = 3, hour = 8, month = 1, nr_plots=5)
+
+# plotSpecificAgentTimeScene(agent = "Agent_419010", day = 4, hour = 12, month = 1, nr_plots=10)
+
+# plotSpecificAgentTimeScene(agent = "Agent_8172", day = 4, hour = 21, month = 1, nr_plots=10)
+
+
+plotSpecificAgentTimeScene(agent = None, day = 5, hour = 22, month = 1, nr_plots=5)
+plotSpecificAgentTimeScene(agent = None, day = 5, hour = 18, month = 1, nr_plots=5)
+plotSpecificAgentTimeScene(agent = None, day = 2, hour = 18, month = 1, nr_plots=5)

@@ -302,7 +302,7 @@ class Humans(Agent):
                 self.destination_activity = ShopsnServ["geometry"].sample(1).values[0].coords[0]
             
 
-        elif self.current_activity == 13: # 3= kindergarden
+        elif self.current_activity == 13: # 13= kindergarden
           self.destination_activity = self.Kindergarden
           # 1 = sleep/rest, 5 = at home, 6 = cooking, 7 = gardening
           if (self.homeTOkinderga_geometry != None) and (self.former_activity in [5, 1, 6, 7]):
@@ -338,7 +338,7 @@ class Humans(Agent):
               self.track_duration = self.homeTOkinderga_duration
               self.path_memory = 1
 
-        elif self.current_activity == 11: # entertainment / culture
+        elif self.current_activity == 11: # 11 = entertainment / culture
           leisure = 1
           if self.model.scenario == "15mCityWithDestination":  
                 nearEntertain = Entertainment["geometry"].intersection(self.radius15min)
