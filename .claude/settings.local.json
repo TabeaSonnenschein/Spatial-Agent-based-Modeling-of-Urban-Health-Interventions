@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:rmets.onlinelibrary.wiley.com)",
+      "WebFetch(domain:edepot.wur.nl)"
+    ]
+  }
+}

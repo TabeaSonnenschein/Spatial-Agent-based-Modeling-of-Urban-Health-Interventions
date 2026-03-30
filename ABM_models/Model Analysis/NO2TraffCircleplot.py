@@ -200,6 +200,7 @@ def plotCircosNO2Traff_Timeunits(aggexposure, colourdict,
         figure = circos.plotfig(dpi=600)
         figure.legend(handles=legend_elements, loc='lower right', ncol=1, title = "Legend")
         figure.savefig(f"CirclePlot_with_Legend{suffix}.png", dpi=600)
+        figure.savefig(f"CirclePlot_with_Legend{suffix}.eps", dpi=600)
 
 #########################
 
@@ -208,15 +209,15 @@ nb_agents = 21750  #87000 = 10%, 43500 = 5%, 21750 = 2.5%, 8700 = 1%
 path_data = "D:/PhD EXPANSE/Data/Amsterdam/ABMRessources/ABMData"
 
 # scenario = "StatusQuo"
-scenario = "PrkPriceInterv"
+# scenario = "PrkPriceInterv"
 # scenario = "15mCityWithDestination"
 # scenario = "15mCity"
-# scenario = "NoEmissionZone2025"
+scenario = "NoEmissionZone2025"
 # scenario = "NoEmissionZone2030"
 
 cellsize = 50
 
-needCompAggdf = True
+needCompAggdf = False
 
 viztype = [
         "singleIntervention",

@@ -498,7 +498,8 @@ def plotCircosMeanStrat(stratexposure_df, subgroups, subgroupcolors, outcomevar,
                     innerText.text(centertext, x = innerText.start, color="black", adjust_rotation=False, orientation="horizontal" ,size=14)
 
         figure = circos.plotfig(dpi=600)
-        figure.savefig(f"CirclePlot_{outcomevar}_Subgroups_{suffix}.png", dpi=600)
+        # figure.savefig(f"CirclePlot_{outcomevar}_Subgroups_{suffix}.png", dpi=600)
+        figure.savefig(f"CirclePlot_{outcomevar}_Subgroups_{suffix}.eps", format='eps', dpi=600)
 
 
 def plotCircosMeanStratRelativ(stratexposure_df, subgroups, subgroupcolors, outcomevar, meanvalStatQ,meanvalScenario, roundval, centertext, redlinelabel = "Mean Exposure", rangeval = None, suffix = None):
@@ -608,7 +609,8 @@ def plotCircosMeanStratRelativ(stratexposure_df, subgroups, subgroupcolors, outc
         legend_elements.append(Line2D([0], [0], color="black", marker='o', lw=0, label=f"Exposure After Intervention"))
         figure = circos.plotfig(dpi=600)
         figure.legend(handles=legend_elements, loc='lower right', ncol=1, title = "Legend")
-        figure.savefig(f"CirclePlot_{outcomevar}_Subgroups_{suffix}.png", dpi=600)
+        # figure.savefig(f"CirclePlot_{outcomevar}_Subgroups_{suffix}.png", dpi=600)
+        figure.savefig(f"CirclePlot_{outcomevar}_Subgroups_{suffix}.eps", format='eps', dpi=600)
 
 
 
@@ -804,6 +806,8 @@ def plotCircosDiffNO2MET_Timeunits(aggexposure, subgroups, subgroupcolors,
         figure = circos.plotfig(dpi=600)
         figure.legend(handles=legend_elements, loc='lower right', ncol=1, title = "Subgroups")
         figure.savefig(f"CirclePlot_with_Legend{suffix}.png", dpi=600)
+        figure.savefig(f"CirclePlot_with_Legend{suffix}.eps", format='eps', dpi=600)
+
 
 
 def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, distance_meters, colormaplabel = None, vmax = None, vmin= None, outcomelabel = None):
@@ -819,6 +823,8 @@ def PlotPerNeighbOutcome(outcomvar, showplots, modelrun, spatialdata, distance_m
     plt.xlabel("Latitude (EPSG:28992)", fontsize=7.5)
     plt.ylabel("Longitude (EPSG:28992)", fontsize=7.5)
     plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.png', dpi = 600, bbox_inches='tight', pad_inches=0.1)
+    plt.savefig(f'{modelrun}_neighbmap_{outcomvar}.png', format='eps', dpi=600, bbox_inches='tight', pad_inches=0.1)
+
     if showplots:
         plt.show()
     plt.close()
@@ -886,10 +892,10 @@ path_data = "D:\PhD EXPANSE\Data\Amsterdam\ABMRessources\ABMData\ModelRuns"
 os.chdir(path_data)
 
 # scenario = "StatusQuo"
-scenario = "PrkPriceInterv"
+# scenario = "PrkPriceInterv"
 # scenario = "15mCity"
 # scenario = "15mCityWithDestination"
-# scenario = "NoEmissionZone2025"
+scenario = "NoEmissionZone2025"
 # scenario = "NoEmissionZone2030"
 
 
@@ -1490,27 +1496,27 @@ if "Mean across runs strat exposure diff Circle plot" in viztasks:
         print(f"DiffStatQ {outcomevar}:  Min value {minval}, Max value {maxval}")
     
 
-    # # Parking price
-    outcomedeviationrangeStatQMean = {
-        "NO2": [-3.75,-2.5, -1.25, 0,1.25],
-        "MET": [-0.04, -0.02, 0, 0.02, 0.04],
-        "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
-        "indoortime": [-1.5, -0.75, 0, 0.75, 1.5]
-    }
+    # # # Parking price
+    # outcomedeviationrangeStatQMean = {
+    #     "NO2": [-3.75,-2.5, -1.25, 0,1.25],
+    #     "MET": [-0.04, -0.02, 0, 0.02, 0.04],
+    #     "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
+    #     "indoortime": [-1.5, -0.75, 0, 0.75, 1.5]
+    # }
 
-    outcomedeviationrangeDiffStatQ = {
-        "NO2": [-0.21,-0.14,-0.07, 0,0.07],
-        "MET": [-0.03, -0.015, 0, 0.015, 0.03],
-        "NO2wFilter": [-0.09,-0.06,-0.03, 0,0.03],
-        "indoortime": [-0.008, -0.004, 0, 0.004, 0.008]
-    }
+    # outcomedeviationrangeDiffStatQ = {
+    #     "NO2": [-0.21,-0.14,-0.07, 0,0.07],
+    #     "MET": [-0.03, -0.015, 0, 0.015, 0.03],
+    #     "NO2wFilter": [-0.09,-0.06,-0.03, 0,0.03],
+    #     "indoortime": [-0.008, -0.004, 0, 0.004, 0.008]
+    # }
 
-    outcomedeviationrangeStatQRelative = {
-        "NO2": [-3.75,-2.5, -1.25, 0,1.25],
-        "MET": [-0.04, -0.02, 0, 0.02, 0.04],
-        "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
-        "indoortime": [-1.5, -0.75, 0, 0.75, 1.5]
-    }
+    # outcomedeviationrangeStatQRelative = {
+    #     "NO2": [-3.75,-2.5, -1.25, 0,1.25],
+    #     "MET": [-0.04, -0.02, 0, 0.02, 0.04],
+    #     "NO2wFilter": [-2.25, -1.5, -0.75, 0, 0.75],
+    #     "indoortime": [-1.5, -0.75, 0, 0.75, 1.5]
+    # }
     
     # # 15mcitywithDestination
     # outcomedeviationrangeStatQMean = {
@@ -1556,27 +1562,27 @@ if "Mean across runs strat exposure diff Circle plot" in viztasks:
     #     "indoortime": [-1.5, -0.75, 0, 0.75, 1.5]
     # }
     
-    # # No Emission Zone 2030
-    # outcomedeviationrangeStatQMean = {
-    #     "NO2": [-8,-6, -4, -2,0],
-    #     "MET": [0, 0.02, 0.04, 0.06, 0.08],
-    #     "NO2wFilter": [-4, -3, -2, -1, 0],
-    #     "indoortime": [-2.4,-1.6, -0.8, 0, 0.8]
-    # }
+    # No Emission Zone 2030
+    outcomedeviationrangeStatQMean = {
+        "NO2": [-8,-6, -4, -2,0],
+        "MET": [0, 0.02, 0.04, 0.06, 0.08],
+        "NO2wFilter": [-4, -3, -2, -1, 0],
+        "indoortime": [-2.4,-1.6, -0.8, 0, 0.8]
+    }
 
-    # outcomedeviationrangeDiffStatQ = {
-    #     "NO2": [-8,-6, -4, -2,0],
-    #     "MET": [0, 0.02, 0.04, 0.06, 0.08],
-    #     "NO2wFilter": [-4, -3, -2, -1, 0],
-    #     "indoortime": [-0.4, -0.3, -0.2, -0.1,0]
-    # }
+    outcomedeviationrangeDiffStatQ = {
+        "NO2": [-8,-6, -4, -2,0],
+        "MET": [0, 0.02, 0.04, 0.06, 0.08],
+        "NO2wFilter": [-4, -3, -2, -1, 0],
+        "indoortime": [-0.4, -0.3, -0.2, -0.1,0]
+    }
 
-    # outcomedeviationrangeStatQRelative = {
-    #     "NO2": [-7.5,-5, -2.5, 0,2.5],
-    #     "MET": [-0.025, 0, 0.025, 0.05, 0.075],
-    #     "NO2wFilter": [-4.5, -3, -1.5, 0, 1.5],
-    #     "indoortime": [-3,-2, -1, 0, 1]
-    # }
+    outcomedeviationrangeStatQRelative = {
+        "NO2": [-7.5,-5, -2.5, 0,2.5],
+        "MET": [-0.025, 0, 0.025, 0.05, 0.075],
+        "NO2wFilter": [-4.5, -3, -1.5, 0, 1.5],
+        "indoortime": [-3,-2, -1, 0, 1]
+    }
     
     # # No Emission Zone 2025
     # outcomedeviationrangeStatQMean = {
@@ -1671,17 +1677,17 @@ if "Mean across runs and Neighborhoods diff" in viztasks:
 
     showplots = False
     
-    # Parking price
-    maxvals = {"NO2_diff": 0, "MET_diff": 0.01, "NO2wFilter_diff": 0, "indoortime_diff": 0.02}
-    minvals = {"NO2_diff": -0.3, "MET_diff": -0.01, "NO2wFilter_diff": -0.15, "indoortime_diff": -0.03}
+    # # Parking price
+    # maxvals = {"NO2_diff": 0, "MET_diff": 0.01, "NO2wFilter_diff": 0, "indoortime_diff": 0.02}
+    # minvals = {"NO2_diff": -0.3, "MET_diff": -0.01, "NO2wFilter_diff": -0.15, "indoortime_diff": -0.03}
 
     # #No Emission Zone 2030
     # maxvals = {"NO2_diff": -4, "MET_diff": 0.04, "NO2wFilter_diff": -2, "indoortime_diff": 0}
     # minvals = {"NO2_diff": -8, "MET_diff": -0.04, "NO2wFilter_diff": -4, "indoortime_diff": -0.3}
     
-    # # No Emission Zone 2025
-    # maxvals = {"NO2_diff": -2, "MET_diff": 0.04, "NO2wFilter_diff": -1.5, "indoortime_diff": 0.3}
-    # minvals = {"NO2_diff": -5.5, "MET_diff": -0.04, "NO2wFilter_diff": -3, "indoortime_diff": -0.3}
+    # No Emission Zone 2025
+    maxvals = {"NO2_diff": -2, "MET_diff": 0.04, "NO2wFilter_diff": -1.5, "indoortime_diff": 0.3}
+    minvals = {"NO2_diff": -5.5, "MET_diff": -0.04, "NO2wFilter_diff": -3, "indoortime_diff": -0.3}
     
     # # 15 minute city with destination
     # maxvals = {"NO2_diff": 0, "MET_diff": 0.0, "NO2wFilter_diff": 0, "indoortime_diff": 1}
